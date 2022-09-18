@@ -10,10 +10,17 @@ type IntRange struct {
 	Step  int
 }
 
+func (r IntRange) iteratorEnd(i int) bool {
+	if r.Step > 0 {
+		return i <= r.End
+	}
+	return i >= r.End
+}
+
 func (r IntRange) Iterator() <-chan int {
 	ch := make(chan int)
 	go func() {
-		for i := r.Start; i != r.End; i += r.Step {
+		for i := r.Start; r.iteratorEnd(i); i += r.Step {
 			ch <- i
 		}
 		close(ch)

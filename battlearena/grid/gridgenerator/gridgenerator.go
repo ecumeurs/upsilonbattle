@@ -252,7 +252,7 @@ func (g *GridGenerator) generateRiver() *grid.Grid {
 	}
 
 	// determine river width
-	width := tools.RandomInt(3, 5)
+	width := tools.RandomInt(2, 4)
 
 	// determine river depth
 	waterlevel := tools.Min(tools.RandomInt(1, 3), tools.Max(0, gr.FindLowestLevel()-1))
@@ -274,18 +274,21 @@ func (g *GridGenerator) generateRiver() *grid.Grid {
 
 	for _, endpoint := range endpoints {
 		// seek nearest river position to endpoint
-		nearestRiverPosition, found := gr.FindNearestCellMatchingPredicate(endpoint, func(c *cell.Cell) bool {
+		nearestRiverCell, found := gr.FindNearestCellMatchingPredicate(endpoint, func(c *cell.Cell) bool {
 			return c.Type == cell.Water
 		})
 
 		if !found {
-			fmt.Printf("No river found near endpoint %v", endpoint)
-		} else {
-			fmt.Printf("Generating River from %v to %v", currentRiverPosition, nearestRiverPosition.Position)
+			fmt.Printf("No river found near endpoint %v\n", endpoint)
+		} else if nearestRiverCell.Position.Distance(endpoint) > 1 {
+			fmt.Printf("Generating River from %v to %v\n", currentRiverPosition, nearestRiverCell.Position)
 
 			// generate river from current position to endpoint
-			currentRiverPosition = g.generateRiverSegment(gr, nearestRiverPosition.Position, endpoint, width, waterlevel)
+			currentRiverPosition = g.generateRiverSegment(gr, nearestRiverCell.Position, endpoint, tools.RandomInt(2, 3), waterlevel)
+		} else {
+			fmt.Printf("River already present at endpoint %v\n", endpoint)
 		}
+
 	}
 
 	if g.GenerateObstrcution {
