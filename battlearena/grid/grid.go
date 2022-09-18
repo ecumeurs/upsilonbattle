@@ -29,6 +29,41 @@ func (g *Grid) CellAt(p position.Position) (*cell.Cell, bool) {
 	return nil, false
 }
 
+func (g *Grid) TopMostCellAt(x, y int) int {
+	it := tools.NewIntRange(g.Height, 0, -1).Iterator()
+	for z := range it {
+		pos := position.New(x, y, z)
+		_, found := g.Cells[pos]
+		if found {
+			return z
+		}
+	}
+	return -1
+}
+
+func (g *Grid) LowestCellAt(x, y int) int {
+	it := tools.NewIntRange(0, g.Height, 1).Iterator()
+	for z := range it {
+		pos := position.New(x, y, z)
+		if _, found := g.Cells[pos]; found {
+			return z
+		}
+	}
+	return -1
+}
+
+func (g *Grid) AllCellsAt(x, y int) []int {
+	res := []int{}
+	it := tools.NewIntRange(0, g.Height, 1).Iterator()
+	for z := range it {
+		pos := position.New(x, y, z)
+		if _, found := g.Cells[pos]; found {
+			res = append(res, z)
+		}
+	}
+	return res
+}
+
 func (g *Grid) TopMostGroundAt(x, y int) int {
 	it := tools.NewIntRange(g.Height, 0, -1).Iterator()
 	for z := range it {
@@ -37,7 +72,6 @@ func (g *Grid) TopMostGroundAt(x, y int) int {
 		if found && c.Type == cell.Ground {
 			return z
 		}
-
 	}
 	return -1
 }
@@ -145,7 +179,7 @@ func (g *Grid) generateCellAsObeliskCube(p position.Position) string {
 		if g.Cells[p].EntityUuid != uuid.Nil {
 			res += "color = new obelisk.CubeColor().getByHorizontalColor(" + hexColor(lighterColor(p.Z, g.Height, 0, 80), lighterColor(p.Z, g.Height, 0, 80), lighterColor(p.Z, g.Height, 0, 80)) + ");\n"
 		} else {
-			res += "color = new obelisk.CubeColor().getByHorizontalColor(" + hexColor(lighterColor(p.Z, g.Height, 120, 230), 255, lighterColor(p.Z, g.Height, 120, 230)) + ");\n"
+			res += "color = new obelisk.CubeColor().getByHorizontalColor(" + hexColor(lighterColor(p.Z, g.Height, 0, 180), 255, lighterColor(p.Z, g.Height, 0, 180)) + ");\n"
 		}
 	case cell.Obstacle:
 		res += "color = new obelisk.CubeColor().getByHorizontalColor(" + hexColor(255, lighterColor(p.Z, g.Height, 80, 160), lighterColor(p.Z, g.Height, 50, 130)) + ");\n"
@@ -153,6 +187,10 @@ func (g *Grid) generateCellAsObeliskCube(p position.Position) string {
 		res += "color = new obelisk.CubeColor().getByHorizontalColor(" + hexColor(lighterColor(p.Z, g.Height, 80, 160), lighterColor(p.Z, g.Height, 50, 130), 255) + ");\n"
 	case cell.Dirt:
 		res += "color = new obelisk.CubeColor().getByHorizontalColor(" + hexColor(150, 155, lighterColor(p.Z, g.Height, 50, 130)) + ");\n"
+	case cell.Debug:
+		res += "color = new obelisk.CubeColor().getByHorizontalColor(" + hexColor(255, lighterColor(p.Z, g.Height, 50, 130), 255) + ");\n"
+	case cell.Debug2:
+		res += "color = new obelisk.CubeColor().getByHorizontalColor(" + hexColor(255, 255, lighterColor(p.Z, g.Height, 50, 130)) + ");\n"
 	}
 	res += "cube = new obelisk.Cube(dimension, color, false);\n"
 	res += "pixelView.renderObject(cube, position);\n"
@@ -202,6 +240,7 @@ func (g *Grid) FindLowestLevel() int {
 
 // FindNearestCellMatchingPredicate returns the nearest cell matching the predicate
 func (g *Grid) FindNearestCellMatchingPredicate(p position.Position, predicate func(*cell.Cell) bool) (*cell.Cell, bool) {
+	p.Z = g.LowestCellAt(p.X, p.Y)
 	if !g.Contains(p) {
 		return nil, false
 	}
@@ -215,7 +254,7 @@ func (g *Grid) FindNearestCellMatchingPredicate(p position.Position, predicate f
 	for len(queue) > 0 {
 		pos := queue[0]
 		queue = queue[1:]
-		for _, n := range g.SelectPositionsByPattern(pos, pattern.Neighbours()) {
+		for _, n := range g.SelectPositionsByPattern2D(pos, pattern.Neighbours2D()) {
 			if visited[n] {
 				continue
 			}
@@ -250,7 +289,7 @@ func (g *Grid) SelectPositionsByPattern2D(origin position.Position, pat pattern.
 	res := []position.Position{}
 	for _, p := range pat {
 		pos := origin.Add(p)
-		pos.Z = g.TopMostGroundAt(pos.X, pos.Y)
+		pos.Z = g.TopMostCellAt(pos.X, pos.Y)
 		if g.Contains(pos) {
 			res = append(res, pos)
 		}

@@ -15,6 +15,8 @@ const (
 	Ground CellType = 1
 	Water  CellType = 2
 	Dirt   CellType = 3
+	Debug  CellType = 4
+	Debug2 CellType = 5
 )
 
 // Cell is a cell in the grid
