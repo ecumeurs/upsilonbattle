@@ -9,12 +9,12 @@ import (
 
 func TestGridGeneratorFlat(t *testing.T) {
 	gg := GridGenerator{}
-	gg.Width = tools.NewIntRange(20, 50, 1)
-	gg.Length = tools.NewIntRange(20, 50, 1)
-	gg.Height = tools.NewIntRange(10, 15, 1)
+	gg.Width = tools.NewIntRange(20, 50)
+	gg.Length = tools.NewIntRange(20, 50)
+	gg.Height = tools.NewIntRange(10, 15)
 	gg.GenerateObstrcution = true
 	gg.Type = Flat
-	gg.ObstructionRate = tools.NewIntRange(10, 50, 1)
+	gg.ObstructionRate = tools.NewIntRange(10, 50)
 
 	gr := gg.Generate()
 	res := gr.GenerateHTML()
@@ -24,12 +24,12 @@ func TestGridGeneratorFlat(t *testing.T) {
 
 func TestGridGeneratorHill(t *testing.T) {
 	gg := GridGenerator{}
-	gg.Width = tools.NewIntRange(20, 50, 1)
-	gg.Length = tools.NewIntRange(20, 50, 1)
-	gg.Height = tools.NewIntRange(10, 15, 1)
+	gg.Width = tools.NewIntRange(20, 50)
+	gg.Length = tools.NewIntRange(20, 50)
+	gg.Height = tools.NewIntRange(10, 15)
 	gg.GenerateObstrcution = true
 	gg.Type = Hill
-	gg.ObstructionRate = tools.NewIntRange(10, 50, 1)
+	gg.ObstructionRate = tools.NewIntRange(10, 50)
 
 	gr := gg.Generate()
 	res := gr.GenerateHTML()
@@ -39,12 +39,12 @@ func TestGridGeneratorHill(t *testing.T) {
 
 func TestGridGeneratorRiver(t *testing.T) {
 	gg := GridGenerator{}
-	gg.Width = tools.NewIntRange(20, 50, 1)
-	gg.Length = tools.NewIntRange(20, 50, 1)
-	gg.Height = tools.NewIntRange(10, 15, 1)
+	gg.Width = tools.NewIntRange(20, 50)
+	gg.Length = tools.NewIntRange(20, 50)
+	gg.Height = tools.NewIntRange(10, 15)
 	gg.GenerateObstrcution = true
 	gg.Type = River
-	gg.ObstructionRate = tools.NewIntRange(10, 50, 1)
+	gg.ObstructionRate = tools.NewIntRange(10, 50)
 
 	gr := gg.Generate()
 	res := gr.GenerateHTML()
