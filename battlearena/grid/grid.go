@@ -3,7 +3,6 @@ package grid
 import (
 	"fmt"
 
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/cell"
 	"github.com/ecumeurs/upsilonbattle/battlearena/position"
 	"github.com/ecumeurs/upsilonbattle/battlearena/position/pattern"
@@ -15,8 +14,7 @@ type Grid struct {
 	Length int
 	Height int
 
-	Entities map[uuid.UUID]*entity.Entity
-	Cells    map[position.Position]*cell.Cell
+	Cells map[position.Position]*cell.Cell
 }
 
 // CellAt
