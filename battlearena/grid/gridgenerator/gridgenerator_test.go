@@ -19,8 +19,7 @@ func TestGridGeneratorFlat(t *testing.T) {
 	gr := gg.Generate()
 	res := gr.GenerateHTML()
 	// store res to file result.svg
-	os.WriteFile("result.html", []byte(res), 0644)
-	t.Fail()
+	os.WriteFile("resultFlat.html", []byte(res), 0644)
 }
 
 func TestGridGeneratorHill(t *testing.T) {
@@ -35,8 +34,7 @@ func TestGridGeneratorHill(t *testing.T) {
 	gr := gg.Generate()
 	res := gr.GenerateHTML()
 	// store res to file result.svg
-	os.WriteFile("result.html", []byte(res), 0644)
-	t.Fail()
+	os.WriteFile("resultHill.html", []byte(res), 0644)
 }
 
 func TestGridGeneratorRiver(t *testing.T) {
@@ -51,6 +49,5 @@ func TestGridGeneratorRiver(t *testing.T) {
 	gr := gg.Generate()
 	res := gr.GenerateHTML()
 	// store res to file result.svg
-	os.WriteFile("result.html", []byte(res), 0644)
-	t.Fail()
+	os.WriteFile("resultRiver.html", []byte(res), 0644)
 }
