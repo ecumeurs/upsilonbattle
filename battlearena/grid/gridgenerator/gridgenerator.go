@@ -7,7 +7,7 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/cell"
 	"github.com/ecumeurs/upsilonbattle/battlearena/position"
 	"github.com/ecumeurs/upsilonbattle/battlearena/position/pattern"
-	"github.com/ecumeurs/upsilonbattle/tools"
+	"github.com/ecumeurs/upsilontools/tools"
 )
 
 type GridType int

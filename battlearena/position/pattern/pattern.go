@@ -2,7 +2,7 @@ package pattern
 
 import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/position"
-	"github.com/ecumeurs/upsilonbattle/tools"
+	"github.com/ecumeurs/upsilontools/tools"
 )
 
 type Pattern []position.Position
