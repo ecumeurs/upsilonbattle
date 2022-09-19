@@ -1,11 +1,10 @@
 package ruler
 
 import (
-	"github.com/ecumeurs/upsilonbattle/battlearena/controller"
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid"
-	"github.com/ecumeurs/upsilonbattle/battlearena/position"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/controllervalidator"
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/turner"
 	"github.com/ecumeurs/upsilontools/tools/actor"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
@@ -46,63 +45,26 @@ func NewRuler() Ruler {
 	return r
 }
 
-type AddController struct {
-	Controller *controller.Controller
-}
-
-type GetState struct{}
-
-type GetGridState struct {
-	AsController uuid.UUID // if left to nil, will reply with full display of the grid.
-}
-
-type GetEntitiesState struct {
-	AsController uuid.UUID // if left to nil, will reply with all informations.
-}
-
-type ControllerMove struct {
-	ControllerID uuid.UUID
-	EntityID     uuid.UUID
-	Path         []position.Position
-}
-
-type ControllerAttack struct {
-	ControllerID uuid.UUID
-	EntityID     uuid.UUID
-	Target       position.Position
-}
-
-type NotifyController struct {
-	ControllerID uuid.UUID
-	EntityID     uuid.UUID
-	Message      string
-}
-
-type EndOfTurn struct {
-	ControllerID uuid.UUID
-	EntityID     uuid.UUID
-}
-
 func (r *Ruler) handleMessage(msg message.Message) {
 	switch msg.TargetMethod.(type) {
-	case AddController:
-		r.AddController(msg, msg.TargetMethod.(AddController))
-	case GetState:
+	case rulermethods.AddController:
+		r.AddController(msg, msg.TargetMethod.(rulermethods.AddController))
+	case rulermethods.GetState:
 		r.GetState(msg)
-	case GetGridState:
+	case rulermethods.GetGridState:
 		r.GetGridState(msg)
-	case GetEntitiesState:
-		r.GetEntitiesState(msg, msg.TargetMethod.(GetEntitiesState))
-	case ControllerMove:
-		r.ControllerMove(msg, msg.TargetMethod.(ControllerMove))
-	case ControllerAttack:
-		r.ControllerAttack(msg, msg.TargetMethod.(ControllerAttack))
-	case NotifyController:
-		r.NotifyController(msg, msg.TargetMethod.(NotifyController))
+	case rulermethods.GetEntitiesState:
+		r.GetEntitiesState(msg, msg.TargetMethod.(rulermethods.GetEntitiesState))
+	case rulermethods.ControllerMove:
+		r.ControllerMove(msg, msg.TargetMethod.(rulermethods.ControllerMove))
+	case rulermethods.ControllerAttack:
+		r.ControllerAttack(msg, msg.TargetMethod.(rulermethods.ControllerAttack))
+	case rulermethods.NotifyController:
+		r.NotifyController(msg, msg.TargetMethod.(rulermethods.NotifyController))
 	}
 }
 
-func (r *Ruler) AddController(msg message.Message, req AddController) {
+func (r *Ruler) AddController(msg message.Message, req rulermethods.AddController) {
 	// Create a new controller validator
 	// reply with current map state (as visible for controller)
 	// reply with current entities state (as visible for controller)
@@ -120,13 +82,13 @@ func (r *Ruler) GetGridState(msg message.Message) {
 	// reply with the grid state (opaque to the client)
 }
 
-func (r *Ruler) GetEntitiesState(msg message.Message, req GetEntitiesState) {
+func (r *Ruler) GetEntitiesState(msg message.Message, req rulermethods.GetEntitiesState) {
 	// reply with the entities state (opaque to the client)
 	// will also return the current turn state (as visible for controller)
 	// especially if one of these entity should act
 }
 
-func (r *Ruler) ControllerMove(msg message.Message, req ControllerMove) {
+func (r *Ruler) ControllerMove(msg message.Message, req rulermethods.ControllerMove) {
 	// Check if the controller is allowed to move the entity
 	// Check if the path is valid
 	// Move the entity
@@ -134,7 +96,7 @@ func (r *Ruler) ControllerMove(msg message.Message, req ControllerMove) {
 	// reply with the new entities state (opaque to the client)
 }
 
-func (r *Ruler) ControllerAttack(msg message.Message, req ControllerAttack) {
+func (r *Ruler) ControllerAttack(msg message.Message, req rulermethods.ControllerAttack) {
 	// Check if the controller is allowed to attack with the entity
 	// Check if the attack is valid
 	// Attack
@@ -143,11 +105,11 @@ func (r *Ruler) ControllerAttack(msg message.Message, req ControllerAttack) {
 	// reply with the oppenent entity state (opaque to the client)
 }
 
-func (r *Ruler) NotifyController(msg message.Message, req NotifyController) {
+func (r *Ruler) NotifyController(msg message.Message, req rulermethods.NotifyController) {
 	// Notify the controller of a message
 }
 
-func (r *Ruler) EndOfTurn(msg message.Message, req EndOfTurn) {
+func (r *Ruler) EndOfTurn(msg message.Message, req rulermethods.EndOfTurn) {
 	// Check if the controller is allowed to end the turn
 	// Check if the entity is allowed to end the turn
 	// End the turn
