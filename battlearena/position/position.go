@@ -3,7 +3,7 @@ package position
 import (
 	"fmt"
 
-	"github.com/ecumeurs/upsilonbattle/tools"
+	"github.com/ecumeurs/upsilontools/tools"
 )
 
 // Position is a position in the grid

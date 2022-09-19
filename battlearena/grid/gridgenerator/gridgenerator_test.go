@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ecumeurs/upsilonbattle/tools"
+	"github.com/ecumeurs/upsilontools/tools"
 )
 
 func TestGridGeneratorFlat(t *testing.T) {
