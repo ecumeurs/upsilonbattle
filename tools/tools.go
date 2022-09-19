@@ -7,29 +7,10 @@ import (
 type IntRange struct {
 	Start int
 	End   int
-	Step  int
 }
 
-func (r IntRange) iteratorEnd(i int) bool {
-	if r.Step > 0 {
-		return i <= r.End
-	}
-	return i >= r.End
-}
-
-func (r IntRange) Iterator() <-chan int {
-	ch := make(chan int)
-	go func() {
-		for i := r.Start; r.iteratorEnd(i); i += r.Step {
-			ch <- i
-		}
-		close(ch)
-	}()
-	return ch
-}
-
-func NewIntRange(start, end, step int) IntRange {
-	return IntRange{start, end, step}
+func NewIntRange(start, end int) IntRange {
+	return IntRange{start, end}
 }
 
 func (r IntRange) Random() int {
@@ -72,10 +53,6 @@ func FloatDistance3D(x, y, z, x2, y2, z2 float64) float64 {
 
 func LinearProgressionAt(min_y, max_y, min_x, max_x, x int) int {
 	return min_y + (max_y-min_y)*(x-min_x)/(max_x-min_x)
-}
-
-func CubicProgressionAt(min_y, max_y, min_x, max_x, x int) int {
-	return min_y + (max_y-min_y)*(x-min_x)*(x-min_x)*(x-min_x)/(max_x-min_x)/(max_x-min_x)/(max_x-min_x)
 }
 
 func Min(x, y int) int {

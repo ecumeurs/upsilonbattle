@@ -7,7 +7,6 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/cell"
 	"github.com/ecumeurs/upsilonbattle/battlearena/position"
 	"github.com/ecumeurs/upsilonbattle/battlearena/position/pattern"
-	"github.com/ecumeurs/upsilonbattle/tools"
 	"github.com/google/uuid"
 )
 
@@ -30,8 +29,7 @@ func (g *Grid) CellAt(p position.Position) (*cell.Cell, bool) {
 }
 
 func (g *Grid) TopMostCellAt(x, y int) int {
-	it := tools.NewIntRange(g.Height, 0, -1).Iterator()
-	for z := range it {
+	for z := g.Height; z >= 0; z-- {
 		pos := position.New(x, y, z)
 		_, found := g.Cells[pos]
 		if found {
@@ -42,8 +40,7 @@ func (g *Grid) TopMostCellAt(x, y int) int {
 }
 
 func (g *Grid) LowestCellAt(x, y int) int {
-	it := tools.NewIntRange(0, g.Height, 1).Iterator()
-	for z := range it {
+	for z := 0; z <= g.Height; z++ {
 		pos := position.New(x, y, z)
 		if _, found := g.Cells[pos]; found {
 			return z
@@ -54,8 +51,7 @@ func (g *Grid) LowestCellAt(x, y int) int {
 
 func (g *Grid) AllCellsAt(x, y int) []int {
 	res := []int{}
-	it := tools.NewIntRange(0, g.Height, 1).Iterator()
-	for z := range it {
+	for z := 0; z <= g.Height; z++ {
 		pos := position.New(x, y, z)
 		if _, found := g.Cells[pos]; found {
 			res = append(res, z)
@@ -65,8 +61,7 @@ func (g *Grid) AllCellsAt(x, y int) []int {
 }
 
 func (g *Grid) TopMostGroundAt(x, y int) int {
-	it := tools.NewIntRange(g.Height, 0, -1).Iterator()
-	for z := range it {
+	for z := g.Height; z >= 0; z-- {
 		pos := position.New(x, y, z)
 		c, found := g.Cells[pos]
 		if found && c.Type == cell.Ground {
@@ -77,8 +72,7 @@ func (g *Grid) TopMostGroundAt(x, y int) int {
 }
 
 func (g *Grid) LowestGroundAt(x, y int) int {
-	it := tools.NewIntRange(0, g.Height, 1).Iterator()
-	for z := range it {
+	for z := 0; z <= g.Height; z++ {
 		pos := position.New(x, y, z)
 		if c, found := g.Cells[pos]; found && c.Type == cell.Ground {
 			return z
@@ -89,8 +83,7 @@ func (g *Grid) LowestGroundAt(x, y int) int {
 
 func (g *Grid) AllGroundAt(x, y int) []int {
 	res := []int{}
-	it := tools.NewIntRange(0, g.Height, 1).Iterator()
-	for z := range it {
+	for z := 0; z <= g.Height; z++ {
 		pos := position.New(x, y, z)
 		if c, found := g.Cells[pos]; found && c.Type == cell.Ground {
 			res = append(res, z)

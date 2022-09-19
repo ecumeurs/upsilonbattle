@@ -173,8 +173,7 @@ func (g *GridGenerator) generateHill() *grid.Grid {
 	g.GenerateObstrcution = false
 	gr := g.generateFlat()
 	g.GenerateObstrcution = ob
-	it := tools.NewIntRange(1, 5, 1).Iterator()
-	for range it {
+	for it := 0; it < tools.RandomInt(1, 5); it++ {
 		x := tools.RandomInt(0, gr.Width)
 		y := tools.RandomInt(0, gr.Length)
 		z := gr.TopMostGroundAt(x, y)
@@ -196,9 +195,6 @@ func (g *GridGenerator) generateHill() *grid.Grid {
 					dist := tools.FloatDistance(float64(x2), float64(y2), float64(x), float64(y))
 					// calculate the height of the ground at this distance from the center of the hill
 					height := hillheight + int(float64(hillheight)*(1.0-dist/float64(hillsize)))
-
-					//height := tools.LinearProgressionAt(z, hillheight, 0, 2*hillsize, 2*hillsize-int(dist))
-
 					nearestHeight := adjascentNearestHeight(gr, position.New(x2, y2, height), height)
 					if nearestHeight < height-2 {
 						height = nearestHeight + 2
@@ -243,8 +239,7 @@ func (g *GridGenerator) generateRiver() *grid.Grid {
 	origin := position.RandomBorderPosition(gr.Width, gr.Length, gr.Height)
 	origin, _ = gr.ForcePositionToGround(origin)
 	endpoints := []position.Position{}
-	it := tools.NewIntRange(1, tools.RandomInt(1, 3), 1).Iterator()
-	for range it {
+	for i := 0; i < tools.RandomInt(1, 3); i++ {
 		// determine river end point
 		end := position.RandomBorderPosition(gr.Width, gr.Length, gr.Height)
 		end, _ = gr.ForcePositionToGround(end)
@@ -258,8 +253,7 @@ func (g *GridGenerator) generateRiver() *grid.Grid {
 	waterlevel := tools.Min(tools.RandomInt(1, 3), tools.Max(0, gr.FindLowestLevel()-1))
 
 	waypoints := []position.Position{}
-	it = tools.NewIntRange(1, tools.RandomInt(1, 3), 1).Iterator()
-	for range it {
+	for i := 0; i < tools.RandomInt(1, 3); i++ {
 		// determine river waypoints
 		waypoint := position.RandomPosition(gr.Width, gr.Length, gr.Height)
 		waypoint, _ = gr.ForcePositionToGround(waypoint)
