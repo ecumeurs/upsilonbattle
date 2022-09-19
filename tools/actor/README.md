@@ -22,20 +22,34 @@ type MyActor struct {
 type MyMethod struct {}
 
 func (a *MyActor) Init() {
-    a.Actor.Start()
+    a.Start()
     a.ReceiveMessageHandler =  a.ReceiveMessage
 }
 
-func (a *Actor) ReceiveMessage(msg message.Message) {
+func (a *MyMethod) ReceiveMessage(msg message.Message) {
     select msg.TargetMethod.(type) {
         case MyMethod:
             a.MyMethod(msg)
     }
 }
 
-func (a *Actor) MyMethod(msg message.Message) {
+func (a *MyMethod) MyMethod(msg message.Message) {
     // Do something
+    a.Reply(msg.Reply())
 }
 ```
 
 Then you can create a new instance of your actor and send it a message.
+
+```go
+act := MyActor{}
+act.Init()
+req := message.New()
+req.TargetMethod = MyMethod{}
+
+resChan := make(chan message.Message)
+defer close(resChan)
+act.SendMessage(req, resChan)
+
+<-resChan
+```
