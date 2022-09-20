@@ -77,3 +77,8 @@ func ContainedIn(p Position, positions []Position) bool {
 func (p Position) Substract(p2 Position) Position {
 	return New(p.X-p2.X, p.Y-p2.Y, p.Z-p2.Z)
 }
+
+// IsAdjacent tell wether a position is adjascent on x,y axes and allows height difference as provided by parameter
+func (p Position) IsAdjacent(p2 Position, allowedJump int) bool {
+	return (p.X == p2.X && tools.Abs(p.Y-p2.Y) == 1 && tools.Abs(p.Z-p2.Z) <= allowedJump) || (p.Y == p2.Y && tools.Abs(p.X-p2.X) == 1 && tools.Abs(p.Z-p2.Z) <= allowedJump)
+}
