@@ -31,6 +31,15 @@ func (t *Turner) AddEntity(entityid uuid.UUID, delay int) {
 	}
 }
 
+func (t *Turner) RemoveEntity(entityid uuid.UUID) {
+	for i := range t.Turns {
+		if t.Turns[i].entityid == entityid {
+			t.Turns = append(t.Turns[:i], t.Turns[i+1:]...)
+			return
+		}
+	}
+}
+
 func (t *Turner) NextTurn() uuid.UUID {
 	if len(t.Turns) == 0 {
 		return uuid.Nil

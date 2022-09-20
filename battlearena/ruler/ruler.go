@@ -334,6 +334,7 @@ func (r *Ruler) controllerAttack(msg message.Message, req rulermethods.Controlle
 
 	r.Grid.RemoveEntity(foe.Position)
 	r.Entities[foe.ID] = nil
+	r.Turner.RemoveEntity(foe.ID)
 
 	// notify foe controller of the attack.
 
