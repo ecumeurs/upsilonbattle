@@ -25,8 +25,9 @@ func NewBattleArena() BattleArena {
 	return ba
 }
 
-func (b *BattleArena) handleMessage(msg message.Message) {
+func (b *BattleArena) handleMessage(msg message.Message) bool {
 	switch msg.TargetMethod.(type) {
 
 	}
+	return false
 }
