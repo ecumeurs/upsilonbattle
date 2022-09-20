@@ -15,6 +15,7 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/turner"
 	"github.com/ecumeurs/upsilontools/tools"
 	"github.com/ecumeurs/upsilontools/tools/actor"
+	"github.com/ecumeurs/upsilontools/tools/messagequeue"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
 )
@@ -42,7 +43,7 @@ func (g GameState) String() string {
 }
 
 type Ruler struct {
-	act          actor.Actor
+	act          *actor.Actor
 	Controllers  map[uuid.UUID]*controller.Controller
 	Turner       turner.Turner
 	Grid         *grid.Grid
@@ -55,6 +56,7 @@ type Ruler struct {
 
 func NewRuler() Ruler {
 	r := Ruler{
+		act:          actor.New("Ruler"),
 		Controllers:  make(map[uuid.UUID]*controller.Controller),
 		Turner:       turner.NewTurner(),
 		Grid:         nil,
@@ -74,7 +76,7 @@ func NewRuler() Ruler {
 
 	r.Grid = gg.Generate()
 
-	r.NbControllers = tools.NewIntRange(2, 4).Random()
+	r.NbControllers = 2
 	r.NbEntitiesPerController = tools.NewIntRange(2, 3).Random()
 	nbEntities := r.NbEntitiesPerController * r.NbControllers
 
@@ -89,34 +91,52 @@ func NewRuler() Ruler {
 		r.Turner.AddEntity(e.ID, e.CurrentDelay)
 	}
 
+	r.act.Start()
+
 	return r
 }
 
-func (r *Ruler) handleReply(msg message.Message) {
+// Access to the Message Queue ...
+func (r *Ruler) GetMQ() *messagequeue.MessageQueue {
+	return r.act.GetQueue()
+}
+
+func (r *Ruler) handleReply(msg message.Message) bool {
 	// Handle reply from other actors
 	switch msg.TargetMethod.(type) {
 	}
+
+	return false
 }
 
-func (r *Ruler) handleMessage(msg message.Message) {
+func (r *Ruler) handleMessage(msg message.Message) bool {
 	switch msg.TargetMethod.(type) {
 	case rulermethods.AddController:
 		r.addController(msg, msg.TargetMethod.(rulermethods.AddController))
+		return true
 	case rulermethods.GetState:
 		r.getState(msg)
+		return true
 	case rulermethods.GetGridState:
 		r.getGridState(msg)
+		return true
 	case rulermethods.GetEntitiesState:
 		r.getEntitiesState(msg, msg.TargetMethod.(rulermethods.GetEntitiesState))
+		return true
 	case rulermethods.ControllerMove:
 		r.controllerMove(msg, msg.TargetMethod.(rulermethods.ControllerMove))
+		return true
 	case rulermethods.ControllerAttack:
 		r.controllerAttack(msg, msg.TargetMethod.(rulermethods.ControllerAttack))
+		return true
 	case rulermethods.NotifyController:
 		r.notifyController(msg, msg.TargetMethod.(rulermethods.NotifyController))
+		return true
 	case rulermethods.EndOfTurn:
 		r.endOfTurn(msg, msg.TargetMethod.(rulermethods.EndOfTurn))
+		return true
 	}
+	return false
 }
 
 func (r *Ruler) addController(msg message.Message, req rulermethods.AddController) {
