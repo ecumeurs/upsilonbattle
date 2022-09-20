@@ -1,9 +1,9 @@
 package ruler
 
 import (
+	"github.com/ecumeurs/upsilonbattle/battlearena/controller"
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid"
-	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/controllervalidator"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/turner"
 	"github.com/ecumeurs/upsilontools/tools/actor"
@@ -20,21 +20,21 @@ const (
 )
 
 type Ruler struct {
-	act                  actor.Actor
-	ControllerValidators map[uuid.UUID]controllervalidator.ControllerValidator
-	Turner               turner.Turner
-	Grid                 *grid.Grid
-	Entities             map[uuid.UUID]*entity.Entity
-	CurrentState         GameState
+	act          actor.Actor
+	Controllers  map[uuid.UUID]*controller.Controller
+	Turner       turner.Turner
+	Grid         *grid.Grid
+	Entities     map[uuid.UUID]*entity.Entity
+	CurrentState GameState
 }
 
 func NewRuler() Ruler {
 	r := Ruler{
-		ControllerValidators: make(map[uuid.UUID]controllervalidator.ControllerValidator),
-		Turner:               turner.NewTurner(),
-		Grid:                 nil,
-		Entities:             make(map[uuid.UUID]*entity.Entity),
-		CurrentState:         WaitingForControllers,
+		Controllers:  make(map[uuid.UUID]*controller.Controller),
+		Turner:       turner.NewTurner(),
+		Grid:         nil,
+		Entities:     make(map[uuid.UUID]*entity.Entity),
+		CurrentState: WaitingForControllers,
 	}
 	r.act.SetReceiveMessageHandler(r.handleMessage)
 

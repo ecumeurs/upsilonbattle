@@ -46,6 +46,9 @@ ATM:
 * Per movement: +200
 * Per attack: +500
 * Per timeout: +1000
+* End of turn: +500
+
+Expect attacks to be variable in the future. Expect movement to be affected by the terrain. Expect delay of other entities to be affected by entities techniques.
 
 ## Controller Validators
 
