@@ -10,20 +10,25 @@ type entityturn struct {
 }
 
 type Turner struct {
-	Turns []entityturn
+	Turns             []entityturn
+	CurrentEntityTurn uuid.UUID
 }
 
 func NewTurner() Turner {
 	return Turner{
-		Turns: make([]entityturn, 0),
+		Turns:             make([]entityturn, 0),
+		CurrentEntityTurn: uuid.Nil,
 	}
 }
 
 func (t *Turner) AddEntity(entityid uuid.UUID, delay int) {
-	t.Turns = append(t.Turns, entityturn{
-		entityid: entityid,
-		delay:    delay,
-	})
+	//insert entity at the right place according to delay
+	for i := range t.Turns {
+		if t.Turns[i].delay > delay {
+			t.Turns = append(t.Turns[:i], append([]entityturn{{entityid, delay}}, t.Turns[i:]...)...)
+			return
+		}
+	}
 }
 
 func (t *Turner) NextTurn() uuid.UUID {
@@ -32,5 +37,11 @@ func (t *Turner) NextTurn() uuid.UUID {
 	}
 	turn := t.Turns[0]
 	t.Turns = t.Turns[1:]
+	// remove from remaining turns the delay of current turn
+	for i := range t.Turns {
+		t.Turns[i].delay -= turn.delay
+	}
+
+	t.CurrentEntityTurn = turn.entityid
 	return turn.entityid
 }

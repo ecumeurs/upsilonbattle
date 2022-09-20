@@ -2,7 +2,10 @@ package rulermethods
 
 import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller"
+	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
+	"github.com/ecumeurs/upsilonbattle/battlearena/grid"
 	"github.com/ecumeurs/upsilonbattle/battlearena/position"
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/turner"
 	"github.com/google/uuid"
 )
 
@@ -46,3 +49,45 @@ type EndOfTurn struct {
 }
 
 // Output struct
+
+type AddControllerReply struct {
+	ControllerID uuid.UUID
+	Grid         *grid.Grid
+	Entities     []entity.Entity
+	TurnState    turner.Turner
+}
+
+type GetStateReply struct {
+	GameState               string
+	NbControllers           int
+	NbControllersExpected   int
+	NbEntitiesPerController int
+	CurrentEntityTurn       uuid.UUID
+}
+
+type GetGridStateReply struct {
+	Grid *grid.Grid
+}
+
+type GetEntitiesStateReply struct {
+	Entities  []entity.Entity
+	TurnState turner.Turner
+}
+
+type ControllerMoveReply struct {
+	Entity entity.Entity
+}
+
+type ControllerAttackReply struct {
+	Entity entity.Entity
+}
+
+type ControllerAttacked struct {
+	Entity   entity.Entity
+	Attacker entity.Entity
+}
+
+type ControllerNextTurn struct {
+	Entity    entity.Entity
+	TurnState turner.Turner
+}

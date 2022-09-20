@@ -12,7 +12,13 @@ type SetValidatorAndQueue struct {
 	Queue     *messagequeue.MessageQueue
 }
 
-type Send struct{}
+// and forget
+type Send struct {
+	actor.NoReply
+}
+
+type SendExpectReply struct {
+}
 
 type ReceiveAPIMessage struct {
 	actor.NoReply

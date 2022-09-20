@@ -2,6 +2,7 @@ package grid
 
 import (
 	"fmt"
+	"math/rand"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/cell"
 	"github.com/ecumeurs/upsilonbattle/battlearena/position"
@@ -15,6 +16,46 @@ type Grid struct {
 	Height int
 
 	Cells map[position.Position]*cell.Cell
+}
+
+// RandomPosition returns a random valid position in the grid
+func (g *Grid) RandomPosition() position.Position {
+	for {
+		x := rand.Intn(g.Width)
+		y := rand.Intn(g.Length)
+		z := g.TopMostGroundAt(x, y)
+		pos := position.New(x, y, z)
+		// check if there is a ground cell
+		if _, found := g.CellAt(pos); found {
+			return pos
+		}
+	}
+}
+
+// MoveEntity moves an entity from one position to another
+func (g *Grid) MoveEntity(from, to position.Position, EntityID uuid.UUID) error {
+	if !g.Contains(to) {
+		return fmt.Errorf("to position %v is not in the grid", to)
+	}
+	c, ok := g.CellAt(from)
+	if ok {
+		c.EntityID = uuid.Nil
+	}
+	c, ok = g.CellAt(to)
+	if ok {
+		c.EntityID = EntityID
+	} else {
+		return fmt.Errorf("to position %v is not in the grid", to)
+	}
+	return nil
+}
+
+// RemoveEntity
+func (g *Grid) RemoveEntity(p position.Position) {
+	if !g.Contains(p) {
+		return
+	}
+	g.Cells[p].EntityID = uuid.Nil
 }
 
 // CellAt
@@ -115,7 +156,7 @@ func (g *Grid) Display() {
 				}
 				switch c.Type {
 				case cell.Ground:
-					if c.EntityUuid == uuid.Nil {
+					if c.EntityID == uuid.Nil {
 						print(".")
 					} else {
 						print("x")
@@ -167,7 +208,7 @@ func (g *Grid) generateCellAsObeliskCube(p position.Position) string {
 	res += fmt.Sprintf("position = new obelisk.Point3D(%d, %d, %d);\n", p.X*20, p.Y*20, p.Z*20)
 	switch g.Cells[p].Type {
 	case cell.Ground:
-		if g.Cells[p].EntityUuid != uuid.Nil {
+		if g.Cells[p].EntityID != uuid.Nil {
 			res += "color = new obelisk.CubeColor().getByHorizontalColor(" + hexColor(lighterColor(p.Z, g.Height, 0, 80), lighterColor(p.Z, g.Height, 0, 80), lighterColor(p.Z, g.Height, 0, 80)) + ");\n"
 		} else {
 			res += "color = new obelisk.CubeColor().getByHorizontalColor(" + hexColor(lighterColor(p.Z, g.Height, 0, 180), 255, lighterColor(p.Z, g.Height, 0, 180)) + ");\n"

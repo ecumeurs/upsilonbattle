@@ -21,7 +21,7 @@ const (
 
 // Cell is a cell in the grid
 type Cell struct {
-	Type       CellType
-	EntityUuid uuid.UUID
-	Position   position.Position
+	Type     CellType
+	EntityID uuid.UUID
+	Position position.Position
 }
