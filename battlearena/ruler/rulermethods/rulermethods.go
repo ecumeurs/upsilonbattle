@@ -91,3 +91,12 @@ type ControllerNextTurn struct {
 	Entity    entity.Entity
 	TurnState turner.Turner
 }
+
+type BattleStart struct {
+	TurnState turner.Turner
+}
+
+type BattleEnd struct {
+	WinnerControllerID uuid.UUID
+	WinnerName         string
+}

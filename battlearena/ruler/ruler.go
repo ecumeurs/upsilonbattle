@@ -154,6 +154,29 @@ func (r *Ruler) addController(msg message.Message, req rulermethods.AddControlle
 	}
 
 	r.act.Reply(reply)
+
+	// check if game is ready to begin.
+	if len(r.Controllers) == r.NbControllers {
+		r.CurrentState = InProgress
+		// Select first entity to play
+		entID := r.Turner.NextTurn()
+		ent := r.Entities[entID]
+		ent.CurrentDelay = 0
+		r.Entities[entID] = ent
+
+		// notify all controller that the game is about to start.
+		for _, c := range r.Controllers {
+			c.NotifyActor(message.Create(controllermethods.Send{}, rulermethods.BattleStart{
+				TurnState: r.Turner,
+			}, nil))
+		}
+
+		// notify controller of his turn
+		r.Controllers[ent.ControllerID].NotifyActor(message.Create(controllermethods.Send{}, rulermethods.ControllerNextTurn{
+			Entity:    *ent,
+			TurnState: r.Turner,
+		}, nil))
+	}
 }
 
 func (r *Ruler) getState(msg message.Message) {
@@ -213,6 +236,12 @@ func (r *Ruler) checkControllerForEntity(controllerID uuid.UUID, entityID uuid.U
 }
 
 func (r *Ruler) controllerMove(msg message.Message, req rulermethods.ControllerMove) {
+	// check gamestate
+	if r.CurrentState != InProgress {
+		r.act.Reply(msg.ReplyWithError("Game is not in progress", "game.not.in.progress"))
+		return
+	}
+
 	// Check if the controller is allowed to move the entity
 	if !r.checkControllerForEntity(req.ControllerID, req.EntityID) {
 		r.act.Reply(msg.ReplyWithError("Controller is not allowed to move this entity", "entity.controller.missmatch"))
@@ -261,6 +290,12 @@ func (r *Ruler) controllerMove(msg message.Message, req rulermethods.ControllerM
 }
 
 func (r *Ruler) controllerAttack(msg message.Message, req rulermethods.ControllerAttack) {
+	// check gamestate
+	if r.CurrentState != InProgress {
+		r.act.Reply(msg.ReplyWithError("Game is not in progress", "game.not.in.progress"))
+		return
+	}
+
 	// Check if the controller is allowed to move the entity
 	if !r.checkControllerForEntity(req.ControllerID, req.EntityID) {
 		r.act.Reply(msg.ReplyWithError("Controller is not allowed to move this entity", "entity.controller.missmatch"))
@@ -330,6 +365,12 @@ func (r *Ruler) notifyController(msg message.Message, req rulermethods.NotifyCon
 }
 
 func (r *Ruler) endOfTurn(msg message.Message, req rulermethods.EndOfTurn) {
+	// check gamestate
+	if r.CurrentState != InProgress {
+		r.act.Reply(msg.ReplyWithError("Game is not in progress", "game.not.in.progress"))
+		return
+	}
+
 	// Check if the controller is allowed to end the turn
 	// Check if the controller is allowed to move the entity
 	if !r.checkControllerForEntity(req.ControllerID, req.EntityID) {
@@ -390,4 +431,31 @@ func (r *Ruler) endOfTurn(msg message.Message, req rulermethods.EndOfTurn) {
 	}
 
 	r.act.Reply(msg.Reply())
+
+	// check end of game. End of game is decided when all remaining entities are from the same controller
+	remainingController := make(map[uuid.UUID]bool)
+	remainingControllerID := uuid.Nil
+	for _, ent := range r.Entities {
+		if ent != nil {
+			remainingController[ent.ControllerID] = true
+			remainingControllerID = ent.ControllerID
+		}
+	}
+
+	if len(remainingController) == 1 {
+		// End of game
+		r.CurrentState = Finished
+
+		// notify all controllers of the end of the game
+		for _, ctrl := range r.Controllers {
+			ctrl.NotifyActor(message.Message{
+				TargetMethod: controllermethods.Send{},
+				Content: rulermethods.BattleEnd{
+					WinnerControllerID: remainingControllerID,
+					WinnerName:         r.Controllers[remainingControllerID].ControllerName,
+				},
+			})
+		}
+
+	}
 }
