@@ -116,22 +116,31 @@ func PathTo(pos position.Position) Pattern {
 			break
 		}
 		p = append(p, pos)
-		if pos.X > 0 {
-			pos.X--
-		} else if pos.X < 0 {
-			pos.X++
-		}
-		if pos.Y > 0 {
-			pos.Y--
-		} else if pos.Y < 0 {
-			pos.Y++
-		}
-		if pos.Z > 0 {
-			pos.Z--
-		} else if pos.Z < 0 {
-			pos.Z++
+		if pos.X != 0 && tools.Abs(pos.X) > tools.Abs(pos.Y) {
+			if pos.X > 0 {
+				pos.X--
+			} else if pos.X < 0 {
+				pos.X++
+			}
+		} else if pos.Y != 0 && tools.Abs(pos.Y) < tools.Abs(pos.Z) {
+			if pos.Y > 0 {
+				pos.Y--
+			} else if pos.Y < 0 {
+				pos.Y++
+			}
+		} else {
+			if pos.Z > 0 {
+				pos.Z--
+			} else if pos.Z < 0 {
+				pos.Z++
+			}
 		}
 	}
+	// reverse pattern
+	for i, j := 0, len(p)-1; i < j; i, j = i+1, j-1 {
+		p[i], p[j] = p[j], p[i]
+	}
+
 	return p
 }
 
@@ -213,17 +222,26 @@ func PathTo2D(pos position.Position) Pattern2D {
 			break
 		}
 		p = append(p, pos)
-		if pos.X > 0 {
-			pos.X--
-		} else if pos.X < 0 {
-			pos.X++
-		}
-		if pos.Y > 0 {
-			pos.Y--
-		} else if pos.Y < 0 {
-			pos.Y++
+		if pos.X != 0 && tools.Abs(pos.X) > tools.Abs(pos.Y) {
+			if pos.X > 0 {
+				pos.X--
+			} else if pos.X < 0 {
+				pos.X++
+			}
+		} else {
+			if pos.Y > 0 {
+				pos.Y--
+			} else if pos.Y < 0 {
+				pos.Y++
+			}
 		}
 	}
+
+	// reverse pattern
+	for i, j := 0, len(p)-1; i < j; i, j = i+1, j-1 {
+		p[i], p[j] = p[j], p[i]
+	}
+
 	return p
 }
 
@@ -254,6 +272,14 @@ func (p Pattern2D) EnlargeVarying(r tools.IntRange) Pattern2D {
 				}
 			}
 		}
+	}
+	return result
+}
+
+func (p Pattern2D) Apply2D(startPos position.Position) []position.Position {
+	result := []position.Position{}
+	for _, pos := range p {
+		result = append(result, startPos.Add(pos))
 	}
 	return result
 }
