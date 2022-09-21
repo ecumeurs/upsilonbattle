@@ -1,18 +1,19 @@
 package rulermethods
 
 import (
-	"github.com/ecumeurs/upsilonbattle/battlearena/controller"
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid"
 	"github.com/ecumeurs/upsilonbattle/battlearena/position"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/turner"
+	"github.com/ecumeurs/upsilontools/tools/actor"
 	"github.com/google/uuid"
 )
 
 // Input struct
 
 type AddController struct {
-	Controller *controller.Controller
+	Controller   actor.Communication
+	ControllerID uuid.UUID
 }
 
 type GetState struct{}
@@ -48,6 +49,11 @@ type EndOfTurn struct {
 	EntityID     uuid.UUID
 }
 
+type ControllerQuit struct {
+	ControllerID uuid.UUID
+	actor.NoReply
+}
+
 // Output struct
 
 type AddControllerReply struct {
@@ -70,8 +76,8 @@ type GetGridStateReply struct {
 }
 
 type GetEntitiesStateReply struct {
-	Entities  []entity.Entity
-	TurnState turner.Turner
+	Entities []entity.Entity
+	Turn     turner.TurnState
 }
 
 type ControllerMoveReply struct {
@@ -87,16 +93,27 @@ type ControllerAttacked struct {
 	Attacker entity.Entity
 }
 
+// Broadcasted messages
+
 type ControllerNextTurn struct {
-	Entity    entity.Entity
-	TurnState turner.Turner
+	Entity entity.Entity
+	Turn   turner.TurnState
+	actor.NoReply
 }
 
 type BattleStart struct {
-	TurnState turner.Turner
+	Turn turner.TurnState
+	actor.NoReply
 }
 
 type BattleEnd struct {
 	WinnerControllerID uuid.UUID
 	WinnerName         string
+	actor.NoReply
+}
+
+type EntitiesStateChanged struct {
+	Entities []entity.Entity
+	Turn     turner.TurnState
+	actor.NoReply
 }

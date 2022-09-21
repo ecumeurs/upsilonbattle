@@ -6,7 +6,6 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/controllervalidator"
 	"github.com/ecumeurs/upsilontools/tools/actor"
-	"github.com/ecumeurs/upsilontools/tools/messagequeue"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
 )
@@ -17,14 +16,13 @@ type Controller struct {
 	Assigned       bool
 	ControllerName string
 	Validator      controllervalidator.ControllerValidator
-	Queue          *messagequeue.MessageQueue
+	Ruler          actor.Communication
 }
 
 // New
 func New() *Controller {
 	ctrl := &Controller{
-		ID: uuid.New(),
-
+		ID:       uuid.New(),
 		Assigned: false,
 	}
 
@@ -44,9 +42,6 @@ func (c *Controller) handleMessage(msg message.Message) bool {
 	case controllermethods.Send:
 		c.send(msg)
 		return true
-	case controllermethods.SendExpectReply:
-		c.sendAndExpectReply(msg)
-		return true
 	case controllermethods.ReceiveAPIMessage:
 		c.receiveAPIMessage(msg)
 		return true
@@ -63,31 +58,27 @@ func (c *Controller) handleReply(msg message.Message) bool {
 	return false
 }
 
-func (c *Controller) setValidatorAndQueue(msg message.Message, method controllermethods.SetValidatorAndQueue) {
-	c.Validator = method.Validator
-	c.Queue = method.Queue
-	c.act.NoReply(msg.Reply())
-	fmt.Println("Controller: ", c.ID, " is now assigned to a player")
-}
-
+// Implement the actor.Communication interface
 // Notify Actor
 func (c *Controller) NotifyActor(msg message.Message) {
-	c.act.SendMessageAndForget(msg)
+	c.act.Notify(msg)
 }
 
 func (c *Controller) SendActor(msg message.Message, callback chan message.Message) {
-	c.act.SendMessage(msg, callback)
+	c.act.Send(msg, callback)
+}
+
+func (c *Controller) setValidatorAndQueue(msg message.Message, method controllermethods.SetValidatorAndQueue) {
+	c.Validator = method.Validator
+	c.Ruler = method.Ruler
+	c.act.NoReply(msg.Reply())
+	fmt.Println("Controller: ", c.ID, " is now assigned to a player")
 }
 
 func (c *Controller) send(msg message.Message) {
 	// this code depend on the type of controller and it's linked API Client
 	c.act.NoReply(msg.Reply())
 	fmt.Println("Controller: ", c.ID, msg, " sent a message: ", msg.Content)
-}
-
-func (c *Controller) sendAndExpectReply(msg message.Message) {
-	// this code depend on the type of controller and it's linked API Client
-	c.act.NoReply(msg.Reply()) // TODO: change this: this should expect some reply ...
 }
 
 func (c *Controller) receiveAPIMessage(msg message.Message) {
