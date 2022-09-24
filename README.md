@@ -13,7 +13,7 @@ Basic Entity Stats, and rules.
   * Jump: Maximum height difference between two adjascent cell for move (defaulted to 2 up to now) 
   * Attack Range (min/max): attack range (right now we are still at very basic attacks)
  
-* At each turn, mvt counter must be reset.
+* At each turn, mvt,attack counter must be reset.
 
 * Ruler must ensure an entity can't move further than expected. (or higher)
 
