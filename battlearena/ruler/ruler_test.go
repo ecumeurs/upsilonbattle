@@ -20,16 +20,20 @@ import (
 )
 
 type FakeController struct {
-	act      *actor.Actor
-	ID       uuid.UUID
-	Stoppers map[string]chan message.Message
+	act             *actor.Actor
+	ID              uuid.UUID
+	Stoppers        map[string]chan message.Message
+	KnownEntities   map[uuid.UUID]entity.Entity
+	StopperCallback chan bool
 }
 
 // New
 func NewFake(name string) *FakeController {
 	ctrl := &FakeController{
-		Stoppers: make(map[string]chan message.Message),
-		ID:       uuid.New(),
+		Stoppers:        make(map[string]chan message.Message),
+		ID:              uuid.New(),
+		KnownEntities:   make(map[uuid.UUID]entity.Entity),
+		StopperCallback: make(chan bool),
 	}
 
 	ctrl.act = actor.New(name)
@@ -67,13 +71,32 @@ func (c *FakeController) Close() {
 }
 
 func (c *FakeController) handleMessage(msg message.Message) bool {
-	if stopper, ok := c.Stoppers[reflect.TypeOf(msg.TargetMethod).String()]; ok {
-		stopper <- msg
-	}
+	logrus.WithFields(logrus.Fields{
+		"Controller":   c.act.Name(),
+		"message_type": reflect.TypeOf(msg.TargetMethod).String(),
+		"controllerID": c.ID.String()[0:8]}).Info("Controller received message: ", reflect.TypeOf(msg.TargetMethod).String())
 
 	if msg.HasError {
-		fmt.Println(c.act.Name(), msg.String(), "Error", msg.ErrorMessage)
+		logrus.WithFields(logrus.Fields{
+			"error":      msg.ErrorMessage,
+			"Controller": c.act.Name,
+		}).Error("Error received")
 	}
+
+	if stopper, ok := c.Stoppers[reflect.TypeOf(msg.TargetMethod).String()]; ok {
+		if stopper == nil {
+			logrus.Error("You created a stopper on a non remoty call function. This is an error in your test" + reflect.TypeOf(msg.TargetMethod).String())
+		}
+		logrus.WithFields(logrus.Fields{
+			"Controller": c.act.Name()}).Debug("Calling Stopper: ", reflect.TypeOf(msg.TargetMethod).String())
+		stopper <- msg
+		<-c.StopperCallback // ensure the message duly arrived and handled.
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"Controller":   c.act.Name(),
+		"message_type": reflect.TypeOf(msg.TargetMethod).String(),
+		"controllerID": c.ID.String()[0:8]}).Info("End of eventual treatment of message")
 
 	switch msg.TargetMethod.(type) {
 	case controllermethods.SetValidatorAndQueue:
@@ -97,14 +120,16 @@ func (c *FakeController) handleMessage(msg message.Message) bool {
 	case rulermethods.EntitiesStateChanged:
 		c.EntitiesStateChanged(msg)
 		return true
+	case rulermethods.ControllerAttacked:
+		c.ControllerAttacked(msg)
+		return true
 	}
 	return false
 }
 
 func (c *FakeController) handleReply(msg message.Message) bool {
-	if stopper, ok := c.Stoppers[reflect.TypeOf(msg.TargetMethod).String()]; ok {
-		stopper <- msg
-	}
+	logrus.WithFields(logrus.Fields{
+		"Controller": c.act.Name()}).Debug("Controller received reply: ", reflect.TypeOf(msg.TargetMethod).String())
 
 	if msg.HasError {
 		logrus.WithFields(logrus.Fields{
@@ -112,7 +137,12 @@ func (c *FakeController) handleReply(msg message.Message) bool {
 			"RequestId":  msg.RequestId.String()[0:8],
 			"Error":      msg.ErrorMessage,
 		}).Error("Error")
-		fmt.Println(c.act.Name(), msg.String(), "Error", msg.ErrorMessage)
+	}
+
+	if stopper, ok := c.Stoppers[reflect.TypeOf(msg.TargetMethod).String()]; ok {
+		stopper <- msg
+		<-c.StopperCallback // ensure the message duly arrived and handled.
+
 	}
 
 	switch msg.TargetMethod.(type) {
@@ -160,11 +190,21 @@ func (c *FakeController) BattleStart(msg message.Message) {
 func (c *FakeController) BattleEnd(msg message.Message) {
 	c.act.NoReply(msg.Reply())
 }
+
+func (c *FakeController) ControllerAttacked(msg message.Message) {
+	c.act.NoReply(msg.Reply())
+}
+
 func (c *FakeController) EntitiesStateChanged(msg message.Message) {
 	logrus.WithFields(logrus.Fields{
 		"Controller": c.act.Name(),
 		"RequestId":  msg.RequestId.String()[0:8],
 		"Turn":       msg.TargetMethod.(rulermethods.EntitiesStateChanged).Turn.String()}).Info("New Turn Received")
+	// fill in known entities (clear them beforehand.)
+	c.KnownEntities = make(map[uuid.UUID]entity.Entity)
+	for _, e := range msg.TargetMethod.(rulermethods.EntitiesStateChanged).Entities {
+		c.KnownEntities[e.ID] = e
+	}
 	c.act.NoReply(msg.Reply())
 }
 
@@ -212,8 +252,10 @@ func TestRulerBattleBegin(t *testing.T) {
 
 	go func() {
 		<-ctrl.Stoppers[reflect.TypeOf(rulermethods.BattleStart{}).String()]
+		ctrl.StopperCallback <- true
 		fmt.Println("BattleStart received by ctrl")
 		<-ctrl2.Stoppers[reflect.TypeOf(rulermethods.BattleStart{}).String()]
+		ctrl2.StopperCallback <- true
 		fmt.Println("BattleStart received by ctrl2")
 		endchan <- true
 	}()
@@ -259,12 +301,14 @@ func TestRulerBattleBeginNextTurn(t *testing.T) {
 		if msg.Content.(rulermethods.ControllerNextTurn).Entity.ControllerID != ctrl.ID {
 			t.Error("ControllerNextTurn received by ctrl but ControllerID is not ctrl.ID")
 		}
+		ctrl.StopperCallback <- true
 	case msg := <-ctrl2.Stoppers[reflect.TypeOf(rulermethods.ControllerNextTurn{}).String()]:
 		fmt.Println("ControllerNextTurn received by ctrl2")
 
 		if msg.Content.(rulermethods.ControllerNextTurn).Entity.ControllerID != ctrl2.ID {
 			t.Error("ControllerNextTurn received by ctrl but ControllerID is not ctrl2.ID")
 		}
+		ctrl2.StopperCallback <- true
 	}
 }
 
@@ -285,8 +329,10 @@ func TestRulerBattleBeginNextTurnFetchGridAndEntities(t *testing.T) {
 	go func() {
 		<-ctrl.Stoppers[reflect.TypeOf(rulermethods.BattleStart{}).String()]
 		fmt.Println("BattleStart received by ctrl")
+		ctrl.StopperCallback <- true
 		<-ctrl2.Stoppers[reflect.TypeOf(rulermethods.BattleStart{}).String()]
 		fmt.Println("BattleStart received by ctrl2")
+		ctrl2.StopperCallback <- true
 		endchan <- true
 	}()
 
@@ -379,8 +425,10 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 	go func() {
 		<-ctrl.Stoppers[reflect.TypeOf(rulermethods.BattleStart{}).String()]
 		logrus.Info("BattleStart received by ctrl")
+		ctrl.StopperCallback <- true
 		<-ctrl2.Stoppers[reflect.TypeOf(rulermethods.BattleStart{}).String()]
 		logrus.Info("BattleStart received by ctrl2")
+		ctrl2.StopperCallback <- true
 		endchan <- true
 	}()
 
@@ -444,6 +492,7 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 		"attackerNewPos": attackerNewPos,
 		"targetNewPos":   targetNewPos}).Info("Preparing to move")
 	// move both so that they are adjacent
+
 	done := false
 	for !done {
 		select {
@@ -483,6 +532,7 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 					ControllerID: ctrl.ID,
 				}, rulermethods.EndOfTurn{}), ctrl.act.CallbackChan)
 			}
+			ctrl.StopperCallback <- true
 		case msg := <-ctrl.GetStopper(rulermethods.ControllerMoveReply{}):
 			if msg.HasError {
 				t.Error("Error while moving attacker", msg.ErrorMessage)
@@ -505,6 +555,7 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 					ControllerID: ctrl.ID,
 				}, rulermethods.EndOfTurn{}), ctrl.act.CallbackChan)
 			}
+			ctrl.StopperCallback <- true
 		case msg := <-ctrl.GetStopper(rulermethods.ControllerAttackReply{}):
 			logrus.WithFields(logrus.Fields{
 				"EntityID": msg.TargetMethod.(rulermethods.ControllerAttack).EntityID.String()[0:8],
@@ -517,8 +568,10 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 				EntityID:     msg.Content.(rulermethods.ControllerAttackReply).Entity.ID,
 				ControllerID: ctrl.ID,
 			}, rulermethods.EndOfTurn{}), ctrl.act.CallbackChan)
+			ctrl.StopperCallback <- true
 		case <-ctrl.GetStopper(rulermethods.EndOfTurn{}):
 			logrus.Info("EndOfTurn received by ctrl")
+			ctrl.StopperCallback <- true
 		// Controller 2
 		case msg := <-ctrl2.GetStopper(rulermethods.ControllerAttacked{}):
 			logrus.WithFields(logrus.Fields{
@@ -533,6 +586,7 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 			}
 			logrus.Info("Attacked! END OF TEST")
 			done = true // test is over
+			ctrl2.StopperCallback <- true
 		case msg := <-ctrl2.GetStopper(rulermethods.ControllerNextTurn{}):
 			logrus.WithFields(
 				logrus.Fields{
@@ -567,6 +621,7 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 					ControllerID: ctrl2.ID,
 				}, rulermethods.EndOfTurn{}), ctrl2.act.CallbackChan)
 			}
+			ctrl2.StopperCallback <- true
 		case msg := <-ctrl2.GetStopper(rulermethods.ControllerMoveReply{}):
 			if msg.HasError {
 				t.Error("Error while moving target", msg.ErrorMessage)
@@ -589,8 +644,10 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 					ControllerID: ctrl2.ID,
 				}, rulermethods.EndOfTurn{}), ctrl2.act.CallbackChan)
 			}
+			ctrl2.StopperCallback <- true
 		case <-ctrl2.GetStopper(rulermethods.EndOfTurn{}):
 			logrus.Info("EndOfTurn received by ctrl2")
+			ctrl2.StopperCallback <- true
 		}
 	}
 
