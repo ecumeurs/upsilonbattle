@@ -47,6 +47,7 @@ type NotifyController struct {
 type EndOfTurn struct {
 	ControllerID uuid.UUID
 	EntityID     uuid.UUID
+	actor.NoReply
 }
 
 type ControllerQuit struct {
@@ -54,7 +55,8 @@ type ControllerQuit struct {
 	actor.NoReply
 }
 
-// Output struct
+// Output struct (often found in Content!)
+// need to standardize this ...
 
 type AddControllerReply struct {
 	ControllerID uuid.UUID
@@ -79,6 +81,8 @@ type GetEntitiesStateReply struct {
 	Entities []entity.Entity
 	Turn     turner.TurnState
 }
+
+// especially for those ... Are they in the CallbackTarget field or content ? or both ? :'(
 
 type ControllerMoveReply struct {
 	Entity entity.Entity
