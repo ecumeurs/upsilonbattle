@@ -7,7 +7,7 @@
 This module is the main game logic. It's the one that decides who wins and who loses, and it's the one that validate any input from the controllers.
 It also handle the turn logic, and the game state.
 
-## Game State 
+## Arena State 
 
 The game state contains a simple enum that can be one of the following:
 
@@ -25,6 +25,8 @@ The Ruler also is in possession of the Grid data and Entities living within.
 
 It will be the responsibility of the master controller to remove this module from the memory.
 
+[See GameState](./rules/README.md) for internal state.
+
 ## Turn Logic
 
 Every entity joining the fight will be assigned a delay credit. This delay credit is the amount of time that the entity will have to wait before being able to act.
@@ -36,7 +38,11 @@ The entity with the lowest credit will be the first to play again, and so on.
 Per turn, each entity will be able to perform a move and an action.
 Both of these will have an impact on the delay credit of the entity, determining their next action opportunity. Controllers will have to take this into account when sending commands to the entities.
 
+[See Turner](turner/README.md) for more information.
+
 ## Game Rule Sets
+
+Note: Most rules are set in the rules module! [Check it out](rules/README.md)
 
 (TODO)
 These modules will handle the application of the game rules. They will be responsible to alter entities and map states.
@@ -49,10 +55,6 @@ ATM:
 * End of turn: +500
 
 Expect attacks to be variable in the future. Expect movement to be affected by the terrain. Expect delay of other entities to be affected by entities techniques.
-
-## Controller Validators
-
-These modules will handle the validation of commands received from controllers. They ensure the message received are valid and can be processed by the game.
 
 
 ## TODO
