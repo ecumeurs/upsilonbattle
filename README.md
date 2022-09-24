@@ -28,7 +28,7 @@ All controller can quit the battle arena then.
 [Ruler Methods](https://github.com/ecumeurs/upsilonbattle/blob/main/battlearena/ruler/rulermethods/rulermethods.go) 
 message the ruler expect to receive and struct he will respond with. It also can broadcast some of these as well.
 
-[Controller Methods)](https://github.com/ecumeurs/upsilonbattle/blob/main/battlearena/controller/controllermethods/controllermethods.go)
+[Controller Methods](https://github.com/ecumeurs/upsilonbattle/blob/main/battlearena/controller/controllermethods/controllermethods.go)
 
 
 ## Tests
