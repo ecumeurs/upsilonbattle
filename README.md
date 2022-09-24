@@ -1,3 +1,30 @@
+# Version 0.0.2 (WIP)
+
+Basic Entity Stats, and rules.
+
+## Objectives
+
+* Entities have stats:
+  * HP: takes more hits to be killed.
+  * Defence: reduce incoming damages
+  * Attack: increase dealt damages
+  * Attack Number: Number of attack allowed per turn. (default 1)
+  * MVT: Number of cell/turn that can be moved through
+  * Jump: Maximum height difference between two adjascent cell for move (defaulted to 2 up to now) 
+  * Attack Range (min/max): attack range (right now we are still at very basic attacks)
+ 
+* At each turn, mvt counter must be reset.
+
+* Ruler must ensure an entity can't move further than expected. (or higher)
+
+* damage computation: attack - defence (simple)
+
+* ruler must ensure the attack range is respected: for example: attack range set to 4-8 won't be able to attack at cqc
+
+* Of course when HP drop to 0: entity is dead and removed from the game (as previously)
+
+* Generated Entities will have random values for their starting stats! (classlike stuff come later)
+
 # Version 0.0.1
 
 ## Objectives
