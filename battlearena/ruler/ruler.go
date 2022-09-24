@@ -2,6 +2,8 @@ package ruler
 
 import (
 	"fmt"
+	"reflect"
+	"time"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
@@ -118,6 +120,11 @@ func (r *Ruler) handleReply(msg message.Message) bool {
 }
 
 func (r *Ruler) handleMessage(msg message.Message) bool {
+	logrus.WithFields(logrus.Fields{
+		"RequestID":    msg.RequestId.String()[0:8],
+		"component":    "Ruler",
+		"message_type": reflect.TypeOf(msg.TargetMethod).String()}).Info("Received message")
+
 	switch msg.TargetMethod.(type) {
 	case rulermethods.AddController:
 		r.addController(msg, msg.TargetMethod.(rulermethods.AddController))
@@ -145,6 +152,10 @@ func (r *Ruler) handleMessage(msg message.Message) bool {
 		return true
 	case rulermethods.ControllerQuit:
 		r.controllerQuit(msg, msg.TargetMethod.(rulermethods.ControllerQuit))
+		return true
+	case rulermethods.BattleStart:
+		r.battleStart(msg)
+		return true
 	}
 	return false
 }
@@ -205,30 +216,44 @@ func (r *Ruler) addController(msg message.Message, req rulermethods.AddControlle
 		"nbControllers": len(r.Controllers),
 		"expected":      r.NbControllers}).Debug("Controller added")
 	if len(r.Controllers) == r.NbControllers {
-		loclog.Info("Game started")
-		r.CurrentState = InProgress
-		// Select first entity to play
-		entID := r.Turner.NextTurn()
-		loclog.WithFields(logrus.Fields{
-			"entityID": entID.String()[0:8]}).Info("First entity to play")
+		go func() {
+			<-time.After(2 * time.Second)
+			r.NotifyActor(message.Create(nil, rulermethods.BattleStart{}, nil))
+		}()
+	}
+}
 
-		ent := r.Entities[entID]
-		ent.CurrentDelay = 0
-		r.Entities[entID] = ent
+func (r *Ruler) battleStart(msg message.Message) {
+	loclog := r.logger.WithFields(logrus.Fields{
+		"RequestID": msg.RequestId.String()[0:8]})
+	loclog.Info("Game started")
+	r.CurrentState = InProgress
+	// Select first entity to play
+	entID := r.Turner.NextTurn()
+	loclog.WithFields(logrus.Fields{
+		"entityID": entID.String()[0:8]}).Info("First entity to play")
 
-		// notify all controller that the game is about to start.
-		for _, c := range r.Controllers {
-			c.NotifyActor(message.Create(nil, rulermethods.BattleStart{
-				Turn: r.Turner.GetTurnState(),
-			}, nil))
-		}
+	ent := r.Entities[entID]
+	ent.CurrentDelay = 0
+	r.Entities[entID] = ent
 
+	// notify all controller that the game is about to start.
+	for _, c := range r.Controllers {
+		c.NotifyActor(message.Create(nil, rulermethods.BattleStart{
+			Turn: r.Turner.GetTurnState(),
+		}, nil))
+	}
+
+	go func() {
+		<-time.After(2 * time.Second)
 		// notify controller of his turn
 		r.Controllers[ent.ControllerID].NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
 			Entity: *ent,
 			Turn:   r.Turner.GetTurnState(),
 		}, nil))
-	}
+	}()
+
+	r.act.NoReply(msg.Reply())
 }
 
 func (r *Ruler) getState(msg message.Message) {
@@ -436,6 +461,10 @@ func (r *Ruler) controllerAttack(msg message.Message, req rulermethods.Controlle
 	delete(r.Entities, foe.ID)
 	r.Turner.RemoveEntity(foe.ID)
 
+	loclog.WithFields(logrus.Fields{
+		"entityID": foe.ID.String()[0:8],
+		"position": foe.Position}).Info("##### Entity removed #####")
+
 	// notify foe controller of the attack.
 
 	foectrl, found := r.Controllers[foe.ControllerID]
@@ -467,10 +496,10 @@ func (r *Ruler) notifyController(msg message.Message, req rulermethods.NotifyCon
 
 func (r *Ruler) endOfTurn(msg message.Message, req rulermethods.EndOfTurn) {
 	loclog := r.logger.WithFields(logrus.Fields{
-		"RequestID": msg.RequestId.String()[0:8]})
-	loclog.WithFields(logrus.Fields{
+		"RequestID":    msg.RequestId.String()[0:8],
 		"controllerID": req.ControllerID.String()[0:8],
-		"entityID":     req.EntityID.String()[0:8]}).Debug("End of turn request")
+		"entityID":     req.EntityID.String()[0:8]})
+	loclog.Debug("End of turn request")
 
 	// check gamestate
 	if r.CurrentState != InProgress {
@@ -479,10 +508,28 @@ func (r *Ruler) endOfTurn(msg message.Message, req rulermethods.EndOfTurn) {
 		return
 	}
 
+	if req.EntityID == uuid.Nil {
+		loclog.Error("Can't work with nil entity")
+		r.act.Reply(msg.ReplyWithError("Can't work with nil entity", "entity.nil"))
+		return
+	}
+	if _, found := r.Entities[req.EntityID]; !found {
+		loclog.WithFields(logrus.Fields{
+			"RequestID":    msg.RequestId.String()[0:8],
+			"controllerID": req.ControllerID.String()[0:8],
+			"entityID":     req.EntityID.String()[0:8]}).Error("Can't work with absent entity")
+		r.act.Reply(msg.ReplyWithError("Can't work with absent entity", "entity.absent"))
+		return
+	}
+
 	// Check if the controller is allowed to end the turn
 	// Check if the controller is allowed to use the entity
 	if !r.checkControllerForEntity(req.ControllerID, req.EntityID) {
-		loclog.Error("Controller is not allowed to use this entity")
+		loclog.WithFields(logrus.Fields{
+			"controllerID":       req.ControllerID.String()[0:8],
+			"entityID":           req.EntityID.String()[0:8],
+			"entityControllerID": r.Entities[req.EntityID].ControllerID.String()[0:8],
+		}).Error("Controller is not allowed to use this entity")
 		r.act.Reply(msg.ReplyWithError("Controller is not allowed to use this entity", "entity.controller.missmatch"))
 		return
 	}
@@ -498,60 +545,29 @@ func (r *Ruler) endOfTurn(msg message.Message, req rulermethods.EndOfTurn) {
 		"newDelay": r.Entities[req.EntityID].CurrentDelay + 500}).Debug("Entity end of turn, reinserting entity in the turn")
 	r.Turner.AddEntity(req.EntityID, r.Entities[req.EntityID].CurrentDelay+500) // well ...end of turn delay
 
-	// Check if the entity is allowed to end the turn
-	// End the turn
-	// Based on the entity delay, compute the next turn
-	// Trigger the next turn and notify all controllers
-
-	nextTurnEnt := r.Turner.NextTurn()
-	if nextTurnEnt == uuid.Nil {
-		// No more turn, end of the game
-	} else {
-		// Notify the controller of the next turn
-		ent := r.Entities[nextTurnEnt]
-		ent.CurrentDelay = 0
-		r.Entities[nextTurnEnt] = ent
-
-		ctrl, found := r.Controllers[ent.ControllerID]
-		if !found {
-			loclog.WithFields(logrus.Fields{
-				"entityID":     nextTurnEnt.String()[0:8],
-				"controllerID": ent.ControllerID.String()[0:8]}).Error("Controller not found")
-		} else {
-			ctrl.NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
-				Entity: *ent,
-				Turn:   r.Turner.GetTurnState(),
-			}, nil))
-		}
-	}
-
 	ent := make([]entity.Entity, 0)
 	// fill entities
 	for _, e := range r.Entities {
 		ent = append(ent, *e)
 	}
 
-	// notify all other controllers of the new turn
-	for _, ctrl := range r.Controllers {
-		ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
-			Entities: ent,
-			Turn:     r.Turner.GetTurnState(),
-		}, nil))
-	}
-
-	r.act.Reply(msg.Reply())
-
 	// check end of game. End of game is decided when all remaining entities are from the same controller
 	remainingController := make(map[uuid.UUID]bool)
 	remainingControllerID := uuid.Nil
 	for _, ent := range r.Entities {
 		if ent != nil {
+			loclog.WithFields(logrus.Fields{
+				"entityID":     ent.ID.String()[0:8],
+				"controllerID": ent.ControllerID.String()[0:8],
+				"delay":        ent.CurrentDelay,
+				"position":     ent.Position}).Debug("Remaining entity")
 			remainingController[ent.ControllerID] = true
 			remainingControllerID = ent.ControllerID
 		}
 	}
 
-	if len(remainingController) == 1 {
+	if len(remainingController) <= 1 {
+		loclog.Info("##### END OF BATTLE! #####")
 		// End of game
 		r.CurrentState = Finished
 
@@ -561,8 +577,51 @@ func (r *Ruler) endOfTurn(msg message.Message, req rulermethods.EndOfTurn) {
 				WinnerControllerID: remainingControllerID,
 			}, nil))
 		}
+	} else {
 
+		loclog.Info("##### END OF TURN #####")
+		// notify all other controllers of the new turn
+		for _, ctrl := range r.Controllers {
+			ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
+				Entities: ent,
+				Turn:     r.Turner.GetTurnState(),
+			}, nil))
+		}
+
+		// Check if the entity is allowed to end the turn
+		// End the turn
+		// Based on the entity delay, compute the next turn
+		// Trigger the next turn and notify all controllers
+
+		nextTurnEnt := r.Turner.NextTurn()
+		if nextTurnEnt == uuid.Nil {
+			// No more turn, end of the game
+		} else {
+			// Notify the controller of the next turn
+			ent := r.Entities[nextTurnEnt]
+			ent.CurrentDelay = 0
+			r.Entities[nextTurnEnt] = ent
+
+			ctrl, found := r.Controllers[ent.ControllerID]
+			if !found {
+				loclog.WithFields(logrus.Fields{
+					"entityID":     nextTurnEnt.String()[0:8],
+					"controllerID": ent.ControllerID.String()[0:8]}).Error("Controller not found")
+			} else {
+
+				go func() {
+					<-time.After(2 * time.Second)
+					// notify controller of his turn
+					ctrl.NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
+						Entity: *ent,
+						Turn:   r.Turner.GetTurnState(),
+					}, nil))
+				}()
+			}
+		}
 	}
+
+	r.act.Reply(msg.Reply())
 }
 
 func (r *Ruler) controllerQuit(msg message.Message, req rulermethods.ControllerQuit) {
