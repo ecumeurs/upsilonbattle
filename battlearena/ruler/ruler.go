@@ -9,7 +9,6 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/gridgenerator"
 	"github.com/ecumeurs/upsilonbattle/battlearena/position"
-	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/controllervalidator"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rules"
 	"github.com/ecumeurs/upsilontools/tools"
@@ -167,9 +166,7 @@ func (r *Ruler) addController(msg message.Message, req rulermethods.AddControlle
 		return
 	}
 
-	// Create a new controller validator
-	validator := controllervalidator.ControllerValidator{}
-	req.Controller.NotifyActor(message.Create(nil, controllermethods.SetValidatorAndQueue{Validator: validator, Ruler: r}, nil))
+	req.Controller.NotifyActor(message.Create(nil, controllermethods.SetQueue{Ruler: r}, nil))
 
 	// Assign the controller to the designated number of entities
 	for i := 0; i < r.NbEntitiesPerController; i++ {

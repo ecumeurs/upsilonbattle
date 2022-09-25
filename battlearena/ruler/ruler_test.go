@@ -99,8 +99,8 @@ func (c *FakeController) handleMessage(msg message.Message) bool {
 		"controllerID": c.ID.String()[0:8]}).Info("End of eventual treatment of message")
 
 	switch msg.TargetMethod.(type) {
-	case controllermethods.SetValidatorAndQueue:
-		c.SetValidatorAndQueue(msg, msg.TargetMethod.(controllermethods.SetValidatorAndQueue))
+	case controllermethods.SetQueue:
+		c.SetQueue(msg, msg.TargetMethod.(controllermethods.SetQueue))
 		return true
 	case controllermethods.Send:
 		c.Send(msg)
@@ -167,7 +167,7 @@ func (c *FakeController) handleReply(msg message.Message) bool {
 
 // implement all FakeController methods handlers.
 
-func (c *FakeController) SetValidatorAndQueue(msg message.Message, m controllermethods.SetValidatorAndQueue) {
+func (c *FakeController) SetQueue(msg message.Message, m controllermethods.SetQueue) {
 	c.act.NoReply(msg.Reply())
 }
 

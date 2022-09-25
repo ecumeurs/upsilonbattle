@@ -69,8 +69,8 @@ func (c *AggressiveController) handleMessage(msg message.Message) bool {
 	}
 
 	switch msg.TargetMethod.(type) {
-	case controllermethods.SetValidatorAndQueue:
-		c.SetValidatorAndQueue(msg, msg.TargetMethod.(controllermethods.SetValidatorAndQueue))
+	case controllermethods.SetQueue:
+		c.SetQueue(msg, msg.TargetMethod.(controllermethods.SetQueue))
 		return true
 	case controllermethods.Send:
 		c.Send(msg)
@@ -131,7 +131,7 @@ func (c *AggressiveController) handleReply(msg message.Message) bool {
 
 // implement all AggressiveController methods handlers.
 
-func (c *AggressiveController) SetValidatorAndQueue(msg message.Message, m controllermethods.SetValidatorAndQueue) {
+func (c *AggressiveController) SetQueue(msg message.Message, m controllermethods.SetQueue) {
 	c.ruler = m.Ruler
 	c.ruler.SendActor(message.Create(nil, rulermethods.GetGridState{}, rulermethods.GetGridStateReply{}), c.act.CallbackChan)
 	c.ruler.SendActor(message.Create(nil, rulermethods.GetEntitiesState{}, rulermethods.GetEntitiesStateReply{}), c.act.CallbackChan)

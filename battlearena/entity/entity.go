@@ -3,6 +3,7 @@ package entity
 import (
 	"time"
 
+	"github.com/ecumeurs/upsilonbattle/battlearena/entity/properties.go"
 	"github.com/ecumeurs/upsilonbattle/battlearena/position"
 	"github.com/google/uuid"
 )
@@ -18,10 +19,10 @@ const (
 type EntityOrientation int
 
 const (
-	Up    EntityOrientation = 0
-	Right EntityOrientation = 1
-	Down  EntityOrientation = 2
-	Left  EntityOrientation = 3
+	Up    EntityOrientation = 0 // X:0 Y:1
+	Right EntityOrientation = 1 // X:1 Y:0
+	Down  EntityOrientation = 2 // X:0 Y:-1
+	Left  EntityOrientation = 3 // X:-1 Y:0
 )
 
 type Entity struct {
@@ -33,6 +34,7 @@ type Entity struct {
 	Name         string
 	CurrentDelay int
 	Orientation  EntityOrientation
+	Properties   []properties.Property
 }
 
 // NewEntity
@@ -44,5 +46,22 @@ func NewEntity() Entity {
 		LastActivity: time.Now(),
 		CurrentDelay: 0,
 		Orientation:  Up,
+		Properties:   make([]properties.Property, 0),
+	}
+}
+
+// FaceToward will change the orientation of the entity to face given position.
+// Decide facing based on angle toward position, with 0 being facing straight up.
+// Allow UP to be set from -45 to 45 degrees, RIGHT from 45 to 135, DOWN from 135 to 225, LEFT from 225 to 315.
+func (e *Entity) FaceToward(p position.Position) {
+	angle := e.Position.AngleTo(p)
+	if angle < 45 || angle > 315 {
+		e.Orientation = Up
+	} else if angle < 135 {
+		e.Orientation = Right
+	} else if angle < 225 {
+		e.Orientation = Down
+	} else {
+		e.Orientation = Left
 	}
 }

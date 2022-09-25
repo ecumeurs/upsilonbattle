@@ -1,13 +1,11 @@
 package controllermethods
 
 import (
-	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/controllervalidator"
 	"github.com/ecumeurs/upsilontools/tools/actor"
 )
 
-type SetValidatorAndQueue struct {
+type SetQueue struct {
 	actor.NoReply
-	Validator controllervalidator.ControllerValidator
 	Ruler     actor.Communication
 }
 
