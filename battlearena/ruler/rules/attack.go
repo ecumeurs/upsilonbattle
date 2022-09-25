@@ -1,12 +1,18 @@
 package rules
 
 import (
+	"github.com/ecumeurs/upsilonbattle/battlearena/entity/properties.go"
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/cell"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
+
+var defaultAttackProp = properties.DefaultIntProperty(0)
+var defaultAttackRangeProp = properties.DefaultIntProperty(0)
+var defaultDefenseProp = properties.DefaultIntProperty(0)
+var defaultHPProp = properties.DefaultIntProperty(0)
 
 type localAttackCtx struct {
 	*GameState
@@ -36,25 +42,46 @@ func (gs *GameState) Attack(msg message.Message, req rulermethods.ControllerAtta
 	target, _ := ctx.Grid.CellAt(req.Target)
 
 	ent := gs.Entities[req.EntityID]
+	attackerAttack := ent.GetPropertyI("Attack", &defaultAttackProp)
+
 	foe := gs.Entities[target.EntityID]
+	foeDefense := foe.GetPropertyI("Defense", &defaultDefenseProp)
+	foeHP := foe.GetPropertyI("HP", &defaultHPProp)
+
+	computedDamage := attackerAttack.I() - foeDefense.I()
 
 	// Compute the new delay
 	ent.CurrentDelay = ent.CurrentDelay + 500
 
 	ctx.log.WithFields(logrus.Fields{
-		"entityID": req.EntityID.String()[0:8],
-		"foeID":    target.EntityID.String()[0:8]}).Debug("Entity attack")
+		"entityID":    req.EntityID.String()[0:8],
+		"foeID":       target.EntityID.String()[0:8],
+		"damage":      computedDamage,
+		"Attack":      attackerAttack.I(),
+		"Defense":     foeDefense.I(),
+		"HP":          foeHP.I(),
+		"ResultingHP": foeHP.I() - computedDamage,
+	}).Debug("Entity attack")
 
 	// Update the entity
 	gs.Entities[req.EntityID] = ent
 
-	gs.Grid.RemoveEntity(foe.Position)
-	delete(gs.Entities, foe.ID)
-	gs.Turner.RemoveEntity(foe.ID)
+	// apply damage
+	foeHP.SetI(foeHP.I() - computedDamage)
+	// update foe's HP
+	foe.UpdateProperty(foeHP)
+	gs.Entities[foe.ID] = foe
 
-	ctx.log.WithFields(logrus.Fields{
-		"entityID": foe.ID.String()[0:8],
-		"position": foe.Position}).Info("##### Entity removed #####")
+	if foeHP.I() <= 0 {
+
+		gs.Grid.RemoveEntity(foe.Position)
+		delete(gs.Entities, foe.ID)
+		gs.Turner.RemoveEntity(foe.ID)
+
+		ctx.log.WithFields(logrus.Fields{
+			"entityID": foe.ID.String()[0:8],
+			"position": foe.Position}).Info("##### Entity removed #####")
+	}
 
 	// notify foe controller of the attack.
 
@@ -94,6 +121,12 @@ func (ctx *localAttackCtx) preAttackChecks(msg message.Message, req rulermethods
 		return false, msg.ReplyWithError("It is not this entity turn", "entity.turn.missmatch")
 	}
 
+	ent, found := ctx.Entities[req.EntityID]
+	if !found {
+		ctx.log.Error("Entity not found")
+		return false, msg.ReplyWithError("Entity not found", "entity.notfound")
+	}
+
 	// Check if the attack is valid
 	target, found := ctx.Grid.CellAt(req.Target)
 	if !found {
@@ -110,5 +143,18 @@ func (ctx *localAttackCtx) preAttackChecks(msg message.Message, req rulermethods
 		ctx.log.Error("Target has no entities")
 		return false, msg.ReplyWithError("Invalid attack", "entity.attack.invalid")
 	}
+
+	// range check.
+
+	attackerRange := ent.GetPropertyI("Range", &defaultAttackRangeProp)
+	distance := ent.Position.Distance(target.Position)
+	if attackerRange.I() <= distance {
+		ctx.log.WithFields(logrus.Fields{
+			"attackrange": attackerRange.I(),
+			"distance":    distance,
+		}).Error("Target is out of range")
+		return false, msg.ReplyWithError("Invalid attack", "entity.attack.outofrange")
+	}
+
 	return true, reply
 }

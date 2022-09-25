@@ -34,7 +34,7 @@ type Entity struct {
 	Name         string
 	CurrentDelay int
 	Orientation  EntityOrientation
-	Properties   []properties.Property
+	Properties   map[string]properties.Property
 }
 
 // NewEntity
@@ -46,7 +46,7 @@ func NewEntity() Entity {
 		LastActivity: time.Now(),
 		CurrentDelay: 0,
 		Orientation:  Up,
-		Properties:   make([]properties.Property, 0),
+		Properties:   make(map[string]properties.Property),
 	}
 }
 
@@ -63,5 +63,35 @@ func (e *Entity) FaceToward(p position.Position) {
 		e.Orientation = Down
 	} else {
 		e.Orientation = Left
+	}
+}
+
+// GetProperty will return the property with the given name, or default
+func (e *Entity) GetProperty(name string, defaultProperty properties.Property) properties.Property {
+	if _, found := e.Properties[name]; found {
+		return e.Properties[name]
+	}
+	return defaultProperty
+}
+
+// GetPropertyI will return the property with the given name, or default
+func (e *Entity) GetPropertyI(name string, defaultProperty properties.IntProperty) properties.IntProperty {
+	if _, found := e.Properties[name]; found {
+		return e.Properties[name].(properties.IntProperty)
+	}
+	return defaultProperty
+}
+
+// GetPropertyF will return the property with the given name, or default
+func (e *Entity) GetPropertyF(name string, defaultProperty properties.FloatProperty) properties.FloatProperty {
+	if _, found := e.Properties[name]; found {
+		return e.Properties[name].(properties.FloatProperty)
+	}
+	return defaultProperty
+}
+
+func (e Entity) UpdateProperty(p properties.Property) {
+	if _, found := e.Properties[p.Name(properties.OwnController)]; found {
+		e.Properties[p.Name(properties.OwnController)] = p
 	}
 }

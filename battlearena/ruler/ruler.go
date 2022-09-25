@@ -7,6 +7,7 @@ import (
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
+	"github.com/ecumeurs/upsilonbattle/battlearena/entity/entitygenerator"
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/gridgenerator"
 	"github.com/ecumeurs/upsilonbattle/battlearena/position"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
@@ -79,7 +80,7 @@ func NewRuler() Ruler {
 	nbEntities := r.NbEntitiesPerController * r.NbControllers
 
 	for i := 0; i < nbEntities; i++ {
-		e := entity.NewEntity()
+		e := entitygenerator.GenerateRandomEntity()
 		e.Type = entity.Character
 		e.Name = fmt.Sprintf("Entity %d", i)
 		e.CurrentDelay = tools.NewIntRange(1000, 2000).Random()
