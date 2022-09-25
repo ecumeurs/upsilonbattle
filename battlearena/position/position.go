@@ -2,6 +2,7 @@ package position
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/ecumeurs/upsilontools/tools"
 )
@@ -81,4 +82,11 @@ func (p Position) Substract(p2 Position) Position {
 // IsAdjacent tell wether a position is adjascent on x,y axes and allows height difference as provided by parameter
 func (p Position) IsAdjacent(p2 Position, allowedJump int) bool {
 	return (p.X == p2.X && tools.Abs(p.Y-p2.Y) == 1 && tools.Abs(p.Z-p2.Z) <= allowedJump) || (p.Y == p2.Y && tools.Abs(p.X-p2.X) == 1 && tools.Abs(p.Z-p2.Z) <= allowedJump)
+}
+
+// Return the angle to position in degree. Expect 0 to be north, 90 to be east, 180 to be south and 270 to be west
+func (p Position) AngleTo(p2 Position) int {
+	dx := p2.X - p.X
+	dy := p2.Y - p.Y
+	return int(math.Atan2(float64(dy), float64(dx)) * 180 / 3.14)
 }

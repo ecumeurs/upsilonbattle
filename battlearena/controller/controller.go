@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
-	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/controllervalidator"
 	"github.com/ecumeurs/upsilontools/tools/actor"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
@@ -15,7 +14,6 @@ type Controller struct {
 	ID             uuid.UUID
 	Assigned       bool
 	ControllerName string
-	Validator      controllervalidator.ControllerValidator
 	Ruler          actor.Communication
 }
 
@@ -36,8 +34,8 @@ func New() *Controller {
 
 func (c *Controller) handleMessage(msg message.Message) bool {
 	switch msg.TargetMethod.(type) {
-	case controllermethods.SetValidatorAndQueue:
-		c.setValidatorAndQueue(msg, msg.TargetMethod.(controllermethods.SetValidatorAndQueue))
+	case controllermethods.SetQueue:
+		c.setQueue(msg, msg.TargetMethod.(controllermethods.SetQueue))
 		return true
 	case controllermethods.Send:
 		c.send(msg)
@@ -68,8 +66,7 @@ func (c *Controller) SendActor(msg message.Message, callback chan message.Messag
 	c.act.Send(msg, callback)
 }
 
-func (c *Controller) setValidatorAndQueue(msg message.Message, method controllermethods.SetValidatorAndQueue) {
-	c.Validator = method.Validator
+func (c *Controller) setQueue(msg message.Message, method controllermethods.SetQueue) {
 	c.Ruler = method.Ruler
 	c.act.NoReply(msg.Reply())
 	fmt.Println("Controller: ", c.ID, " is now assigned to a player")
