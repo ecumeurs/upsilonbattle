@@ -1,11 +1,15 @@
 package rules
 
 import (
+	"github.com/ecumeurs/upsilonbattle/battlearena/entity/properties.go"
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/cell"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/sirupsen/logrus"
 )
+
+var defaultMovementProp = properties.DefaultIntProperty(0)
+var defaultJumpHeightProp = properties.DefaultIntProperty(2)
 
 type localMoveCtx struct {
 	*GameState
@@ -28,21 +32,6 @@ func (gs *GameState) Move(msg message.Message, req rulermethods.ControllerMove) 
 	ok, reply := ctx.preMoveChecks(msg, req)
 	if !ok {
 		return reply
-	}
-
-	// Check if the path is valid
-	cells := ctx.Grid.CellsForPositions(req.Path)
-	// a valid path is a path that contains only walkable cells and all cells must be adjascent
-	for i, c := range cells {
-		if c.Type == cell.Ground {
-			if i > 0 && !cells[i-1].Position.IsAdjacent(c.Position, 2) {
-				ctx.log.Error("Path is not valid")
-				return msg.ReplyWithError("Invalid path", "entity.path.invalid")
-			}
-		} else {
-			ctx.log.Error("Path is not valid")
-			return msg.ReplyWithError("Invalid path(wrong type)", "entity.path.invalid")
-		}
 	}
 
 	ent := ctx.Entities[req.EntityID]
@@ -85,6 +74,47 @@ func (ctx *localMoveCtx) preMoveChecks(msg message.Message, req rulermethods.Con
 	if ctx.Turner.CurrentEntityTurn != req.EntityID {
 		ctx.log.Error("It is not this entity turn")
 		return false, msg.ReplyWithError("It is not this entity turn", "entity.turn.missmatch")
+	}
+
+	ent, found := ctx.Entities[req.EntityID]
+	if !found {
+		ctx.log.Error("Entity not found")
+		return false, msg.ReplyWithError("Entity not found", "entity.notfound")
+	}
+
+	// fetch movement distance
+	movementDistance := ent.GetPropertyI("Movement", &defaultMovementProp).I()
+
+	// check path length
+	if len(req.Path) > movementDistance {
+		ctx.log.WithFields(logrus.Fields{
+			"pathLength": len(req.Path),
+			"max":        movementDistance,
+		}).Error("Path is too long")
+		return false, msg.ReplyWithError("Path is too long", "entity.path.too.long")
+	}
+
+	// fetch jumpheight
+	jumpHeight := ent.GetPropertyI("JumpHeight", &defaultJumpHeightProp).I()
+
+	// Check if the path is valid
+	cells := ctx.Grid.CellsForPositions(req.Path)
+	// a valid path is a path that contains only walkable cells and all cells must be adjascent
+	for i, c := range cells {
+		if c.Type == cell.Ground {
+			if i > 0 && !cells[i-1].Position.IsAdjacent(c.Position, jumpHeight) {
+				ctx.log.WithFields(logrus.Fields{
+					"jumpHeight": jumpHeight,
+				}).Error("Path is not valid")
+				return false, msg.ReplyWithError("Invalid path", "entity.path.invalid")
+			}
+		} else {
+			ctx.log.WithFields(logrus.Fields{
+				"cellType": c.Type,
+				"position": c.Position,
+			}).Error("Path is not valid")
+			return false, msg.ReplyWithError("Invalid path(wrong type)", "entity.path.invalid")
+		}
 	}
 
 	return true, reply

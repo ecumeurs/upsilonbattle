@@ -3,9 +3,10 @@ package properties
 type PropertyType int
 
 const (
-	Character PropertyType = 0
-	Skill     PropertyType = 1
-	Item      PropertyType = 2
+	None      PropertyType = 0
+	Character PropertyType = 1
+	Skill     PropertyType = 2
+	Item      PropertyType = 3
 )
 
 type InformationLevel int
@@ -37,11 +38,13 @@ type Property interface {
 
 // these interface are here for rules ...
 type IntProperty interface {
+	Property
 	I() int
 	SetI(int)
 }
 
 type FloatProperty interface {
+	Property
 	F() float64
 	SetF(float64)
 }
@@ -54,5 +57,76 @@ func DefaultPropertiesForCharacter() []Property {
 		&AttackRange{AttackRange: 1},
 		&Defence{Defence: 0},
 		&Movement{Movement: 5},
+		&JumpHeight{JumpHeight: 5},
 	}
+}
+
+type DefaultIntProperty int
+
+// implements IntProperty
+func (d *DefaultIntProperty) Name(i InformationLevel) string {
+	return ""
+}
+
+func (d *DefaultIntProperty) UserFriendlyGet(i InformationLevel) interface{} {
+	return *d
+}
+
+func (d *DefaultIntProperty) Get() interface{} {
+	return *d
+}
+
+func (d *DefaultIntProperty) Set(p interface{}) {
+	// do nothing!
+}
+
+func (d *DefaultIntProperty) Increase() {
+	// do nothing
+}
+
+func (d *DefaultIntProperty) GetType() PropertyType {
+	return None
+}
+
+func (d *DefaultIntProperty) I() int {
+	return int(*d)
+}
+
+func (d *DefaultIntProperty) SetI(int) {
+	// do nothing
+}
+
+type DefaultFloatProperty int
+
+// implements IntProperty
+func (d *DefaultFloatProperty) Name(i InformationLevel) string {
+	return ""
+}
+
+func (d *DefaultFloatProperty) UserFriendlyGet(i InformationLevel) interface{} {
+	return *d
+}
+
+func (d *DefaultFloatProperty) Get() interface{} {
+	return *d
+}
+
+func (d *DefaultFloatProperty) Set(p interface{}) {
+	// do nothing!
+}
+
+func (d *DefaultFloatProperty) Increase() {
+	// do nothing
+}
+
+func (d *DefaultFloatProperty) GetType() PropertyType {
+	return None
+}
+
+func (d *DefaultFloatProperty) I() float64 {
+	return float64(*d)
+}
+
+func (d *DefaultFloatProperty) SetI(float64) {
+	// do nothing
 }
