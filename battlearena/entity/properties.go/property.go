@@ -1,5 +1,7 @@
 package properties
 
+import "fmt"
+
 type PropertyType int
 
 const (
@@ -34,6 +36,11 @@ type Property interface {
 	Set(p interface{})                              // this will be used mostly internally to compute values from rules.
 	Increase()                                      // This won't be used in v0.0.2 but later on when we implement leveling.
 	GetType() PropertyType
+}
+
+// PrettyPrint
+func PrettyPrint(p Property, i InformationLevel) string {
+	return fmt.Sprintf("%s: %v", p.Name(i), p.UserFriendlyGet(i))
 }
 
 // these interface are here for rules ...

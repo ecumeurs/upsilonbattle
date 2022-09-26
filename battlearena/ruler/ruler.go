@@ -3,7 +3,6 @@ package ruler
 import (
 	"fmt"
 	"reflect"
-	"time"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
@@ -50,13 +49,16 @@ type Ruler struct {
 
 	NbControllers           int
 	NbEntitiesPerController int
+
+	ControllerBattleReady map[uuid.UUID]bool
 }
 
 func NewRuler() Ruler {
 	r := Ruler{
-		ID:           uuid.New(),
-		act:          actor.New("Ruler"),
-		CurrentState: WaitingForControllers,
+		ID:                    uuid.New(),
+		act:                   actor.New("Ruler"),
+		CurrentState:          WaitingForControllers,
+		ControllerBattleReady: make(map[uuid.UUID]bool),
 	}
 	r.GameState = rules.NewGameState(r.ID)
 	r.act.SetReceiveMessageHandler(r.handleMessage)
@@ -105,6 +107,10 @@ func (r *Ruler) SendActor(msg message.Message, callback chan message.Message) {
 	r.act.Send(msg, callback)
 }
 
+func (r *Ruler) PrintStack() {
+	r.act.GetQueue().PrintStack()
+}
+
 func (r *Ruler) handleReply(msg message.Message) bool {
 	// Handle reply from other actors
 	switch msg.TargetMethod.(type) {
@@ -149,6 +155,12 @@ func (r *Ruler) handleMessage(msg message.Message) bool {
 		return true
 	case rulermethods.BattleStart:
 		r.battleStart(msg)
+		return true
+	case rulermethods.ControllerBattleReady:
+		r.controllerBattleReady(msg, msg.TargetMethod.(rulermethods.ControllerBattleReady))
+		return true
+	case rulermethods.ControllerTurnReady:
+		r.controllerTurnReady(msg, msg.TargetMethod.(rulermethods.ControllerTurnReady))
 		return true
 	}
 	return false
@@ -208,12 +220,41 @@ func (r *Ruler) addController(msg message.Message, req rulermethods.AddControlle
 	loclog.WithFields(logrus.Fields{
 		"nbControllers": len(r.GameState.Controllers),
 		"expected":      r.NbControllers}).Debug("Controller added")
+
 	if len(r.GameState.Controllers) == r.NbControllers {
-		go func() {
-			<-time.After(2 * time.Second)
-			r.NotifyActor(message.Create(nil, rulermethods.BattleStart{}, nil))
-		}()
+		r.NotifyActor(message.Create(nil, rulermethods.BattleStart{}, nil))
 	}
+}
+
+func (r *Ruler) controllerBattleReady(msg message.Message, req rulermethods.ControllerBattleReady) {
+	loclog := r.logger.WithFields(logrus.Fields{
+		"RequestID": msg.RequestId.String()[0:8]})
+	loclog.Info("ControllerBattleReady")
+	r.ControllerBattleReady[req.ControllerID] = true
+	if len(r.ControllerBattleReady) == r.NbControllers {
+		// All controllers are ready, start the game
+
+		entID := r.GameState.Turner.CurrentEntityTurn
+		loclog.WithFields(logrus.Fields{
+			"entityID": entID.String()[0:8]}).Info("First entity to play")
+
+		ent := r.GameState.Entities[entID]
+		ent.CurrentDelay = 0
+		// notify controller of his turn
+		r.GameState.Controllers[ent.ControllerID].NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
+			Entity: ent,
+			Turn:   r.GameState.Turner.GetTurnState(),
+		}, nil))
+
+	}
+	r.act.NoReply(msg.Reply())
+}
+
+func (r *Ruler) controllerTurnReady(msg message.Message, req rulermethods.ControllerTurnReady) {
+	loclog := r.logger.WithFields(logrus.Fields{
+		"RequestID": msg.RequestId.String()[0:8]})
+	loclog.Info("ControllerTurnReady")
+	r.act.NoReply(msg.Reply())
 }
 
 func (r *Ruler) battleStart(msg message.Message) {
@@ -237,14 +278,7 @@ func (r *Ruler) battleStart(msg message.Message) {
 		}, nil))
 	}
 
-	go func() {
-		<-time.After(2 * time.Second)
-		// notify controller of his turn
-		r.GameState.Controllers[ent.ControllerID].NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
-			Entity: ent,
-			Turn:   r.GameState.Turner.GetTurnState(),
-		}, nil))
-	}()
+	// expect all controller to send a battle ready message when they are ready to play.
 
 	r.act.NoReply(msg.Reply())
 }
@@ -454,15 +488,10 @@ func (r *Ruler) endOfTurn(msg message.Message, req rulermethods.EndOfTurn) {
 					"entityID":     nextTurnEnt.String()[0:8],
 					"controllerID": ent.ControllerID.String()[0:8]}).Error("Controller not found")
 			} else {
-
-				go func() {
-					<-time.After(2 * time.Second)
-					// notify controller of his turn
-					ctrl.NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
-						Entity: ent,
-						Turn:   r.GameState.Turner.GetTurnState(),
-					}, nil))
-				}()
+				ctrl.NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
+					Entity: ent,
+					Turn:   r.GameState.Turner.GetTurnState(),
+				}, nil))
 			}
 		}
 	}

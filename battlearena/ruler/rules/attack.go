@@ -9,10 +9,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var defaultAttackProp = properties.DefaultIntProperty(0)
-var defaultAttackRangeProp = properties.DefaultIntProperty(0)
+var defaultAttackProp = properties.DefaultIntProperty(1)
+var defaultAttackRangeProp = properties.DefaultIntProperty(1)
 var defaultDefenseProp = properties.DefaultIntProperty(0)
-var defaultHPProp = properties.DefaultIntProperty(0)
+var defaultHPProp = properties.DefaultIntProperty(1)
 
 type localAttackCtx struct {
 	*GameState
@@ -146,7 +146,7 @@ func (ctx *localAttackCtx) preAttackChecks(msg message.Message, req rulermethods
 
 	// range check.
 
-	attackerRange := ent.GetPropertyI("Range", &defaultAttackRangeProp)
+	attackerRange := ent.GetPropertyI("AttackRange", &defaultAttackRangeProp)
 	distance := ent.Position.Distance(target.Position)
 	if attackerRange.I() <= distance {
 		ctx.log.WithFields(logrus.Fields{

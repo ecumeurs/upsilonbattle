@@ -19,7 +19,7 @@ import (
 
 var defaultMovementProp = properties.DefaultIntProperty(0)
 var defaultJumpHeightProp = properties.DefaultIntProperty(2)
-var defaultAttackRangeProp = properties.DefaultIntProperty(0)
+var defaultAttackRangeProp = properties.DefaultIntProperty(1)
 
 type AggressiveController struct {
 	act            *actor.Actor
@@ -29,6 +29,7 @@ type AggressiveController struct {
 	ruler          actor.Communication
 	latestTarget   entity.Entity
 	BattleFinished chan bool
+	battleready    bool
 }
 
 // New
@@ -37,6 +38,7 @@ func NewAggressiveController(name string) *AggressiveController {
 		ID:             uuid.New(),
 		KnownEntities:  make(map[uuid.UUID]entity.Entity),
 		BattleFinished: make(chan bool),
+		battleready:    false,
 	}
 
 	ctrl.act = actor.New(name)
@@ -57,6 +59,10 @@ func (c *AggressiveController) Stop() {
 }
 func (c *AggressiveController) PrepareToStop() chan bool {
 	return c.act.PrepareToStop()
+}
+
+func (c *AggressiveController) PrintStack() {
+	c.act.GetQueue().PrintStack()
 }
 
 func (c *AggressiveController) handleMessage(msg message.Message) bool {
@@ -151,141 +157,7 @@ func (c *AggressiveController) ReceiveAPIMessage(msg message.Message) {
 	c.act.NoReply(msg.Reply())
 }
 
-func (c *AggressiveController) ControllerNextTurn(msg message.Message) {
-	c.nextTurn(msg) // will move or attack.
-	c.act.NoReply(msg.Reply())
-}
-
-func (c *AggressiveController) BattleStart(msg message.Message) {
-	logrus.Info("##### BattleStart #####")
-	c.ruler.SendActor(message.Create(nil, rulermethods.GetGridState{}, rulermethods.GetGridStateReply{}), c.act.CallbackChan)
-	c.ruler.SendActor(message.Create(nil, rulermethods.GetEntitiesState{}, rulermethods.GetEntitiesStateReply{}), c.act.CallbackChan)
-
-	c.act.NoReply(msg.Reply())
-}
-
-func (c *AggressiveController) BattleEnd(msg message.Message) {
-	logrus.Info("##### BattleEnd #####")
-	c.BattleFinished <- true
-
-	c.act.NoReply(msg.Reply())
-}
-
-func (c *AggressiveController) ControllerAttacked(msg message.Message) {
-	logrus.WithFields(logrus.Fields{
-		"EntityID":   msg.TargetMethod.(rulermethods.ControllerAttacked).Entity.ID.String()[0:8],
-		"AttackerID": msg.TargetMethod.(rulermethods.ControllerAttacked).Attacker.ID.String()[0:8],
-		"Position":   msg.TargetMethod.(rulermethods.ControllerAttacked).Entity.Position}).Debug("ControllerAttacked")
-	// nothing to do post attack
-
-	c.act.NoReply(msg.Reply())
-}
-
-func (c *AggressiveController) EntitiesStateChanged(msg message.Message) {
-	logrus.WithFields(logrus.Fields{
-		"Controller": c.act.Name(),
-		"RequestId":  msg.RequestId.String()[0:8],
-		"Turn":       msg.TargetMethod.(rulermethods.EntitiesStateChanged).Turn.String()}).Info("New Turn Received")
-	// fill in known entities (clear them beforehand.)
-	c.KnownEntities = make(map[uuid.UUID]entity.Entity)
-	for _, e := range msg.TargetMethod.(rulermethods.EntitiesStateChanged).Entities {
-		c.KnownEntities[e.ID] = e
-	}
-	c.act.NoReply(msg.Reply())
-}
-
-func (c *AggressiveController) GetStateReply(msg message.Message) {
-}
-
-func (c *AggressiveController) GetGridStateReply(msg message.Message) {
-	c.Grid = msg.Content.(rulermethods.GetGridStateReply).Grid
-}
-
-func (c *AggressiveController) GetEntitiesStateReply(msg message.Message) {
-	logrus.WithFields(logrus.Fields{
-		"Controller": c.act.Name(),
-		"RequestId":  msg.RequestId.String()[0:8],
-		"Turn":       msg.Content.(rulermethods.GetEntitiesStateReply).Turn.String()}).Info("New Turn Received")
-	// fill in known entities (clear them beforehand.)
-	c.KnownEntities = make(map[uuid.UUID]entity.Entity)
-	for _, e := range msg.Content.(rulermethods.GetEntitiesStateReply).Entities {
-		c.KnownEntities[e.ID] = e
-	}
-}
-
-func (c *AggressiveController) ControllerMoveReply(msg message.Message) {
-	c.afterMoveAttack(c.KnownEntities, msg)
-}
-
-func (c *AggressiveController) ControllerAttackReply(msg message.Message) {
-	logrus.WithFields(logrus.Fields{
-		"Controller":     c.ID.String()[0:8],
-		"ControllerName": c.act.Name(),
-		"Error":          msg.HasError,
-		"Message":        msg.ErrorMessage,
-	}).Info("Attack done, ending turn")
-	c.ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
-		EntityID:     msg.TargetMethod.(rulermethods.ControllerAttackReply).Entity.ID,
-		ControllerID: c.ID,
-	}, rulermethods.EndOfTurn{}), c.act.CallbackChan)
-}
-
-// selectNearestFoe find nearest foe, based on controller id.
-func (ctl *AggressiveController) selectNearestFoe(currentEntity entity.Entity, entities map[uuid.UUID]entity.Entity) (entity.Entity, error) {
-	nearestid := uuid.Nil
-	minDist := 10000
-	pos := currentEntity.Position
-	currentCtrl := currentEntity.ControllerID
-
-	logrus.WithFields(logrus.Fields{
-		"pos":        pos,
-		"entity":     currentEntity.ID.String()[0:8],
-		"controller": currentEntity.ControllerID.String()[0:8],
-	}).Info("selectNearestFoe")
-
-	for id, ent := range entities {
-		if ent.ControllerID != currentCtrl {
-			if currentEntity.ID != ent.ID {
-				logrus.WithFields(logrus.Fields{
-					"candidate_pos":        ent.Position,
-					"candidate_entity":     ent.ID.String()[0:8],
-					"candidate_controller": ent.ControllerID.String()[0:8]}).Info("candidate")
-
-				dist := tools.Distance(pos.X, pos.Y, ent.Position.X, ent.Position.Y)
-				if nearestid == uuid.Nil || dist < minDist {
-					logrus.WithFields(logrus.Fields{
-						"selected_pos":        ent.Position,
-						"selected_entity":     ent.ID.String()[0:8],
-						"selected_controller": ent.ControllerID.String()[0:8]}).Info("selected")
-					nearestid = id
-					minDist = dist
-				}
-			}
-		}
-	}
-
-	if nearestid != uuid.Nil {
-		nearest := entities[nearestid]
-		logrus.WithFields(logrus.Fields{
-			"nearest_pos":        nearest.Position,
-			"nearest_entity":     nearest.ID.String()[0:8],
-			"nearest_controller": nearest.ControllerID.String()[0:8]}).Info("nearest")
-		return nearest, nil
-	} else {
-		return entity.Entity{}, errors.New("no nearest entity")
-	}
-}
-
-func (ctl *AggressiveController) preparePathToEntity(pos position.Position, grd *grid.Grid, ent entity.Entity, jumpHeight int) []position.Position {
-	path, found := grd.AStarPath(pos, ent.Position, jumpHeight)
-	if !found {
-		return nil
-	}
-
-	return path
-}
-
-func (ctl *AggressiveController) nextTurn(msg message.Message) {
+func (ctl *AggressiveController) ControllerNextTurn(msg message.Message) {
 	controllerData := msg.TargetMethod.(rulermethods.ControllerNextTurn)
 	logrus.WithFields(logrus.Fields{
 		"Controller":     ctl.ID.String()[0:8],
@@ -381,9 +253,74 @@ func (ctl *AggressiveController) nextTurn(msg message.Message) {
 			}), ctl.act.CallbackChan)
 		}
 	}
+	ctl.act.NoReply(msg.Reply())
 }
 
-func (ctl *AggressiveController) afterMoveAttack(knownEntities map[uuid.UUID]entity.Entity, msg message.Message) {
+func (c *AggressiveController) BattleStart(msg message.Message) {
+	logrus.Info("##### BattleStart #####")
+	c.ruler.SendActor(message.Create(nil, rulermethods.GetEntitiesState{}, rulermethods.GetEntitiesStateReply{}), c.act.CallbackChan)
+	c.ruler.SendActor(message.Create(nil, rulermethods.GetGridState{}, rulermethods.GetGridStateReply{}), c.act.CallbackChan)
+
+	c.act.NoReply(msg.Reply())
+}
+
+func (c *AggressiveController) BattleEnd(msg message.Message) {
+	logrus.Info("##### BattleEnd #####")
+	c.BattleFinished <- true
+
+	c.act.NoReply(msg.Reply())
+}
+
+func (c *AggressiveController) ControllerAttacked(msg message.Message) {
+	logrus.WithFields(logrus.Fields{
+		"EntityID":   msg.TargetMethod.(rulermethods.ControllerAttacked).Entity.ID.String()[0:8],
+		"AttackerID": msg.TargetMethod.(rulermethods.ControllerAttacked).Attacker.ID.String()[0:8],
+		"Position":   msg.TargetMethod.(rulermethods.ControllerAttacked).Entity.Position}).Debug("ControllerAttacked")
+	// nothing to do post attack
+
+	c.act.NoReply(msg.Reply())
+}
+
+func (c *AggressiveController) EntitiesStateChanged(msg message.Message) {
+	logrus.WithFields(logrus.Fields{
+		"Controller": c.act.Name(),
+		"RequestId":  msg.RequestId.String()[0:8],
+		"Turn":       msg.TargetMethod.(rulermethods.EntitiesStateChanged).Turn.String()}).Info("New Turn Received")
+	// fill in known entities (clear them beforehand.)
+	c.KnownEntities = make(map[uuid.UUID]entity.Entity)
+	for _, e := range msg.TargetMethod.(rulermethods.EntitiesStateChanged).Entities {
+		c.KnownEntities[e.ID] = e
+	}
+	c.act.NoReply(msg.Reply())
+}
+
+func (c *AggressiveController) GetStateReply(msg message.Message) {
+
+}
+
+func (c *AggressiveController) GetGridStateReply(msg message.Message) {
+	c.Grid = msg.Content.(rulermethods.GetGridStateReply).Grid
+	if !c.battleready {
+		c.battleready = true
+		c.ruler.NotifyActor(message.Create(nil, rulermethods.ControllerBattleReady{
+			ControllerID: c.ID,
+		}, nil))
+	}
+}
+
+func (c *AggressiveController) GetEntitiesStateReply(msg message.Message) {
+	logrus.WithFields(logrus.Fields{
+		"Controller": c.act.Name(),
+		"RequestId":  msg.RequestId.String()[0:8],
+		"Turn":       msg.Content.(rulermethods.GetEntitiesStateReply).Turn.String()}).Info("New Turn Received")
+	// fill in known entities (clear them beforehand.)
+	c.KnownEntities = make(map[uuid.UUID]entity.Entity)
+	for _, e := range msg.Content.(rulermethods.GetEntitiesStateReply).Entities {
+		c.KnownEntities[e.ID] = e
+	}
+}
+
+func (ctl *AggressiveController) ControllerMoveReply(msg message.Message) {
 	if msg.HasError {
 		ctl.ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
 			EntityID:     msg.TargetMethod.(rulermethods.ControllerMoveReply).Entity.ID,
@@ -400,7 +337,11 @@ func (ctl *AggressiveController) afterMoveAttack(knownEntities map[uuid.UUID]ent
 			"ControllerName": ctl.act.Name(),
 			"Expected":       target.Position}).Debug("Move Succesfull")
 
-		atkrng := ctl.KnownEntities[msg.TargetMethod.(rulermethods.ControllerMoveReply).Entity.ID].GetPropertyI("AttackRange", &defaultAttackRangeProp).I()
+		attacker := ctl.KnownEntities[msg.TargetMethod.(rulermethods.ControllerMoveReply).Entity.ID]
+
+		logrus.Info(" Attacker: ", attacker.PrettyString())
+
+		atkrng := attacker.GetPropertyI("AttackRange", &defaultAttackRangeProp).I()
 		if msg.TargetMethod.(rulermethods.ControllerMoveReply).Entity.Position.Distance(target.Position) <= atkrng {
 
 			// it is already in place. Send attack
@@ -417,8 +358,91 @@ func (ctl *AggressiveController) afterMoveAttack(knownEntities map[uuid.UUID]ent
 			}, rulermethods.ControllerAttackReply{
 				Entity: ControllerData.Entity,
 			}), ctl.act.CallbackChan)
+		} else {
+			// end of turn
+
+			logrus.WithFields(logrus.Fields{
+				"EntityID":       ControllerData.Entity.ID.String()[0:8],
+				"Position":       ControllerData.Entity.Position,
+				"Controller":     ctl.ID.String()[0:8],
+				"ControllerName": ctl.act.Name(),
+				"Expected":       target.Position}).Debug("Too far away from target, ending turn")
+
+			ctl.ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
+				EntityID:     msg.TargetMethod.(rulermethods.ControllerMoveReply).Entity.ID,
+				ControllerID: ctl.ID,
+			}, rulermethods.EndOfTurn{}), ctl.act.CallbackChan)
 		}
 	}
+
+}
+
+func (c *AggressiveController) ControllerAttackReply(msg message.Message) {
+	logrus.WithFields(logrus.Fields{
+		"Controller":     c.ID.String()[0:8],
+		"ControllerName": c.act.Name(),
+		"Error":          msg.HasError,
+		"Message":        msg.ErrorMessage,
+	}).Info("Attack done, ending turn")
+	c.ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
+		EntityID:     msg.TargetMethod.(rulermethods.ControllerAttackReply).Entity.ID,
+		ControllerID: c.ID,
+	}, rulermethods.EndOfTurn{}), c.act.CallbackChan)
+}
+
+// selectNearestFoe find nearest foe, based on controller id.
+func (ctl *AggressiveController) selectNearestFoe(currentEntity entity.Entity, entities map[uuid.UUID]entity.Entity) (entity.Entity, error) {
+	nearestid := uuid.Nil
+	minDist := 10000
+	pos := currentEntity.Position
+	currentCtrl := currentEntity.ControllerID
+
+	logrus.WithFields(logrus.Fields{
+		"pos":        pos,
+		"entity":     currentEntity.ID.String()[0:8],
+		"controller": currentEntity.ControllerID.String()[0:8],
+	}).Info("selectNearestFoe")
+
+	for id, ent := range entities {
+		if ent.ControllerID != currentCtrl {
+			if currentEntity.ID != ent.ID {
+				logrus.WithFields(logrus.Fields{
+					"candidate_pos":        ent.Position,
+					"candidate_entity":     ent.ID.String()[0:8],
+					"candidate_controller": ent.ControllerID.String()[0:8]}).Info("candidate")
+
+				dist := tools.Distance(pos.X, pos.Y, ent.Position.X, ent.Position.Y)
+				if nearestid == uuid.Nil || dist < minDist {
+					logrus.WithFields(logrus.Fields{
+						"selected_pos":        ent.Position,
+						"selected_entity":     ent.ID.String()[0:8],
+						"selected_controller": ent.ControllerID.String()[0:8]}).Info("selected")
+					nearestid = id
+					minDist = dist
+				}
+			}
+		}
+	}
+
+	if nearestid != uuid.Nil {
+		nearest := entities[nearestid]
+		logrus.WithFields(logrus.Fields{
+			"nearest_pos":        nearest.Position,
+			"nearest_entity":     nearest.ID.String()[0:8],
+			"nearest_controller": nearest.ControllerID.String()[0:8]}).Info("nearest")
+		return nearest, nil
+	} else {
+		return entity.Entity{}, errors.New("no nearest entity")
+	}
+}
+
+func (ctl *AggressiveController) preparePathToEntity(pos position.Position, grd *grid.Grid, ent entity.Entity, jumpHeight int) []position.Position {
+	path, found := grd.AStarPath(pos, ent.Position, jumpHeight)
+	if !found {
+		return nil
+	}
+
+	return path
 }
 
 // Implement the actor.Communication interface

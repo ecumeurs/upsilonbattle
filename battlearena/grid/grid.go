@@ -357,7 +357,7 @@ func (g *Grid) AStarPath(start, end position.Position, jumpHeight int) ([]positi
 	for len(queue) > 0 {
 		pos := queue[0]
 		queue = queue[1:]
-		if pos == end {
+		if pos.Equals(end) {
 			return g.reconstructPath(visited, start, end, jumpHeight), true
 		}
 		visited[pos] = visited[parents[pos]] + 1
