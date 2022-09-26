@@ -7,6 +7,7 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/cell"
 	"github.com/ecumeurs/upsilonbattle/battlearena/position"
 	"github.com/ecumeurs/upsilonbattle/battlearena/position/pattern"
+	"github.com/ecumeurs/upsilontools/tools"
 	"github.com/google/uuid"
 )
 
@@ -337,6 +338,64 @@ func (g *Grid) CellsForPositions(pos []position.Position) []*cell.Cell {
 		if ok {
 			res = append(res, c)
 		}
+	}
+	return res
+}
+
+// AStarPath returns the path from start to end using A*
+func (g *Grid) AStarPath(start, end position.Position, jumpHeight int) ([]position.Position, bool) {
+	if !g.Contains(start) || !g.Contains(end) {
+		return nil, false
+	}
+	if start == end {
+		return []position.Position{start}, true
+	}
+
+	visited := map[position.Position]int{}
+	queue := []position.Position{start}
+	parents := map[position.Position]position.Position{}
+	for len(queue) > 0 {
+		pos := queue[0]
+		queue = queue[1:]
+		if pos == end {
+			return g.reconstructPath(visited, start, end, jumpHeight), true
+		}
+		visited[pos] = visited[parents[pos]] + 1
+		for _, n := range g.SelectPositionsByPattern2D(pos, pattern.Neighbours2D()) {
+			if _, found := visited[n]; found {
+				continue
+			}
+			if tools.Abs(n.Z-pos.Z) > jumpHeight {
+				continue
+			}
+			if c, found := g.CellAt(n); found && c.Type == cell.Ground {
+				queue = append(queue, n)
+				parents[n] = pos
+			}
+		}
+	}
+	return nil, false
+}
+
+func (g *Grid) reconstructPath(visited map[position.Position]int, start, end position.Position, jumpHeight int) []position.Position {
+	res := []position.Position{end}
+	for res[len(res)-1] != start {
+		// find the lowest number within adjascents
+		lowest := 999999
+		var lowestPos position.Position
+		for _, n := range g.SelectPositionsByPattern2D(res[len(res)-1], pattern.Neighbours2D()) {
+			if tools.Abs(n.Z-res[len(res)-1].Z) <= jumpHeight {
+				if vis, found := visited[n]; found && vis < lowest {
+					lowest = vis
+					lowestPos = n
+				}
+			}
+		}
+		res = append(res, lowestPos)
+	}
+
+	for i, j := 0, len(res)-1; i < j; i, j = i+1, j-1 {
+		res[i], res[j] = res[j], res[i]
 	}
 	return res
 }

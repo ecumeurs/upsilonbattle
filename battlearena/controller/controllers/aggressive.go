@@ -6,9 +6,9 @@ import (
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
+	"github.com/ecumeurs/upsilonbattle/battlearena/entity/properties.go"
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid"
 	"github.com/ecumeurs/upsilonbattle/battlearena/position"
-	"github.com/ecumeurs/upsilonbattle/battlearena/position/pattern"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilontools/tools"
 	"github.com/ecumeurs/upsilontools/tools/actor"
@@ -16,6 +16,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
+
+var defaultMovementProp = properties.DefaultIntProperty(0)
+var defaultJumpHeightProp = properties.DefaultIntProperty(2)
+var defaultAttackRangeProp = properties.DefaultIntProperty(0)
 
 type AggressiveController struct {
 	act            *actor.Actor
@@ -272,11 +276,10 @@ func (ctl *AggressiveController) selectNearestFoe(currentEntity entity.Entity, e
 	}
 }
 
-func (ctl *AggressiveController) preparePathToEntity(pos position.Position, grd *grid.Grid, ent entity.Entity) []position.Position {
-	path := pattern.PathTo2D(ent.Position.Substract(pos)).Apply2D(pos)
-	// ensure Z is at the right place all along.
-	for i, p := range path {
-		path[i].Z = grd.TopMostGroundAt(p.X, p.Y)
+func (ctl *AggressiveController) preparePathToEntity(pos position.Position, grd *grid.Grid, ent entity.Entity, jumpHeight int) []position.Position {
+	path, found := grd.AStarPath(pos, ent.Position, jumpHeight)
+	if !found {
+		return nil
 	}
 
 	return path
@@ -303,17 +306,32 @@ func (ctl *AggressiveController) nextTurn(msg message.Message) {
 	}
 	ctl.latestTarget = target
 	logrus.Debug("Moving To Attack")
+	jumpHeight := ctl.KnownEntities[controllerData.Entity.ID].GetPropertyI("JumpHeight", &defaultMovementProp).I()
 
-	path := ctl.preparePathToEntity(controllerData.Entity.Position, ctl.Grid, target)
+	path := ctl.preparePathToEntity(controllerData.Entity.Position, ctl.Grid, target, jumpHeight)
 	// can't be on the same cell as target.
 	if len(path) > 1 {
-		path = path[:len(path)-1]
+		mvt := ctl.KnownEntities[controllerData.Entity.ID].GetPropertyI("Movement", &defaultMovementProp).I()
+		atkrng := ctl.KnownEntities[controllerData.Entity.ID].GetPropertyI("AttackRange", &defaultAttackRangeProp).I()
+		if len(path) > atkrng {
+			path = path[:atkrng]
+		} else {
+			path = nil // no need to move, already in range.
+		}
+
+		// limit path according to entity's movement
+		if len(path) > mvt {
+			path = path[:mvt]
+		}
 
 		if len(path) != 0 {
+
 			logrus.WithFields(logrus.Fields{
 				"EntityID":       controllerData.Entity.ID.String()[0:8],
 				"Position":       controllerData.Entity.Position,
 				"Expected":       path[len(path)-1],
+				"Movement":       mvt,
+				"AttackRange":    atkrng,
 				"TargetPosition": target.Position,
 				"TargetEntity":   target.ID.String()[0:8],
 			}).Info("Moving attacker")
@@ -331,6 +349,8 @@ func (ctl *AggressiveController) nextTurn(msg message.Message) {
 				"EntityID":       controllerData.Entity.ID.String()[0:8],
 				"Position":       controllerData.Entity.Position,
 				"TargetPosition": target.Position,
+				"Movement":       mvt,
+				"AttackRange":    atkrng,
 				"TargetEntity":   target.ID.String()[0:8]}).Info("Attacking")
 			ctl.ruler.SendActor(message.Create(nil, rulermethods.ControllerAttack{
 				EntityID:     controllerData.Entity.ID,
@@ -342,18 +362,24 @@ func (ctl *AggressiveController) nextTurn(msg message.Message) {
 		}
 	} else {
 		// it is already in place. Send attack
-		logrus.WithFields(logrus.Fields{
-			"EntityID":       controllerData.Entity.ID.String()[0:8],
-			"Position":       controllerData.Entity.Position,
-			"TargetPosition": target.Position,
-			"TargetEntity":   target.ID.String()[0:8]}).Info("Attacking")
-		ctl.ruler.SendActor(message.Create(nil, rulermethods.ControllerAttack{
-			EntityID:     controllerData.Entity.ID,
-			Target:       target.Position,
-			ControllerID: ctl.ID,
-		}, rulermethods.ControllerAttackReply{
-			Entity: controllerData.Entity,
-		}), ctl.act.CallbackChan)
+
+		if len(path) == 0 {
+			// Unable to find a path to target ...
+		} else {
+			// right next to target.
+			logrus.WithFields(logrus.Fields{
+				"EntityID":       controllerData.Entity.ID.String()[0:8],
+				"Position":       controllerData.Entity.Position,
+				"TargetPosition": target.Position,
+				"TargetEntity":   target.ID.String()[0:8]}).Info("Attacking")
+			ctl.ruler.SendActor(message.Create(nil, rulermethods.ControllerAttack{
+				EntityID:     controllerData.Entity.ID,
+				Target:       target.Position,
+				ControllerID: ctl.ID,
+			}, rulermethods.ControllerAttackReply{
+				Entity: controllerData.Entity,
+			}), ctl.act.CallbackChan)
+		}
 	}
 }
 
@@ -374,19 +400,24 @@ func (ctl *AggressiveController) afterMoveAttack(knownEntities map[uuid.UUID]ent
 			"ControllerName": ctl.act.Name(),
 			"Expected":       target.Position}).Debug("Move Succesfull")
 
-		// it is already in place. Send attack
-		logrus.WithFields(logrus.Fields{
-			"EntityID":       ControllerData.Entity.ID.String()[0:8],
-			"Position":       ControllerData.Entity.Position,
-			"TargetPosition": target.Position,
-			"TargetEntity":   target.ID.String()[0:8]}).Info("Attacking")
-		ctl.ruler.SendActor(message.Create(nil, rulermethods.ControllerAttack{
-			EntityID:     ControllerData.Entity.ID,
-			Target:       target.Position,
-			ControllerID: ctl.ID,
-		}, rulermethods.ControllerAttackReply{
-			Entity: ControllerData.Entity,
-		}), ctl.act.CallbackChan)
+		atkrng := ctl.KnownEntities[msg.TargetMethod.(rulermethods.ControllerMoveReply).Entity.ID].GetPropertyI("AttackRange", &defaultAttackRangeProp).I()
+		if msg.TargetMethod.(rulermethods.ControllerMoveReply).Entity.Position.Distance(target.Position) <= atkrng {
+
+			// it is already in place. Send attack
+			logrus.WithFields(logrus.Fields{
+				"EntityID":       ControllerData.Entity.ID.String()[0:8],
+				"Position":       ControllerData.Entity.Position,
+				"TargetPosition": target.Position,
+				"AttackRange":    atkrng,
+				"TargetEntity":   target.ID.String()[0:8]}).Info("Attacking")
+			ctl.ruler.SendActor(message.Create(nil, rulermethods.ControllerAttack{
+				EntityID:     ControllerData.Entity.ID,
+				Target:       target.Position,
+				ControllerID: ctl.ID,
+			}, rulermethods.ControllerAttackReply{
+				Entity: ControllerData.Entity,
+			}), ctl.act.CallbackChan)
+		}
 	}
 }
 

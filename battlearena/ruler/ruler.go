@@ -171,9 +171,10 @@ func (r *Ruler) addController(msg message.Message, req rulermethods.AddControlle
 
 	// Assign the controller to the designated number of entities
 	for i := 0; i < r.NbEntitiesPerController; i++ {
-		for _, e := range r.GameState.Entities {
+		for idx, e := range r.GameState.Entities {
 			if e.ControllerID == uuid.Nil {
 				e.ControllerID = req.ControllerID
+				r.GameState.Entities[idx] = e
 				break
 			}
 		}
