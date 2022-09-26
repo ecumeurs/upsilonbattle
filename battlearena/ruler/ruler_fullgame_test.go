@@ -33,6 +33,13 @@ func TestRulerControllerFullGame(t *testing.T) {
 		ControllerID: ctrl2.ID,
 	}, nil))
 
+	go func() {
+		<-time.After(20 * time.Second)
+		ctrl.PrintStack()
+		ctrl2.PrintStack()
+		ruler.PrintStack()
+	}()
+
 	<-ctrl.BattleFinished
 	<-ctrl2.BattleFinished
 

@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity/properties.go"
@@ -25,6 +26,11 @@ const (
 	Left  EntityOrientation = 3 // X:-1 Y:0
 )
 
+// String
+func (e EntityOrientation) String() string {
+	return [...]string{"Up", "Right", "Down", "Left"}[e]
+}
+
 type Entity struct {
 	ID           uuid.UUID
 	ControllerID uuid.UUID
@@ -48,6 +54,20 @@ func NewEntity() Entity {
 		Orientation:  Up,
 		Properties:   make(map[string]properties.Property),
 	}
+}
+
+// String
+func (e Entity) String() string {
+	return fmt.Sprintf("[E %s-%s]", e.ID.String()[0:8], e.Name)
+}
+
+func (e Entity) PrettyString() string {
+	res := fmt.Sprintf("%s %s %s\n", e.String(), e.Position.String(), e.Orientation.String())
+	for _, v := range e.Properties {
+		res += fmt.Sprintf(" - %s\n", properties.PrettyPrint(v, properties.GameMaster))
+	}
+
+	return res
 }
 
 // FaceToward will change the orientation of the entity to face given position.

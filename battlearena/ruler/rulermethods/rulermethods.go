@@ -16,6 +16,15 @@ type AddController struct {
 	ControllerID uuid.UUID
 }
 
+type ControllerBattleReady struct {
+	ControllerID uuid.UUID
+	actor.NoReply
+}
+type ControllerTurnReady struct {
+	ControllerID uuid.UUID
+	actor.NoReply
+}
+
 type GetState struct{}
 
 type GetGridState struct {

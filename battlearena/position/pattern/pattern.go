@@ -212,7 +212,12 @@ func Line2D(length int) Pattern2D {
 }
 
 func Neighbours2D() Pattern2D {
-	return Square2D(1, 1)
+	return Pattern2D{
+		position.New(0, 1, 0),
+		position.New(0, -1, 0),
+		position.New(1, 0, 0),
+		position.New(-1, 0, 0),
+	}
 }
 
 func PathTo2D(pos position.Position) Pattern2D {
