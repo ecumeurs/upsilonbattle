@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity/properties.go"
+	"github.com/ecumeurs/upsilonbattle/battlearena/entity/properties"
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/cell"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"

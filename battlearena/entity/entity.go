@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity/properties.go"
+	"github.com/ecumeurs/upsilonbattle/battlearena/entity/properties"
 	"github.com/ecumeurs/upsilonbattle/battlearena/position"
 	"github.com/google/uuid"
 )

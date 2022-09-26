@@ -3,7 +3,7 @@ package entitygenerator
 import (
 	"testing"
 
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity/properties.go"
+	"github.com/ecumeurs/upsilonbattle/battlearena/entity/properties"
 )
 
 func TestEntityGenerator(t *testing.T) {

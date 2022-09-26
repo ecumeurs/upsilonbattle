@@ -7,6 +7,11 @@
 This module is responsible for specific point of rules used during the battle.
 The two main rules begins with movement and attack. They will further fork as the game logic evolves.
 
+Rules heavily rely on properties and will use them to compute their effects.
+Note: if a property is missing on an entity, a default value will be used instead (often to the detriment of the entity missing it.)
+
+[Properties](../../entity/properties/README.md)
+
 ## GameState
 
 Structs and helper functions around the game state.
@@ -21,11 +26,18 @@ this local context is used to store the current state of the movement.
 It's mostly useless right now but expect further use in the future, especially when traps and triggered actions will come into play.
 
 ```go
-type localMovekCtx struct {
+type localMoveCtx struct {
 	*GameState
 	log *logrus.Entry
 }
 ```
+
+### v0.0.2
+
+Move now makes use of the new properties system. It will use the following properties:
+
+* `Movement`: define the reach of the entity.
+* `JumpHeight`: define the maximum height the entity can jump.
 
 ### v0.0.1
 
@@ -49,6 +61,14 @@ type localAttackCtx struct {
 }
 ```
 
+### v0.0.2
+
+Move now makes use of the new properties system. It will use the following properties:
+
+* `Attack`: damage that will be inflicted to the target.
+* `AttackRange`: define the reach of the entity.
+* `Defense`: damage reduction applied to the entity.
+* `HP`: Maximum number of hit points the entity can take.
 
 ### v0.0.1
 
