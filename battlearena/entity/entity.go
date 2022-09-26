@@ -67,7 +67,7 @@ func (e *Entity) FaceToward(p position.Position) {
 }
 
 // GetProperty will return the property with the given name, or default
-func (e *Entity) GetProperty(name string, defaultProperty properties.Property) properties.Property {
+func (e Entity) GetProperty(name string, defaultProperty properties.Property) properties.Property {
 	if _, found := e.Properties[name]; found {
 		return e.Properties[name]
 	}
@@ -75,7 +75,7 @@ func (e *Entity) GetProperty(name string, defaultProperty properties.Property) p
 }
 
 // GetPropertyI will return the property with the given name, or default
-func (e *Entity) GetPropertyI(name string, defaultProperty properties.IntProperty) properties.IntProperty {
+func (e Entity) GetPropertyI(name string, defaultProperty properties.IntProperty) properties.IntProperty {
 	if _, found := e.Properties[name]; found {
 		return e.Properties[name].(properties.IntProperty)
 	}
@@ -83,7 +83,7 @@ func (e *Entity) GetPropertyI(name string, defaultProperty properties.IntPropert
 }
 
 // GetPropertyF will return the property with the given name, or default
-func (e *Entity) GetPropertyF(name string, defaultProperty properties.FloatProperty) properties.FloatProperty {
+func (e Entity) GetPropertyF(name string, defaultProperty properties.FloatProperty) properties.FloatProperty {
 	if _, found := e.Properties[name]; found {
 		return e.Properties[name].(properties.FloatProperty)
 	}
