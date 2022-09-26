@@ -2,7 +2,7 @@ package entitygenerator
 
 import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity/properties.go"
+	"github.com/ecumeurs/upsilonbattle/battlearena/entity/properties"
 	"github.com/ecumeurs/upsilontools/tools"
 )
 

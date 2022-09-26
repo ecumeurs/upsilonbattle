@@ -6,7 +6,7 @@ import (
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity/properties.go"
+	"github.com/ecumeurs/upsilonbattle/battlearena/entity/properties"
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid"
 	"github.com/ecumeurs/upsilonbattle/battlearena/position"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"

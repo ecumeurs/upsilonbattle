@@ -1,4 +1,4 @@
-# Version 0.0.2 (WIP)
+# Version 0.0.2 
 
 Basic Entity Stats, and rules.
 
@@ -24,6 +24,14 @@ Basic Entity Stats, and rules.
 * Of course when HP drop to 0: entity is dead and removed from the game (as previously)
 
 * Generated Entities will have random values for their starting stats! (classlike stuff come later)
+
+
+## Docs
+
+[Properties](battlearena/entity/properties/README.md)
+[Rules](battlearena/ruler/rules/README.md)
+
+
 
 # Version 0.0.1
 
@@ -60,6 +68,6 @@ message the ruler expect to receive and struct he will respond with. It also can
 
 ## Tests
 
-[Ruler Tests](battlearena/ruler/ruler_fullgame_test.go) This is the most appropriate test as of now.
+[Ruler Tests](battlearena/ruler/ruler_fullgame_test.go) This is the most appropriate test as of now. (valid v0.0.2)
 
 [Lesser Ruler Tests](battlearena/ruler/ruler_test.go) This is probably broken.
