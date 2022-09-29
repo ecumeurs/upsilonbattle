@@ -2,14 +2,11 @@ package rules
 
 import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/cell"
-	"github.com/ecumeurs/upsilonbattle/battlearena/properties"
+	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/sirupsen/logrus"
 )
-
-var defaultMovementProp = properties.DefaultIntProperty(0)
-var defaultJumpHeightProp = properties.DefaultIntProperty(2)
 
 type localMoveCtx struct {
 	*GameState
@@ -83,7 +80,8 @@ func (ctx *localMoveCtx) preMoveChecks(msg message.Message, req rulermethods.Con
 	}
 
 	// fetch movement distance
-	movementDistance := ent.GetPropertyI("Movement", &defaultMovementProp).I()
+	mvt := ent.GetProperty("Movement", property.DefaultMovement())
+	movementDistance := mvt.(*property.DefaultIntCounterProperty).Value
 
 	// check path length
 	if len(req.Path) > movementDistance {
@@ -95,7 +93,7 @@ func (ctx *localMoveCtx) preMoveChecks(msg message.Message, req rulermethods.Con
 	}
 
 	// fetch jumpheight
-	jumpHeight := ent.GetPropertyI("JumpHeight", &defaultJumpHeightProp).I()
+	jumpHeight := ent.GetPropertyI("JumpHeight", property.DefaultJumpHeight()).I()
 
 	// Check if the path is valid
 	cells := ctx.Grid.CellsForPositions(req.Path)

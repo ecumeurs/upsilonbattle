@@ -2,17 +2,12 @@ package rules
 
 import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/cell"
-	"github.com/ecumeurs/upsilonbattle/battlearena/properties"
+	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
-
-var defaultAttackProp = properties.DefaultIntProperty(1)
-var defaultAttackRangeProp = properties.DefaultIntProperty(1)
-var defaultDefenseProp = properties.DefaultIntProperty(0)
-var defaultHPProp = properties.DefaultIntProperty(1)
 
 type localAttackCtx struct {
 	*GameState
@@ -42,11 +37,11 @@ func (gs *GameState) Attack(msg message.Message, req rulermethods.ControllerAtta
 	target, _ := ctx.Grid.CellAt(req.Target)
 
 	ent := gs.Entities[req.EntityID]
-	attackerAttack := ent.GetPropertyI("Attack", &defaultAttackProp)
+	attackerAttack := ent.GetPropertyI("Attack", property.DefaultAttack())
 
 	foe := gs.Entities[target.EntityID]
-	foeDefense := foe.GetPropertyI("Defense", &defaultDefenseProp)
-	foeHP := foe.GetPropertyI("HP", &defaultHPProp)
+	foeDefense := foe.GetPropertyI("Defense", property.DefaultDefence())
+	foeHP := foe.GetPropertyI("HP", property.DefaultHP())
 
 	computedDamage := attackerAttack.I() - foeDefense.I()
 
@@ -146,7 +141,7 @@ func (ctx *localAttackCtx) preAttackChecks(msg message.Message, req rulermethods
 
 	// range check.
 
-	attackerRange := ent.GetPropertyI("AttackRange", &defaultAttackRangeProp)
+	attackerRange := ent.GetPropertyI("AttackRange", property.DefaultAttackRange())
 	distance := ent.Position.Distance(target.Position)
 	if attackerRange.I() <= distance {
 		ctx.log.WithFields(logrus.Fields{

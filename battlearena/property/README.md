@@ -18,7 +18,7 @@ Properties come in multiple kinds, but mostly two (at the moment)
 
 The Property interface allow one to access informations about the property with a visibility level:
 
-* `ExternalObserver` : The property as visible by everyone  
+* `Public` : The property as visible by everyone  
 * `ArenaObserver` : The property as visible by everyone in battle
 * `ForeignController` : The property as visible by any foe
 * `FriendlyController` : The property as visible by any friend
@@ -39,12 +39,14 @@ Lastly but not least there are two further methods associated with properties th
   
 ## Defined properties
 
-* Attack
-* Defense
-* Movement
-* AttackRange
-* JumpHeight
-* HP
+Character properties:
+* Int:
+  * Attack
+  * Defense
+  * Movement
+  * AttackRange
+  * JumpHeight
+  * HP
 
 ## TODO
 

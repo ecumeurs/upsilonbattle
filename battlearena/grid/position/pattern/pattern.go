@@ -34,6 +34,15 @@ func (p Pattern) ContainsAll(origin position.Position, positions []position.Posi
 	return true
 }
 
+// Single
+func Single2D() Pattern2D {
+	return Pattern2D{position.New(0, 0, 0)}
+}
+
+func Single() Pattern {
+	return Pattern{position.New(0, 0, 0)}
+}
+
 // Circle creates a circle pattern
 func Circle(radius int) Pattern {
 	p := Pattern{}

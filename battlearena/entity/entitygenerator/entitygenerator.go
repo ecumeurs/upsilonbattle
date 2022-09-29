@@ -2,11 +2,12 @@ package entitygenerator
 
 import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
-	"github.com/ecumeurs/upsilonbattle/battlearena/properties"
+	"github.com/ecumeurs/upsilonbattle/battlearena/property"
+
 	"github.com/ecumeurs/upsilontools/tools"
 )
 
-var propertiesRandomizers = map[string]tools.IntRange{
+var propertyRandomizers = map[string]tools.IntRange{
 	"HP":          tools.IntRange{Start: 3, End: 20},
 	"Attack":      tools.IntRange{Start: 1, End: 5},
 	"Defense":     tools.IntRange{Start: 0, End: 3},
@@ -18,10 +19,10 @@ var propertiesRandomizers = map[string]tools.IntRange{
 func GenerateRandomEntity() entity.Entity {
 	ent := entity.NewEntity()
 
-	for _, v := range properties.DefaultPropertiesForCharacter() {
-		ent.Properties[v.Name(properties.OwnController)] = v
+	for _, v := range property.DefaultPropertiesForCharacter() {
+		ent.Properties[v.Name(property.OwnController)] = v
 		// use randomizer here
-		ent.Properties[v.Name(properties.OwnController)].Set(propertiesRandomizers[v.Name(properties.OwnController)].Random())
+		ent.Properties[v.Name(property.OwnController)].Set(propertyRandomizers[v.Name(property.OwnController)].Random())
 	}
 
 	return ent
