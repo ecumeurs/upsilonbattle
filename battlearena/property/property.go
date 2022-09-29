@@ -38,6 +38,8 @@ type Property interface {
 	Set(p interface{})                              // this will be used mostly internally to compute values from rules.
 	Increase()                                      // This won't be used in v0.0.2 but later on when we implement leveling.
 	GetType() PropertyType
+	Duplicate() Property
+	ApplyBuff(p Property) Property
 }
 
 // PrettyPrint
@@ -64,18 +66,6 @@ type BoolProperty interface {
 	SetB(bool)
 }
 
-// note: futher properties may be added per entity basis.
-func DefaultPropertiesForCharacter() []Property {
-	return []Property{
-		MakeIntCounterProperty(HP, 10, 10, Public, Character),
-		MakeIntCounterProperty(Movement, 10, 10, Public, Character),
-		MakeIntProperty(Attack, 3, Public, Character),
-		MakeIntProperty(AttackRange, 1, Public, Character),
-		MakeIntProperty(Defence, 0, Public, Character),
-		MakeIntProperty(JumpHeight, 2, Public, Character),
-	}
-}
-
 type DefaultIntProperty struct {
 	value               int
 	name                string
@@ -86,7 +76,7 @@ type DefaultIntProperty struct {
 // MakeIntProperty
 func MakeIntProperty(name interface{}, value int, minInformationLevel InformationLevel, t PropertyType) *DefaultIntProperty {
 	switch name.(type) {
-	case EntityProperties:
+	case string:
 		return &DefaultIntProperty{
 			name:                name.(string),
 			value:               value,
@@ -137,6 +127,21 @@ func (d *DefaultIntProperty) SetI(i int) {
 	d.value = i
 }
 
+func (d DefaultIntProperty) ApplyBuff(p Property) Property {
+	res := d.Duplicate()
+	res.Set(d.Get().(int) + p.Get().(int))
+	return res
+}
+
+func (d DefaultIntProperty) Duplicate() Property {
+	return &DefaultIntProperty{
+		value:               d.value,
+		name:                d.name,
+		minInformationLevel: d.minInformationLevel,
+		propertytype:        d.propertytype,
+	}
+}
+
 type DefaultIntCounterProperty struct {
 	Value    int
 	MaxValue int
@@ -149,7 +154,7 @@ type DefaultIntCounterProperty struct {
 // MakeIntProperty
 func MakeIntCounterProperty(name interface{}, value, maxvalue int, minInformationLevel InformationLevel, t PropertyType) *DefaultIntCounterProperty {
 	switch name.(type) {
-	case EntityProperties:
+	case string:
 		return &DefaultIntCounterProperty{
 			name:                name.(string),
 			Value:               value,
@@ -201,6 +206,23 @@ func (d *DefaultIntCounterProperty) SetI(i int) {
 	d.Value = i
 }
 
+func (d DefaultIntCounterProperty) ApplyBuff(p Property) Property {
+	res := d.Duplicate().(*DefaultIntCounterProperty)
+	res.Value = d.Value + p.(*DefaultIntCounterProperty).Value
+	res.MaxValue = d.MaxValue + p.(*DefaultIntCounterProperty).MaxValue
+	return res
+}
+
+func (d DefaultIntCounterProperty) Duplicate() Property {
+	return &DefaultIntCounterProperty{
+		Value:               d.Value,
+		MaxValue:            d.MaxValue,
+		name:                d.name,
+		minInformationLevel: d.minInformationLevel,
+		propertytype:        d.propertytype,
+	}
+}
+
 type DefaultFloatProperty struct {
 	value               float64
 	name                string
@@ -211,7 +233,7 @@ type DefaultFloatProperty struct {
 // MakeIntProperty
 func MakeFloatProperty(name interface{}, value float64, minInformationLevel InformationLevel, pt PropertyType) *DefaultFloatProperty {
 	switch name.(type) {
-	case EntityProperties:
+	case string:
 
 		return &DefaultFloatProperty{
 			name:                name.(string),
@@ -260,6 +282,21 @@ func (d *DefaultFloatProperty) SetI(f float64) {
 	d.value = f
 }
 
+func (d DefaultFloatProperty) Duplicate() Property {
+	return &DefaultFloatProperty{
+		value:               d.value,
+		name:                d.name,
+		minInformationLevel: d.minInformationLevel,
+		propertytype:        d.propertytype,
+	}
+}
+
+func (d DefaultFloatProperty) ApplyBuff(p Property) Property {
+	res := d.Duplicate()
+	res.Set(d.Get().(float64) + p.Get().(float64))
+	return res
+}
+
 // Bool default value are essentially flags ...
 
 type DefaultBoolProperty struct {
@@ -272,7 +309,7 @@ type DefaultBoolProperty struct {
 // MakeIntProperty
 func MakeBoolProperty(name interface{}, value bool, minInformationLevel InformationLevel, pt PropertyType) *DefaultBoolProperty {
 	switch name.(type) {
-	case EntityProperties:
+	case string:
 		return &DefaultBoolProperty{
 			name:                name.(string),
 			value:               value,
@@ -318,4 +355,19 @@ func (d DefaultBoolProperty) I() bool {
 
 func (d *DefaultBoolProperty) SetI(f bool) {
 	d.value = f
+}
+
+func (d DefaultBoolProperty) Duplicate() Property {
+	return &DefaultBoolProperty{
+		value:               d.value,
+		name:                d.name,
+		minInformationLevel: d.minInformationLevel,
+		propertytype:        d.propertytype,
+	}
+}
+
+func (d DefaultBoolProperty) ApplyBuff(p Property) Property {
+	res := d.Duplicate()
+	res.Set(d.Get().(bool) && p.Get().(bool))
+	return res
 }

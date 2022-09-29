@@ -34,7 +34,7 @@ Mostly, you will want to set value for name/get for Friendly and above: this wil
 Lastly but not least there are two further methods associated with properties that aren't used as of now:
 
 * Type: (None, Character, Skill, Item) Some properties won't be available for everything and will be restricted:
-  * For example: Base Damage will be restricted to Character, Damage to Item, Attack to Skills. End damage will be computed by the rules and will probably look like this: `(BaseDamage + Damage) * Attack`
+  * For example: Base Damage will be restricted to Character, Damage to Item, Attack to Skills. End damage will be computed by the rules and will probably look like this: `(BaseDamage + Damage) * Attack` see [Rules](../rules/README.md)
 * Increase() will be set later on to handle property increase (level up)
   
 ## Defined properties
@@ -52,5 +52,4 @@ Character properties:
 
 
 * At some point one should probably add temporary value to such properties(like a buff or a debuff) and a way to handle them.
-* 
 * HP should be able to store a max value and a current value!
