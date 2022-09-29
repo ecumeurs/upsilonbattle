@@ -1,152 +1,89 @@
-package skill
+package def
 
 import (
 	"fmt"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/position/pattern"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property"
+	"github.com/ecumeurs/upsilonbattle/battlearena/property/defaultproperty"
 )
-
-type SkillProperties string
-
-const (
-	Behavior SkillProperties = "Behavior" // property.Skill broad category: Direct, Reaction, Passive, Counter; Absence means Direct
-
-	Range              SkillProperties = "Range"              // Range of the property.Skill // Absence means 1
-	Zone               SkillProperties = "Zone"               // Area of Effect // Absence means 1 tile effect
-	TargetNumber       SkillProperties = "TargetNumber"       // Absence means all targets within the targeted zone.
-	Accuracy           SkillProperties = "Accuracy"           // Absence means 100%
-	Dodge              SkillProperties = "Dodge"              // Absence means 0%
-	Parry              SkillProperties = "Parry"              // Absence means 0%
-	TargetType         SkillProperties = "TargetType"         // Entity, Tile, Both, Self
-	TargetingMechanics SkillProperties = "TargetingMechanics" // Anywhere, Line of Sight, and maybe other mechanics later.
-
-	Damage          SkillProperties = "Damage"          // Absence means 0
-	Heal            SkillProperties = "Heal"            // Absence means 0
-	ShieldPower     SkillProperties = "Shield"          // Absence means 0 , can be negative or positive.
-	StunPower       SkillProperties = "Stun"            // Absence means 0 , can be negative or positive.
-	StunChance      SkillProperties = "StunChance"      // Absence means 0%
-	CriticialChance SkillProperties = "CriticialChance" // Absence means 0%
-	CriticialDamage SkillProperties = "CriticialDamage" // Absence means 0%
-	Duration        SkillProperties = "Duration"        // Absence means 0
-	PoisonPower     SkillProperties = "Poison"          // Absence means 0 , can be negative or positive.
-	PoisonChance    SkillProperties = "PoisonChance"    // Absence means 0%
-
-	Delay    SkillProperties = "Delay"    // Absence means 500
-	HPLeech  SkillProperties = "HPLeech"  // Absence means 0
-	MPLeech  SkillProperties = "MPLeech"  // Absence means 0
-	SPLeech  SkillProperties = "SPLeech"  // Absence means 0
-	Cooldown SkillProperties = "Cooldown" // Absence means 3 turns
-)
-
-var SkillTargetingProperties = map[SkillProperties]bool{
-	Range:              true,
-	Zone:               true,
-	TargetNumber:       true,
-	Accuracy:           true,
-	Dodge:              true,
-	Parry:              true,
-	TargetType:         true,
-	TargetingMechanics: true,
-}
-
-var SkillEffectProperties = map[SkillProperties]bool{
-	Damage:          true,
-	Heal:            true,
-	ShieldPower:     true,
-	StunPower:       true,
-	StunChance:      true,
-	CriticialChance: true,
-	CriticialDamage: true,
-	Duration:        true,
-	PoisonPower:     true,
-	PoisonChance:    true,
-}
-
-var SkillCostProperties = map[SkillProperties]bool{
-	Delay:    true,
-	HPLeech:  true,
-	MPLeech:  true,
-	SPLeech:  true,
-	Cooldown: true,
-}
 
 // Prepare default Properties.
 
-func DefaultTargetNumber() *property.DefaultIntProperty {
-	return property.MakeIntProperty(TargetNumber, 0, property.FriendlyController, property.Skill)
+func DefaultTargetNumber() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.TargetNumber, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultAccuracy() *property.DefaultIntProperty {
-	return property.MakeIntProperty(Accuracy, 100, property.FriendlyController, property.Skill)
+func DefaultAccuracy() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.Accuracy, 100, property.FriendlyController, property.Skill)
 }
 
-func DefaultDodge() *property.DefaultIntProperty {
-	return property.MakeIntProperty(Dodge, 0, property.FriendlyController, property.Skill)
+func DefaultDodge() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.Dodge, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultParry() *property.DefaultIntProperty {
-	return property.MakeIntProperty(Parry, 0, property.FriendlyController, property.Skill)
+func DefaultParry() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.Parry, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultDamage() *property.DefaultIntProperty {
-	return property.MakeIntProperty(Damage, 0, property.FriendlyController, property.Skill)
+func DefaultDamage() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.Damage, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultHeal() *property.DefaultIntProperty {
-	return property.MakeIntProperty(Heal, 0, property.FriendlyController, property.Skill)
+func DefaultHeal() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.Heal, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultShieldPower() *property.DefaultIntProperty {
-	return property.MakeIntProperty(ShieldPower, 0, property.FriendlyController, property.Skill)
+func DefaultShieldPower() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.ShieldPower, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultStunPower() *property.DefaultIntProperty {
-	return property.MakeIntProperty(StunPower, 0, property.FriendlyController, property.Skill)
+func DefaultStunPower() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.StunPower, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultStunChance() *property.DefaultIntProperty {
-	return property.MakeIntProperty(StunChance, 0, property.FriendlyController, property.Skill)
+func DefaultStunChance() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.StunChance, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultCriticialChance() *property.DefaultIntProperty {
-	return property.MakeIntProperty(CriticialChance, 0, property.FriendlyController, property.Skill)
+func DefaultCriticialChance() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.CriticialChance, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultCriticialDamage() *property.DefaultFloatProperty {
-	return property.MakeFloatProperty(CriticialDamage, 0, property.FriendlyController, property.Skill)
+func DefaultCriticialDamage() *defaultproperty.DefaultFloatProperty {
+	return defaultproperty.MakeFloatProperty(property.CriticialDamage, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultDuration() *property.DefaultIntCounterProperty {
-	return property.MakeIntCounterProperty(Duration, 0, 0, property.FriendlyController, property.Skill)
+func DefaultDuration() *defaultproperty.DefaultIntCounterProperty {
+	return defaultproperty.MakeIntCounterProperty(property.Duration, 0, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultPoisonPower() *property.DefaultIntProperty {
-	return property.MakeIntProperty(PoisonPower, 0, property.FriendlyController, property.Skill)
+func DefaultPoisonPower() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.PoisonPower, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultPoisonChance() *property.DefaultIntProperty {
-	return property.MakeIntProperty(PoisonChance, 0, property.FriendlyController, property.Skill)
+func DefaultPoisonChance() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.PoisonChance, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultDelay() *property.DefaultIntCounterProperty {
-	return property.MakeIntCounterProperty(Delay, 0, 500, property.FriendlyController, property.Skill)
+func DefaultDelay() *defaultproperty.DefaultIntCounterProperty {
+	return defaultproperty.MakeIntCounterProperty(property.Delay, 0, 500, property.FriendlyController, property.Skill)
 }
 
-func DefaultHPLeech() *property.DefaultIntProperty {
-	return property.MakeIntProperty(HPLeech, 0, property.FriendlyController, property.Skill)
+func DefaultHPLeech() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.HPLeech, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultMPLeech() *property.DefaultIntProperty {
-	return property.MakeIntProperty(MPLeech, 0, property.FriendlyController, property.Skill)
+func DefaultMPLeech() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.MPLeech, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultSPLeech() *property.DefaultIntProperty {
-	return property.MakeIntProperty(SPLeech, 0, property.FriendlyController, property.Skill)
+func DefaultSPLeech() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.SPLeech, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultCooldown() *property.DefaultIntCounterProperty {
-	return property.MakeIntCounterProperty(Cooldown, 0, 3, property.FriendlyController, property.Skill)
+func DefaultCooldown() *defaultproperty.DefaultIntCounterProperty {
+	return defaultproperty.MakeIntCounterProperty(property.Cooldown, 0, 3, property.FriendlyController, property.Skill)
 }
 
 // Behavior property.Property: 	Behavior SkillProperties = "Behavior" property.Skill broad category: Direct, Reaction, Passive, Counter

@@ -3,7 +3,7 @@ package entitygenerator
 import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property"
-	pentity "github.com/ecumeurs/upsilonbattle/battlearena/property/entity"
+	"github.com/ecumeurs/upsilonbattle/battlearena/property/def"
 
 	"github.com/ecumeurs/upsilontools/tools"
 )
@@ -20,7 +20,7 @@ var propertyRandomizers = map[string]tools.IntRange{
 func GenerateRandomEntity() entity.Entity {
 	ent := entity.NewEntity()
 
-	for _, v := range pentity.DefaultPropertiesForCharacter() {
+	for _, v := range def.PropertiesForCharacter() {
 		ent.Properties[v.Name(property.OwnController)] = v
 		// use randomizer here
 		ent.Properties[v.Name(property.OwnController)].Set(propertyRandomizers[v.Name(property.OwnController)].Random())

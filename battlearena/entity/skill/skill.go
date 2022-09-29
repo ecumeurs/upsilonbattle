@@ -1,9 +1,14 @@
 package skill
 
-import "github.com/ecumeurs/upsilonbattle/battlearena/property"
+import (
+	"github.com/ecumeurs/upsilonbattle/battlearena/property"
+	"github.com/ecumeurs/upsilonbattle/battlearena/property/def"
+)
 
 type Skill struct {
 	Name string
+
+	Behavior def.BehaviorProperty
 
 	Targeting []property.Property
 	Cost      []property.Property
@@ -14,6 +19,7 @@ type Skill struct {
 func New() *Skill {
 	return &Skill{
 		Name:      "New Skill",
+		Behavior:  *def.DefaultBehaviorProperty(),
 		Targeting: []property.Property{},
 		Cost:      []property.Property{},
 		Effect:    []property.Property{},

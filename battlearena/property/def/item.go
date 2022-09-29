@@ -1,53 +1,37 @@
-package item
+package def
 
 import (
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity/skill"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property"
+	"github.com/ecumeurs/upsilonbattle/battlearena/property/defaultproperty"
+	"github.com/ecumeurs/upsilonbattle/battlearena/property/effect"
 )
 
-type ItemProperties string
-
-const (
-	Durability       ItemProperties = "Durability"       // Absence means 0: invulnerable
-	Weight           ItemProperties = "Weight"           // Absence means 0: no weight
-	ItemType         ItemProperties = "ItemType"         // Absence means None (out of Wearable, Consumable, Usable, Throwable, Ammunitions and None)
-	ArmorRating      ItemProperties = "Armor"            // Absence means 0: no armor (only for Wearable)
-	WeaponType       ItemProperties = "WeaponType"       // Absence means 0: no weapon type (only for Wearable)
-	ArmorType        ItemProperties = "ArmorType"        // Absence means 0: no armor type (only for Wearable)
-	ToolType         ItemProperties = "ToolType"         // Absence means 0: no tool type (only for Wearable)
-	WeaponRange      ItemProperties = "WeaponRange"      // Absence means 0: no weapon range (only for Wearable)
-	WeaponBaseDamage ItemProperties = "WeaponBaseDamage" // Absence means 0: no weapon base damage (only for Wearable)
-	Stackable        ItemProperties = "Stackable"        // Absence means 0: not stackable
-	StackSize        ItemProperties = "StackSize"        // Absence means 0: no stack size
-	Effect           ItemProperties = "Effect"           // Absence means nil: No effect. Effects are Skills. (except None)
-)
-
-func DefaultDurability() *property.DefaultIntProperty {
-	return property.MakeIntProperty(Durability, 0, property.Public, property.Item)
+func DefaultDurability() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.Durability, 0, property.Public, property.Item)
 }
 
-func DefaultWeight() *property.DefaultIntProperty {
-	return property.MakeIntProperty(Weight, 0, property.Public, property.Item)
+func DefaultWeight() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.Weight, 0, property.Public, property.Item)
 }
 
-func DefaultArmorRating() *property.DefaultIntProperty {
-	return property.MakeIntProperty(ArmorRating, 0, property.Public, property.Item)
+func DefaultArmorRating() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.ArmorRating, 0, property.Public, property.Item)
 }
 
-func DefaultWeaponRange() *property.DefaultIntProperty {
-	return property.MakeIntProperty(WeaponRange, 0, property.Public, property.Item)
+func DefaultWeaponRange() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.WeaponRange, 0, property.Public, property.Item)
 }
 
-func DefaultWeaponBaseDamage() *property.DefaultIntProperty {
-	return property.MakeIntProperty(WeaponBaseDamage, 0, property.Public, property.Item)
+func DefaultWeaponBaseDamage() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.WeaponBaseDamage, 0, property.Public, property.Item)
 }
 
-func DefaultStackable() *property.DefaultBoolProperty {
-	return property.MakeBoolProperty(Stackable, false, property.Public, property.Item)
+func DefaultStackable() *defaultproperty.DefaultBoolProperty {
+	return defaultproperty.MakeBoolProperty(property.Stackable, false, property.Public, property.Item)
 }
 
-func DefaultStackSize() *property.DefaultIntProperty {
-	return property.MakeIntProperty(StackSize, 0, property.Public, property.Item)
+func DefaultStackSize() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.StackSize, 0, property.Public, property.Item)
 }
 
 // ItemType         ItemProperties = "ItemType"         // Absence means None (out of Wearable, Consumable, Usable, Throwable, Ammunitions and None)
@@ -125,12 +109,12 @@ func (bh *ItemTypeProperty) ApplyBuff(p property.Property) property.Property {
 
 type EffectProperty struct {
 	property.Property
-	Effect              *skill.Skill
+	Effect              *effect.Effect
 	minInformationLevel property.InformationLevel
 }
 
 // MakeEffectProperty
-func MakeEffectProperty(e *skill.Skill, minInfoLevel property.InformationLevel) *EffectProperty {
+func MakeEffectProperty(e *effect.Effect, minInfoLevel property.InformationLevel) *EffectProperty {
 	return &EffectProperty{
 		Effect:              e,
 		minInformationLevel: minInfoLevel,
