@@ -11,7 +11,7 @@ For now, expect entity generator to create entities with random properties being
 
 ## Entity Template
 
-Entity template are stored in the `templates` folder. They are simple json files, with the following structure:
+Entity template are stored in the `templates/entities` folder. They are simple json files, with the following structure:
 
 ```json
 {

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/position"
-	"github.com/ecumeurs/upsilonbattle/battlearena/properties"
+	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/google/uuid"
 )
 
@@ -40,7 +40,7 @@ type Entity struct {
 	Name         string
 	CurrentDelay int
 	Orientation  EntityOrientation
-	Properties   map[string]properties.Property
+	Properties   map[string]property.Property
 }
 
 // NewEntity
@@ -52,7 +52,7 @@ func NewEntity() Entity {
 		LastActivity: time.Now(),
 		CurrentDelay: 0,
 		Orientation:  Up,
-		Properties:   make(map[string]properties.Property),
+		Properties:   make(map[string]property.Property),
 	}
 }
 
@@ -64,7 +64,7 @@ func (e Entity) String() string {
 func (e Entity) PrettyString() string {
 	res := fmt.Sprintf("%s %s %s\n", e.String(), e.Position.String(), e.Orientation.String())
 	for _, v := range e.Properties {
-		res += fmt.Sprintf(" - %s\n", properties.PrettyPrint(v, properties.GameMaster))
+		res += fmt.Sprintf(" - %s\n", property.PrettyPrint(v, property.GameMaster))
 	}
 
 	return res
@@ -87,7 +87,7 @@ func (e *Entity) FaceToward(p position.Position) {
 }
 
 // GetProperty will return the property with the given name, or default
-func (e Entity) GetProperty(name string, defaultProperty properties.Property) properties.Property {
+func (e Entity) GetProperty(name string, defaultProperty property.Property) property.Property {
 	if _, found := e.Properties[name]; found {
 		return e.Properties[name]
 	}
@@ -95,23 +95,23 @@ func (e Entity) GetProperty(name string, defaultProperty properties.Property) pr
 }
 
 // GetPropertyI will return the property with the given name, or default
-func (e Entity) GetPropertyI(name string, defaultProperty properties.IntProperty) properties.IntProperty {
+func (e Entity) GetPropertyI(name string, defaultProperty property.IntProperty) property.IntProperty {
 	if _, found := e.Properties[name]; found {
-		return e.Properties[name].(properties.IntProperty)
+		return e.Properties[name].(property.IntProperty)
 	}
 	return defaultProperty
 }
 
 // GetPropertyF will return the property with the given name, or default
-func (e Entity) GetPropertyF(name string, defaultProperty properties.FloatProperty) properties.FloatProperty {
+func (e Entity) GetPropertyF(name string, defaultProperty property.FloatProperty) property.FloatProperty {
 	if _, found := e.Properties[name]; found {
-		return e.Properties[name].(properties.FloatProperty)
+		return e.Properties[name].(property.FloatProperty)
 	}
 	return defaultProperty
 }
 
-func (e Entity) UpdateProperty(p properties.Property) {
-	if _, found := e.Properties[p.Name(properties.OwnController)]; found {
-		e.Properties[p.Name(properties.OwnController)] = p
+func (e Entity) UpdateProperty(p property.Property) {
+	if _, found := e.Properties[p.Name(property.OwnController)]; found {
+		e.Properties[p.Name(property.OwnController)] = p
 	}
 }
