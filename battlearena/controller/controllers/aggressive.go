@@ -6,9 +6,9 @@ import (
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity/properties"
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid"
-	"github.com/ecumeurs/upsilonbattle/battlearena/position"
+	"github.com/ecumeurs/upsilonbattle/battlearena/grid/position"
+	"github.com/ecumeurs/upsilonbattle/battlearena/properties"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilontools/tools"
 	"github.com/ecumeurs/upsilontools/tools/actor"

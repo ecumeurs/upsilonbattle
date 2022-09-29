@@ -10,7 +10,7 @@ The two main rules begins with movement and attack. They will further fork as th
 Rules heavily rely on properties and will use them to compute their effects.
 Note: if a property is missing on an entity, a default value will be used instead (often to the detriment of the entity missing it.)
 
-[Properties](../../entity/properties/README.md)
+[Properties](../../properties/README.md)
 
 ## GameState
 

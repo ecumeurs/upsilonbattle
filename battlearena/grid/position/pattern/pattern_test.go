@@ -3,7 +3,7 @@ package pattern
 import (
 	"testing"
 
-	"github.com/ecumeurs/upsilonbattle/battlearena/position"
+	"github.com/ecumeurs/upsilonbattle/battlearena/grid/position"
 )
 
 func TestPathTo(t *testing.T) {

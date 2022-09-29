@@ -8,7 +8,7 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity/entitygenerator"
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/gridgenerator"
-	"github.com/ecumeurs/upsilonbattle/battlearena/position"
+	"github.com/ecumeurs/upsilonbattle/battlearena/grid/position"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rules"
 	"github.com/ecumeurs/upsilontools/tools"
