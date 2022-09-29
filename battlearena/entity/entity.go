@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity/properties"
-	"github.com/ecumeurs/upsilonbattle/battlearena/position"
+	"github.com/ecumeurs/upsilonbattle/battlearena/grid/position"
+	"github.com/ecumeurs/upsilonbattle/battlearena/properties"
 	"github.com/google/uuid"
 )
 

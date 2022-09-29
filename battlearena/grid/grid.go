@@ -5,8 +5,8 @@ import (
 	"math/rand"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/cell"
-	"github.com/ecumeurs/upsilonbattle/battlearena/position"
-	"github.com/ecumeurs/upsilonbattle/battlearena/position/pattern"
+	"github.com/ecumeurs/upsilonbattle/battlearena/grid/position"
+	"github.com/ecumeurs/upsilonbattle/battlearena/grid/position/pattern"
 	"github.com/ecumeurs/upsilontools/tools"
 	"github.com/google/uuid"
 )

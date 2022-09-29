@@ -45,7 +45,7 @@ Basic Entity Stats, and rules.
 
 ## Docs
 
-[Properties](battlearena/entity/properties/README.md)
+[Properties](battlearena/properties/README.md)
 
 [Rules](battlearena/ruler/rules/README.md)
 

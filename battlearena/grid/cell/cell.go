@@ -1,7 +1,7 @@
 package cell
 
 import (
-	"github.com/ecumeurs/upsilonbattle/battlearena/position"
+	"github.com/ecumeurs/upsilonbattle/battlearena/grid/position"
 	"github.com/google/uuid"
 )
 
