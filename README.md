@@ -1,3 +1,21 @@
+# Upsilon Battle
+
+T RPG
+
+# Version 0.0.3 ( WIP )
+
+Skill usage, limiters (1 action per turn, n move, etc), skill cooldown.
+Buffs and Curses 
+
+## Objectives 
+
+* At each turn, mvt,attack counter must be reset. (but not HP)
+* Skills:
+  * An action that have its own properties. 
+  * Attacks using skill will use both set of properties. 
+  * Skill have cooldown. 
+* Buff and curses are applied to properties for a certain number of rounds.
+
 # Version 0.0.2 
 
 Basic Entity Stats, and rules.
@@ -13,7 +31,6 @@ Basic Entity Stats, and rules.
   * Jump: Maximum height difference between two adjascent cell for move (defaulted to 2 up to now) 
   * Attack Range (min/max): attack range (right now we are still at very basic attacks)
  
-* At each turn, mvt,attack counter must be reset.
 
 * Ruler must ensure an entity can't move further than expected. (or higher)
 
