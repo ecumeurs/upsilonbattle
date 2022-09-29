@@ -2,7 +2,7 @@ package rules
 
 import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/cell"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property/entity"
+	"github.com/ecumeurs/upsilonbattle/battlearena/property/def"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
@@ -37,11 +37,11 @@ func (gs *GameState) Attack(msg message.Message, req rulermethods.ControllerAtta
 	target, _ := ctx.Grid.CellAt(req.Target)
 
 	ent := gs.Entities[req.EntityID]
-	attackerAttack := ent.GetPropertyI("Attack", entity.DefaultAttack())
+	attackerAttack := ent.GetPropertyI("Attack", def.Attack())
 
 	foe := gs.Entities[target.EntityID]
-	foeDefense := foe.GetPropertyI("Defense", entity.DefaultDefence())
-	foeHP := foe.GetPropertyI("HP", entity.DefaultHP())
+	foeDefense := foe.GetPropertyI("Defense", def.Defence())
+	foeHP := foe.GetPropertyI("HP", def.HP())
 
 	computedDamage := attackerAttack.I() - foeDefense.I()
 
@@ -141,7 +141,7 @@ func (ctx *localAttackCtx) preAttackChecks(msg message.Message, req rulermethods
 
 	// range check.
 
-	attackerRange := ent.GetPropertyI("AttackRange", entity.DefaultAttackRange())
+	attackerRange := ent.GetPropertyI("AttackRange", def.AttackRange())
 	distance := ent.Position.Distance(target.Position)
 	if attackerRange.I() <= distance {
 		ctx.log.WithFields(logrus.Fields{
