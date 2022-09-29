@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/property"
+	pentity "github.com/ecumeurs/upsilonbattle/battlearena/property/entity"
 )
 
 func TestEntityGenerator(t *testing.T) {
@@ -22,7 +23,7 @@ func TestEntityGeneratorGetProperty(t *testing.T) {
 	ent := GenerateRandomEntity()
 	t.Log(ent.PrettyString())
 
-	prop := ent.GetPropertyI("AttackRange", property.DefaultAttackRange())
+	prop := ent.GetPropertyI("AttackRange", pentity.DefaultAttackRange())
 
 	if prop.Name(property.GameMaster) != "AttackRange" {
 		t.Error("Wrong property name")

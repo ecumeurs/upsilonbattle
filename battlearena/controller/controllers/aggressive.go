@@ -9,6 +9,8 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid"
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/position"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property"
+	pentity "github.com/ecumeurs/upsilonbattle/battlearena/property/entity"
+
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilontools/tools"
 	"github.com/ecumeurs/upsilontools/tools/actor"
@@ -174,14 +176,14 @@ func (ctl *AggressiveController) ControllerNextTurn(msg message.Message) {
 	}
 	ctl.latestTarget = target
 	logrus.Debug("Moving To Attack")
-	jumpHeight := ctl.KnownEntities[controllerData.Entity.ID].GetPropertyI("JumpHeight", property.DefaultJumpHeight()).I()
+	jumpHeight := ctl.KnownEntities[controllerData.Entity.ID].GetPropertyI("JumpHeight", pentity.DefaultJumpHeight()).I()
 
 	path := ctl.preparePathToEntity(controllerData.Entity.Position, ctl.Grid, target, jumpHeight)
 	// can't be on the same cell as target.
 	if len(path) > 1 {
-		movement := ctl.KnownEntities[controllerData.Entity.ID].GetProperty("Movement", property.DefaultMovement())
+		movement := ctl.KnownEntities[controllerData.Entity.ID].GetProperty("Movement", pentity.DefaultMovement())
 		mvt := movement.(*property.DefaultIntCounterProperty).Value
-		atkrng := ctl.KnownEntities[controllerData.Entity.ID].GetPropertyI("AttackRange", property.DefaultAttackRange()).I()
+		atkrng := ctl.KnownEntities[controllerData.Entity.ID].GetPropertyI("AttackRange", pentity.DefaultAttackRange()).I()
 		if len(path) > atkrng {
 			path = path[:atkrng]
 		} else {
@@ -338,7 +340,7 @@ func (ctl *AggressiveController) ControllerMoveReply(msg message.Message) {
 
 		logrus.Info(" Attacker: ", attacker.PrettyString())
 
-		atkrng := attacker.GetPropertyI("AttackRange", property.DefaultAttackRange()).I()
+		atkrng := attacker.GetPropertyI("AttackRange", pentity.DefaultAttackRange()).I()
 		if msg.TargetMethod.(rulermethods.ControllerMoveReply).Entity.Position.Distance(target.Position) <= atkrng {
 
 			// it is already in place. Send attack

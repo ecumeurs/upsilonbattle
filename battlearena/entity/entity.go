@@ -41,6 +41,7 @@ type Entity struct {
 	CurrentDelay int
 	Orientation  EntityOrientation
 	Properties   map[string]property.Property
+	Buffs        []property.TemporaryProperties
 }
 
 // NewEntity
@@ -53,6 +54,7 @@ func NewEntity() Entity {
 		CurrentDelay: 0,
 		Orientation:  Up,
 		Properties:   make(map[string]property.Property),
+		Buffs:        make([]property.TemporaryProperties, 0),
 	}
 }
 
