@@ -10,79 +10,79 @@ import (
 
 // Prepare default Properties.
 
-func DefaultTargetNumber() *defaultproperty.DefaultIntProperty {
+func TargetNumber() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.TargetNumber, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultAccuracy() *defaultproperty.DefaultIntProperty {
+func Accuracy() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.Accuracy, 100, property.FriendlyController, property.Skill)
 }
 
-func DefaultDodge() *defaultproperty.DefaultIntProperty {
+func Dodge() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.Dodge, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultParry() *defaultproperty.DefaultIntProperty {
+func Parry() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.Parry, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultDamage() *defaultproperty.DefaultIntProperty {
+func Damage() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.Damage, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultHeal() *defaultproperty.DefaultIntProperty {
+func Heal() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.Heal, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultShieldPower() *defaultproperty.DefaultIntProperty {
+func ShieldPower() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.ShieldPower, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultStunPower() *defaultproperty.DefaultIntProperty {
+func StunPower() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.StunPower, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultStunChance() *defaultproperty.DefaultIntProperty {
+func StunChance() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.StunChance, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultCriticialChance() *defaultproperty.DefaultIntProperty {
-	return defaultproperty.MakeIntProperty(property.CriticialChance, 0, property.FriendlyController, property.Skill)
+func CriticalChance() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.CriticalChance, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultCriticialDamage() *defaultproperty.DefaultFloatProperty {
-	return defaultproperty.MakeFloatProperty(property.CriticialDamage, 0, property.FriendlyController, property.Skill)
+func CriticalDamage() *defaultproperty.DefaultFloatProperty {
+	return defaultproperty.MakeFloatProperty(property.CriticalDamage, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultDuration() *defaultproperty.DefaultIntCounterProperty {
+func Duration() *defaultproperty.DefaultIntCounterProperty {
 	return defaultproperty.MakeIntCounterProperty(property.Duration, 0, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultPoisonPower() *defaultproperty.DefaultIntProperty {
+func PoisonPower() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.PoisonPower, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultPoisonChance() *defaultproperty.DefaultIntProperty {
+func PoisonChance() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.PoisonChance, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultDelay() *defaultproperty.DefaultIntCounterProperty {
+func Delay() *defaultproperty.DefaultIntCounterProperty {
 	return defaultproperty.MakeIntCounterProperty(property.Delay, 0, 500, property.FriendlyController, property.Skill)
 }
 
-func DefaultHPLeech() *defaultproperty.DefaultIntProperty {
+func HPLeech() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.HPLeech, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultMPLeech() *defaultproperty.DefaultIntProperty {
+func MPLeech() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.MPLeech, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultSPLeech() *defaultproperty.DefaultIntProperty {
+func SPLeech() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.SPLeech, 0, property.FriendlyController, property.Skill)
 }
 
-func DefaultCooldown() *defaultproperty.DefaultIntCounterProperty {
+func Cooldown() *defaultproperty.DefaultIntCounterProperty {
 	return defaultproperty.MakeIntCounterProperty(property.Cooldown, 0, 3, property.FriendlyController, property.Skill)
 }
 
@@ -392,4 +392,54 @@ func (bh *TargetingMechanicsProperty) ApplyBuff(p property.Property) property.Pr
 	// replace
 	res.TargetingMechanics = p.(*TargetingMechanicsProperty).TargetingMechanics
 	return res
+}
+
+func SkillProperty(ps property.SkillProperties) property.Property {
+	switch ps {
+	case property.Behavior:
+		return DefaultBehaviorProperty()
+	case property.Range:
+		return DefaultRangeProperty()
+	case property.Zone:
+		return DefaultZoneProperty()
+	case property.TargetType:
+		return DefaultTargetTypeProperty()
+	case property.TargetingMechanics:
+		return DefaultTargetingMechanicsProperty()
+	case property.Dodge:
+		return Dodge()
+	case property.Parry:
+		return Parry()
+	case property.Damage:
+		return Damage()
+	case property.Heal:
+		return Heal()
+	case property.ShieldPower:
+		return ShieldPower()
+	case property.StunPower:
+		return StunPower()
+	case property.StunChance:
+		return StunChance()
+	case property.CriticalChance:
+		return CriticalChance()
+	case property.CriticalDamage:
+		return CriticalDamage()
+	case property.Duration:
+		return Duration()
+	case property.PoisonPower:
+		return PoisonPower()
+	case property.PoisonChance:
+		return PoisonChance()
+	case property.Delay:
+		return Delay()
+	case property.Cooldown:
+		return Cooldown()
+	case property.HPLeech:
+		return HPLeech()
+	case property.MPLeech:
+		return MPLeech()
+	case property.SPLeech:
+		return SPLeech()
+	}
+	return nil
 }

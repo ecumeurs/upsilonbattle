@@ -8,7 +8,7 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid"
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/position"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property/def"
+	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/defaultproperty"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
@@ -176,14 +176,14 @@ func (ctl *AggressiveController) ControllerNextTurn(msg message.Message) {
 	}
 	ctl.latestTarget = target
 	logrus.Debug("Moving To Attack")
-	jumpHeight := ctl.KnownEntities[controllerData.Entity.ID].GetPropertyI("JumpHeight", def.JumpHeight()).I()
+	jumpHeight := ctl.KnownEntities[controllerData.Entity.ID].GetPropertyI(property.JumpHeight).I()
 
 	path := ctl.preparePathToEntity(controllerData.Entity.Position, ctl.Grid, target, jumpHeight)
 	// can't be on the same cell as target.
 	if len(path) > 1 {
-		movement := ctl.KnownEntities[controllerData.Entity.ID].GetProperty("Movement", def.Movement())
+		movement := ctl.KnownEntities[controllerData.Entity.ID].GetProperty(property.Movement)
 		mvt := movement.(*defaultproperty.DefaultIntCounterProperty).Value
-		atkrng := ctl.KnownEntities[controllerData.Entity.ID].GetPropertyI("AttackRange", def.AttackRange()).I()
+		atkrng := ctl.KnownEntities[controllerData.Entity.ID].GetPropertyI(property.AttackRange).I()
 		if len(path) > atkrng {
 			path = path[:atkrng]
 		} else {
@@ -340,7 +340,7 @@ func (ctl *AggressiveController) ControllerMoveReply(msg message.Message) {
 
 		logrus.Info(" Attacker: ", attacker.PrettyString())
 
-		atkrng := attacker.GetPropertyI("AttackRange", def.AttackRange()).I()
+		atkrng := attacker.GetPropertyI(property.AttackRange).I()
 		if msg.TargetMethod.(rulermethods.ControllerMoveReply).Entity.Position.Distance(target.Position) <= atkrng {
 
 			// it is already in place. Send attack

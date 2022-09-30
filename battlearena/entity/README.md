@@ -17,7 +17,7 @@ The following properties are available for all entities:
 Other properties will be handled through a specific module, as they may or may not be added to the targeted entity at creation time.
 
 Note: Most properties comes in PAIR (like, Attack and Defense). While its preferable for both entities in an attack to have both properties, it is not mandatory. If one of the entities is missing a property, the attack will be considered as a "defaulted" attack. It might mean the attack automatically miss, or whatever. This will be up to the rules.Attack to decide. 
-Same goes for defence, accuracy, and so on. 
+Same goes for Defense, accuracy, and so on. 
 
 ## Entity Creation
 

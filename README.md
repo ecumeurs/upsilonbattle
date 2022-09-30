@@ -24,7 +24,7 @@ Basic Entity Stats, and rules.
 
 * Entities have stats:
   * HP: takes more hits to be killed.
-  * Defence: reduce incoming damages
+  * Defense: reduce incoming damages
   * Attack: increase dealt damages
   * Attack Number: Number of attack allowed per turn. (default 1)
   * MVT: Number of cell/turn that can be moved through
@@ -34,7 +34,7 @@ Basic Entity Stats, and rules.
 
 * Ruler must ensure an entity can't move further than expected. (or higher)
 
-* damage computation: attack - defence (simple)
+* damage computation: attack - Defense (simple)
 
 * ruler must ensure the attack range is respected: for example: attack range set to 4-8 won't be able to attack at cqc
 
