@@ -283,6 +283,26 @@ func (ctx *localSkillCtx) checkSkillTarget(msg message.Message, user entity.Enti
 				ctx.targetedEntities = append(ctx.targetedEntities, ctx.Entities[c.EntityID])
 			}
 		}
+	case def.TargetTypeFriendOnly:
+		ctx.targetedEntities = make([]entity.Entity, 0)
+		for _, pos := range selectedZone {
+			c, _ := ctx.Grid.CellAt(pos) // should be ok because it has been veted before.
+			if c.EntityID != uuid.Nil {
+				if ctx.Entities[c.EntityID].ControllerID == user.ControllerID {
+					ctx.targetedEntities = append(ctx.targetedEntities, ctx.Entities[c.EntityID])
+				}
+			}
+		}
+	case def.TargetTypeEnemyOnly:
+		ctx.targetedEntities = make([]entity.Entity, 0)
+		for _, pos := range selectedZone {
+			c, _ := ctx.Grid.CellAt(pos) // should be ok because it has been veted before.
+			if c.EntityID != uuid.Nil {
+				if ctx.Entities[c.EntityID].ControllerID != user.ControllerID {
+					ctx.targetedEntities = append(ctx.targetedEntities, ctx.Entities[c.EntityID])
+				}
+			}
+		}
 	case def.TargetTypeEntityOrTile:
 		ctx.targetedTiles = make([]position.Position, 0)
 		ctx.targetedEntities = make([]entity.Entity, 0)
