@@ -1,5 +1,7 @@
 package property
 
+import "fmt"
+
 type EntityProperties string
 
 const (
@@ -22,9 +24,9 @@ const (
 	AttackRange EntityProperties = "AttackRange" // Absence means 1, Basic attack range. Altered with items, mostly.
 
 	// Computed at end of turn.
-	Shield EntityProperties = "Shield" // Absence means 0
-	Poison EntityProperties = "Poison" // Absence means 0, Poisoned state. Sum of all poison damage taken per turn. Mostly a temporary status. Negative PoisonPower will cure
-	Stun   EntityProperties = "Stun"   // Absence means 0, Stunned state. Sum of all stun taken per turn. Mostly a temporary status. Negative StunPower will cure
+	Shield EntityProperties = "Shield" // Absence means 0,0 (counter)
+	Poison EntityProperties = "Poison" // Absence means 0, Poisoned state. Sum of all poison damage taken per turn. Mostly a temporary status. Negative PoisonPower will cure; /2 each turn, remove at <1
+	Stun   EntityProperties = "Stun"   // Absence means 0, Stunned state. Sum of all stun taken per turn. Mostly a temporary status. Negative StunPower will cure; /2 each turn, remove at <1
 )
 
 // String
@@ -35,7 +37,7 @@ func (e EntityProperties) String() string {
 type SkillProperties string
 
 const (
-	Behavior SkillProperties = "Behavior" // property.Skill broad category: Direct, Reaction, Passive, Counter; Absence means Direct
+	Behavior SkillProperties = "Behavior" // property.Skill broad category: Direct, Reaction, Passive, Counter, Trap; Absence means Direct
 
 	Range              SkillProperties = "Range"              // Range of the property.Skill // Absence means 1
 	Zone               SkillProperties = "Zone"               // Area of Effect // Absence means 1 tile effect
@@ -57,11 +59,14 @@ const (
 	PoisonPower    SkillProperties = "Poison"         // Absence means 0 , can be negative or positive.
 	PoisonChance   SkillProperties = "PoisonChance"   // Absence means 0%
 
-	Delay    SkillProperties = "Delay"    // Absence means 500
-	HPLeech  SkillProperties = "HPLeech"  // Absence means 0
-	MPLeech  SkillProperties = "MPLeech"  // Absence means 0
-	SPLeech  SkillProperties = "SPLeech"  // Absence means 0
-	Cooldown SkillProperties = "Cooldown" // Absence means 3 turns
+	Delay   SkillProperties = "Delay"   // Absence means 500
+	HPLeech SkillProperties = "HPLeech" // Absence means 0
+	MPLeech SkillProperties = "MPLeech" // Absence means 0
+	SPLeech SkillProperties = "SPLeech" // Absence means 0
+	MvtCost SkillProperties = "MvtCost" // Absence means 0
+
+	Cooldown SkillProperties = "Cooldown" // Absence means 3 turns. Special note: Cool down is stored as a counter, minValue represent initial cooldown at battle start. MaxValue represent the cooldown value when used.
+
 )
 
 // String
@@ -122,4 +127,21 @@ const (
 // String
 func (ip ItemProperties) String() string {
 	return string(ip)
+}
+
+// PropertyToString
+func PropertyToString(p interface{}) string {
+	switch pconv := p.(type) {
+	case EntityProperties:
+		return pconv.String()
+	case SkillProperties:
+		return pconv.String()
+	case ItemProperties:
+		return pconv.String()
+	case string:
+		return pconv
+	default:
+		// Abort
+		panic(fmt.Sprintf("PropertyToString: Unknown property type: %T", p))
+	}
 }

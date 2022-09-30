@@ -13,12 +13,23 @@ func TestGenerateRandomSkill(t *testing.T) {
 
 	skp := def.Attack()
 	t.Log(skp)
+	if skp == nil {
+		t.Error("skp is nil")
+	}
 
 	skp = defaultproperty.MakeIntProperty(property.Attack, tools.RandomInt(1, 3), property.Public, property.Skill)
 	t.Log(skp)
 
+	if skp == nil {
+		t.Error("skp is nil")
+	}
+
 	skp = defaultproperty.MakeIntProperty(property.Damage, tools.RandomInt(1, 3), property.Public, property.Skill)
 	t.Log(skp)
+
+	if skp == nil {
+		t.Error("skp is nil")
+	}
 
 	sk := GenerateRandomSkill()
 	t.Log(sk)

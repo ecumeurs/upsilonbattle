@@ -105,34 +105,33 @@ type DefaultIntCounterProperty struct {
 
 // MakeIntProperty
 func MakeIntCounterProperty(name interface{}, value, maxvalue int, minInformationLevel property.InformationLevel, t property.PropertyType) *DefaultIntCounterProperty {
-	switch convname := name.(type) {
-	case property.EntityProperties:
-		return &DefaultIntCounterProperty{
-			name:                convname.String(),
-			Value:               value,
-			MaxValue:            maxvalue,
-			minInformationLevel: minInformationLevel,
-			propertyType:        t,
-		}
-	case property.SkillProperties:
-		return &DefaultIntCounterProperty{
-			name:                name.(property.SkillProperties).String(),
-			Value:               value,
-			MaxValue:            maxvalue,
-			minInformationLevel: minInformationLevel,
-			propertyType:        t,
-		}
-	case property.ItemProperties:
-		return &DefaultIntCounterProperty{
-			name:                name.(property.ItemProperties).String(),
-			Value:               value,
-			MaxValue:            maxvalue,
-			minInformationLevel: minInformationLevel,
-			propertyType:        t,
-		}
-	default:
+	nname := property.PropertyToString(name)
+	if nname == "" {
 		return nil
 	}
+
+	return &DefaultIntCounterProperty{
+		name:                nname,
+		Value:               value,
+		MaxValue:            maxvalue,
+		minInformationLevel: minInformationLevel,
+		propertyType:        t,
+	}
+}
+
+func (d DefaultIntCounterProperty) GetValue() int {
+	return d.Value
+}
+
+func (d DefaultIntCounterProperty) GetMaxValue() int {
+	return d.MaxValue
+}
+
+func (d *DefaultIntCounterProperty) SetValue(i int) {
+	d.Value = i
+}
+func (d *DefaultIntCounterProperty) SetMaxValue(i int) {
+	d.MaxValue = i
 }
 
 // implements IntProperty

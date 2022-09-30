@@ -47,6 +47,13 @@ type ControllerAttack struct {
 	Target       position.Position
 }
 
+type ControllerUseSkill struct {
+	ControllerID uuid.UUID
+	EntityID     uuid.UUID
+	SkillID      uuid.UUID
+	Target       position.Position
+}
+
 type NotifyController struct {
 	ControllerID uuid.UUID
 	EntityID     uuid.UUID
@@ -101,9 +108,8 @@ type ControllerAttackReply struct {
 	Entity entity.Entity
 }
 
-type ControllerAttacked struct {
-	Entity   entity.Entity
-	Attacker entity.Entity
+type ControllerUseSkillReply struct {
+	Entity entity.Entity
 }
 
 // Broadcasted messages
@@ -122,6 +128,26 @@ type BattleStart struct {
 type BattleEnd struct {
 	WinnerControllerID uuid.UUID
 	WinnerName         string
+	actor.NoReply
+}
+
+type ControllerSkillUsed struct {
+	ControllerID        uuid.UUID // the controller that was affected
+	EmitterControllerID uuid.UUID // the controller that skilled
+	Entity              entity.Entity
+	Emitter             entity.Entity
+	SkillID             uuid.UUID
+
+	actor.NoReply
+}
+
+type ControllerAttacked struct {
+	ControllerID         uuid.UUID // the controller that was attacked
+	AttackerControllerID uuid.UUID // the controller that attacked
+	Entity               entity.Entity
+	Attacker             entity.Entity
+	SkillID              uuid.UUID
+
 	actor.NoReply
 }
 

@@ -144,6 +144,9 @@ func (r *Ruler) handleMessage(msg message.Message) bool {
 	case rulermethods.ControllerAttack:
 		r.controllerAttack(msg, msg.TargetMethod.(rulermethods.ControllerAttack))
 		return true
+	case rulermethods.ControllerUseSkill:
+		r.controllerUseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+		return true
 	case rulermethods.NotifyController:
 		r.notifyController(msg, msg.TargetMethod.(rulermethods.NotifyController))
 		return true
@@ -370,6 +373,52 @@ func (r *Ruler) controllerAttack(msg message.Message, req rulermethods.Controlle
 	}
 
 	r.act.Reply(r.GameState.Attack(msg, req))
+}
+
+func (r *Ruler) controllerUseSkill(msg message.Message, req rulermethods.ControllerUseSkill) {
+	loclog := r.logger.WithFields(logrus.Fields{
+		"RequestID":    msg.RequestId.String()[0:8],
+		"controllerID": req.ControllerID.String()[0:8],
+		"entityID":     req.EntityID.String()[0:8],
+		"skillID":      req.SkillID.String()[0:8],
+		"target":       req.Target})
+	// check gamestate
+
+	if r.CurrentState != InProgress {
+		loclog.Error("Game is not in progress")
+		r.act.Reply(msg.ReplyWithError("Game is not in progress", "game.not.in.progress"))
+		return
+	}
+
+	reply, damaged, affected := r.GameState.UseSkill(msg, req)
+
+	r.act.Reply(reply)
+
+	for _, d := range damaged {
+		foectrlid := d.ControllerID
+		// notify foe controller of the attack.
+		foectrl, found := r.GameState.Controllers[foectrlid]
+		if !found {
+			loclog.WithFields(logrus.Fields{
+				"foeControllerID": foectrlid.String()[0:8]}).Error("Foe controller not found")
+
+		} else {
+			foectrl.NotifyActor(message.Create(nil, d, nil))
+		}
+	}
+
+	for _, d := range affected {
+		targetctrlid := d.ControllerID
+		// notify target controller of the skill use.
+		targetctrl, found := r.GameState.Controllers[targetctrlid]
+		if !found {
+			loclog.WithFields(logrus.Fields{
+				"targetControllerID": targetctrlid.String()[0:8]}).Error("target controller not found")
+
+		} else {
+			targetctrl.NotifyActor(message.Create(nil, d, nil))
+		}
+	}
 }
 
 func (r *Ruler) notifyController(msg message.Message, req rulermethods.NotifyController) {

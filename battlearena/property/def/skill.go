@@ -82,7 +82,9 @@ func SPLeech() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.SPLeech, 0, property.FriendlyController, property.Skill)
 }
 
+// Cooldown() Default to 0, 3 ;Special note: Cool down is stored as a counter, minValue represent initial cooldown at battle start. MaxValue represent the cooldown value when used.
 func Cooldown() *defaultproperty.DefaultIntCounterProperty {
+
 	return defaultproperty.MakeIntCounterProperty(property.Cooldown, 0, 3, property.FriendlyController, property.Skill)
 }
 
@@ -95,11 +97,37 @@ const (
 	BehaviorTypeReaction
 	BehaviorTypePassive
 	BehaviorTypeCounter
+	BehaviorTypeTrap
 )
 
 type BehaviorProperty struct {
 	property.Property
 	BehaviorType BehaviorType
+}
+
+// IsDirect
+func (bh *BehaviorProperty) IsDirect() bool {
+	return bh.BehaviorType == BehaviorTypeDirect
+}
+
+// IsReaction
+func (bh *BehaviorProperty) IsReaction() bool {
+	return bh.BehaviorType == BehaviorTypeReaction
+}
+
+// IsPassive
+func (bh *BehaviorProperty) IsPassive() bool {
+	return bh.BehaviorType == BehaviorTypePassive
+}
+
+// IsCounter
+func (bh *BehaviorProperty) IsCounter() bool {
+	return bh.BehaviorType == BehaviorTypeCounter
+}
+
+// IsTrap
+func (bh *BehaviorProperty) IsTrap() bool {
+	return bh.BehaviorType == BehaviorTypeTrap
 }
 
 // MakeBehaviorProperty creates a BehaviorProperty
@@ -273,10 +301,10 @@ func (bh *ZoneProperty) Duplicate() property.Property {
 type TargetTypes string
 
 const (
-	TargetTypeEntity TargetTypes = "Entity"
-	TargetTypeTile   TargetTypes = "Tile"
-	TargetTypeBoth   TargetTypes = "Both"
-	TargetTypeSelf   TargetTypes = "Self"
+	TargetTypeEntity       TargetTypes = "Entity"
+	TargetTypeTile         TargetTypes = "Tile"
+	TargetTypeEntityOrTile TargetTypes = "EntityOrTile"
+	TargetTypeSelf         TargetTypes = "Self"
 )
 
 type TargetTypeProperty struct {
@@ -312,7 +340,7 @@ func (bh *TargetTypeProperty) UserFriendlyGet(i property.InformationLevel) inter
 }
 
 func (bh *TargetTypeProperty) Get() interface{} {
-	return bh
+	return bh.TargetType
 }
 
 func (bh *TargetTypeProperty) Set(p interface{}) {

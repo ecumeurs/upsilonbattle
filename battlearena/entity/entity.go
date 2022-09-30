@@ -44,7 +44,7 @@ type Entity struct {
 	Orientation  EntityOrientation
 	Properties   map[string]property.Property
 	Buffs        []property.TemporaryProperties
-	Skills       []skill.Skill
+	Skills       map[uuid.UUID]skill.Skill
 }
 
 // NewEntity
@@ -58,7 +58,7 @@ func NewEntity() Entity {
 		Orientation:  Up,
 		Properties:   make(map[string]property.Property),
 		Buffs:        make([]property.TemporaryProperties, 0),
-		Skills:       make([]skill.Skill, 0),
+		Skills:       make(map[uuid.UUID]skill.Skill),
 	}
 }
 
@@ -92,17 +92,9 @@ func (e *Entity) FaceToward(p position.Position) {
 	}
 }
 
-// GetProperty will return the property with the given name, or default
-func (e Entity) GetProperty(name interface{}) property.Property {
-	var nname string
-	switch convname := name.(type) {
-	case property.SkillProperties:
-		nname = convname.String()
-	case property.ItemProperties:
-		nname = convname.String()
-	case property.EntityProperties:
-		nname = convname.String()
-	}
+// getBasePropertyOrDefault
+func (e Entity) getBasePropertyOrDefault(name interface{}) property.Property {
+	nname := property.PropertyToString(name)
 
 	var prop property.Property
 
@@ -111,6 +103,13 @@ func (e Entity) GetProperty(name interface{}) property.Property {
 	} else {
 		prop = def.DefaultProperty(name)
 	}
+
+	return prop
+}
+
+// GetProperty will return the property with the given name, or default
+func (e Entity) GetProperty(name interface{}) property.Property {
+	prop := e.getBasePropertyOrDefault(name)
 
 	buffs := e.GetBuffsFor(name)
 
@@ -123,60 +122,17 @@ func (e Entity) GetProperty(name interface{}) property.Property {
 
 // GetPropertyI will return the property with the given name, or default
 func (e Entity) GetPropertyI(name interface{}) property.IntProperty {
-	var nname string
-	switch convname := name.(type) {
-	case property.SkillProperties:
-		nname = convname.String()
-	case property.ItemProperties:
-		nname = convname.String()
-	case property.EntityProperties:
-		nname = convname.String()
-	}
-
-	var prop property.Property
-
-	if _, found := e.Properties[nname]; found {
-		prop = e.Properties[nname].Duplicate()
-	} else {
-		prop = def.DefaultProperty(name)
-	}
-
-	buffs := e.GetBuffsFor(name)
-
-	for _, buff := range buffs {
-		prop = prop.ApplyBuff(buff)
-	}
-
-	return prop.(property.IntProperty)
+	return e.GetProperty(name).(property.IntProperty)
 }
 
 // GetPropertyF will return the property with the given name, or default
 func (e Entity) GetPropertyF(name interface{}) property.FloatProperty {
-	var nname string
-	switch convname := name.(type) {
-	case property.SkillProperties:
-		nname = convname.String()
-	case property.ItemProperties:
-		nname = convname.String()
-	case property.EntityProperties:
-		nname = convname.String()
-	}
+	return e.GetProperty(name).(property.FloatProperty)
+}
 
-	var prop property.Property
-
-	if _, found := e.Properties[nname]; found {
-		prop = e.Properties[nname].Duplicate()
-	} else {
-		prop = def.DefaultProperty(name)
-	}
-
-	buffs := e.GetBuffsFor(name)
-
-	for _, buff := range buffs {
-		prop = prop.ApplyBuff(buff)
-	}
-
-	return prop.(property.FloatProperty)
+// GetPropertyC will return the property with the given name, or default
+func (e Entity) GetPropertyC(name interface{}) property.IntCounterProperty {
+	return e.GetProperty(name).(property.IntCounterProperty)
 }
 
 func (e Entity) UpdateProperty(p property.Property) {
@@ -186,7 +142,7 @@ func (e Entity) UpdateProperty(p property.Property) {
 }
 
 func (e *Entity) RegisterSkill(s skill.Skill) {
-	e.Skills = append(e.Skills, s)
+	e.Skills[s.ID] = s
 }
 
 func (e *Entity) RegisterBuff(b property.TemporaryProperties) {
@@ -194,17 +150,7 @@ func (e *Entity) RegisterBuff(b property.TemporaryProperties) {
 }
 
 func (e Entity) GetBuffsFor(name interface{}) []property.Property {
-	var nname string
-	switch convname := name.(type) {
-	case property.SkillProperties:
-		nname = convname.String()
-	case property.ItemProperties:
-		nname = convname.String()
-	case property.EntityProperties:
-		nname = convname.String()
-	case string:
-		nname = convname
-	}
+	nname := property.PropertyToString(name)
 
 	res := make([]property.Property, 0)
 	for _, v := range e.Buffs {
