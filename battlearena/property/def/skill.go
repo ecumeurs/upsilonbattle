@@ -302,6 +302,8 @@ type TargetTypes string
 
 const (
 	TargetTypeEntity       TargetTypes = "Entity"
+	TargetTypeFriendOnly   TargetTypes = "FriendOnly"
+	TargetTypeEnemyOnly    TargetTypes = "EnemyOnly"
 	TargetTypeTile         TargetTypes = "Tile"
 	TargetTypeEntityOrTile TargetTypes = "EntityOrTile"
 	TargetTypeSelf         TargetTypes = "Self"
