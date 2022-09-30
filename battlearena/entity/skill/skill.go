@@ -16,8 +16,8 @@ type Skill struct {
 }
 
 // New
-func New() *Skill {
-	return &Skill{
+func New() Skill {
+	return Skill{
 		Name:      "New Skill",
 		Behavior:  *def.DefaultBehaviorProperty(),
 		Targeting: []property.Property{},

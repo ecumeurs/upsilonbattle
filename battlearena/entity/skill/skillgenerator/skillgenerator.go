@@ -43,7 +43,7 @@ var propertiesCostRandomizers = []func() property.Property{
 	},
 }
 
-func GenerateRandomSkill() *skill.Skill {
+func GenerateRandomSkill() skill.Skill {
 	sk := skill.New()
 
 	for _, v := range propertiesTargetingRandomizers {

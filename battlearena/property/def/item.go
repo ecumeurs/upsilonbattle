@@ -6,32 +6,36 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/effect"
 )
 
-func DefaultDurability() *defaultproperty.DefaultIntProperty {
+func Durability() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.Durability, 0, property.Public, property.Item)
 }
 
-func DefaultWeight() *defaultproperty.DefaultIntProperty {
+func Weight() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.Weight, 0, property.Public, property.Item)
 }
 
-func DefaultArmorRating() *defaultproperty.DefaultIntProperty {
+func ArmorRating() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.ArmorRating, 0, property.Public, property.Item)
 }
 
-func DefaultWeaponRange() *defaultproperty.DefaultIntProperty {
+func WeaponRange() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.WeaponRange, 0, property.Public, property.Item)
 }
 
-func DefaultWeaponBaseDamage() *defaultproperty.DefaultIntProperty {
+func WeaponBaseDamage() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.WeaponBaseDamage, 0, property.Public, property.Item)
 }
 
-func DefaultStackable() *defaultproperty.DefaultBoolProperty {
+func Stackable() *defaultproperty.DefaultBoolProperty {
 	return defaultproperty.MakeBoolProperty(property.Stackable, false, property.Public, property.Item)
 }
 
-func DefaultStackSize() *defaultproperty.DefaultIntProperty {
+func StackSize() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.StackSize, 0, property.Public, property.Item)
+}
+
+func Value() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.Value, 0, property.Public, property.Item)
 }
 
 // ItemType         ItemProperties = "ItemType"         // Absence means None (out of Wearable, Consumable, Usable, Throwable, Ammunitions and None)
@@ -54,7 +58,7 @@ type ItemTypeProperty struct {
 }
 
 // MakeItemTypeProperty
-func MakeItemTypeProperty(it ItemTypes, minInfoLevel property.InformationLevel) *ItemTypeProperty {
+func MakeItemType(it ItemTypes, minInfoLevel property.InformationLevel) *ItemTypeProperty {
 	return &ItemTypeProperty{
 		ItemType:            it,
 		minInformationLevel: minInfoLevel,
@@ -62,8 +66,8 @@ func MakeItemTypeProperty(it ItemTypes, minInfoLevel property.InformationLevel) 
 }
 
 // DefaultItemTypeProperty
-func DefaultItemTypeProperty() *ItemTypeProperty {
-	return MakeItemTypeProperty(ItemTypeNone, property.OwnController)
+func DefaultItemType() *ItemTypeProperty {
+	return MakeItemType(ItemTypeNone, property.OwnController)
 }
 
 func (bh *ItemTypeProperty) Name(i property.InformationLevel) string {
@@ -349,4 +353,36 @@ func (bh *ToolTypeProperty) Duplicate() property.Property {
 
 func (bh *ToolTypeProperty) ApplyBuff(p property.Property) property.Property {
 	return bh.Duplicate() // property.Item can't be buffed.
+}
+
+func ItemProperty(name property.ItemProperties) property.Property {
+	switch name {
+	case property.Effect:
+		return DefaultEffectProperty()
+	case property.WeaponType:
+		return DefaultWeaponTypeProperty()
+	case property.ArmorType:
+		return DefaultArmorTypeProperty()
+	case property.ToolType:
+		return DefaultToolTypeProperty()
+	case property.Durability:
+		return Durability()
+	case property.Weight:
+		return Weight()
+	case property.Value:
+		return Value()
+	case property.ItemType:
+		return DefaultItemType()
+	case property.WeaponBaseDamage:
+		return WeaponBaseDamage()
+	case property.WeaponRange:
+		return WeaponRange()
+	case property.StackSize:
+		return StackSize()
+	case property.Stackable:
+		return Stackable()
+
+	}
+
+	return nil
 }

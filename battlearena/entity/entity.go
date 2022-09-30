@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ecumeurs/upsilonbattle/battlearena/entity/skill"
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/position"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property"
+	"github.com/ecumeurs/upsilonbattle/battlearena/property/def"
 	"github.com/google/uuid"
 )
 
@@ -42,6 +44,7 @@ type Entity struct {
 	Orientation  EntityOrientation
 	Properties   map[string]property.Property
 	Buffs        []property.TemporaryProperties
+	Skills       []skill.Skill
 }
 
 // NewEntity
@@ -55,6 +58,7 @@ func NewEntity() Entity {
 		Orientation:  Up,
 		Properties:   make(map[string]property.Property),
 		Buffs:        make([]property.TemporaryProperties, 0),
+		Skills:       make([]skill.Skill, 0),
 	}
 }
 
@@ -89,31 +93,134 @@ func (e *Entity) FaceToward(p position.Position) {
 }
 
 // GetProperty will return the property with the given name, or default
-func (e Entity) GetProperty(name string, defaultProperty property.Property) property.Property {
-	if _, found := e.Properties[name]; found {
-		return e.Properties[name]
+func (e Entity) GetProperty(name interface{}) property.Property {
+	var nname string
+	switch convname := name.(type) {
+	case property.SkillProperties:
+		nname = convname.String()
+	case property.ItemProperties:
+		nname = convname.String()
+	case property.EntityProperties:
+		nname = convname.String()
 	}
-	return defaultProperty
+
+	var prop property.Property
+
+	if _, found := e.Properties[nname]; found {
+		prop = e.Properties[nname].Duplicate()
+	} else {
+		prop = def.DefaultProperty(name)
+	}
+
+	buffs := e.GetBuffsFor(name)
+
+	for _, buff := range buffs {
+		prop = prop.ApplyBuff(buff)
+	}
+
+	return prop
 }
 
 // GetPropertyI will return the property with the given name, or default
-func (e Entity) GetPropertyI(name string, defaultProperty property.IntProperty) property.IntProperty {
-	if _, found := e.Properties[name]; found {
-		return e.Properties[name].(property.IntProperty)
+func (e Entity) GetPropertyI(name interface{}) property.IntProperty {
+	var nname string
+	switch convname := name.(type) {
+	case property.SkillProperties:
+		nname = convname.String()
+	case property.ItemProperties:
+		nname = convname.String()
+	case property.EntityProperties:
+		nname = convname.String()
 	}
-	return defaultProperty
+
+	var prop property.Property
+
+	if _, found := e.Properties[nname]; found {
+		prop = e.Properties[nname].Duplicate()
+	} else {
+		prop = def.DefaultProperty(name)
+	}
+
+	buffs := e.GetBuffsFor(name)
+
+	for _, buff := range buffs {
+		prop = prop.ApplyBuff(buff)
+	}
+
+	return prop.(property.IntProperty)
 }
 
 // GetPropertyF will return the property with the given name, or default
-func (e Entity) GetPropertyF(name string, defaultProperty property.FloatProperty) property.FloatProperty {
-	if _, found := e.Properties[name]; found {
-		return e.Properties[name].(property.FloatProperty)
+func (e Entity) GetPropertyF(name interface{}) property.FloatProperty {
+	var nname string
+	switch convname := name.(type) {
+	case property.SkillProperties:
+		nname = convname.String()
+	case property.ItemProperties:
+		nname = convname.String()
+	case property.EntityProperties:
+		nname = convname.String()
 	}
-	return defaultProperty
+
+	var prop property.Property
+
+	if _, found := e.Properties[nname]; found {
+		prop = e.Properties[nname].Duplicate()
+	} else {
+		prop = def.DefaultProperty(name)
+	}
+
+	buffs := e.GetBuffsFor(name)
+
+	for _, buff := range buffs {
+		prop = prop.ApplyBuff(buff)
+	}
+
+	return prop.(property.FloatProperty)
 }
 
 func (e Entity) UpdateProperty(p property.Property) {
-	if _, found := e.Properties[p.Name(property.OwnController)]; found {
-		e.Properties[p.Name(property.OwnController)] = p
+	if _, found := e.Properties[p.Name(property.GameMaster)]; found {
+		e.Properties[p.Name(property.GameMaster)] = p
 	}
+}
+
+func (e *Entity) RegisterSkill(s skill.Skill) {
+	e.Skills = append(e.Skills, s)
+}
+
+func (e *Entity) RegisterBuff(b property.TemporaryProperties) {
+	e.Buffs = append(e.Buffs, b)
+}
+
+func (e Entity) GetBuffsFor(name interface{}) []property.Property {
+	var nname string
+	switch convname := name.(type) {
+	case property.SkillProperties:
+		nname = convname.String()
+	case property.ItemProperties:
+		nname = convname.String()
+	case property.EntityProperties:
+		nname = convname.String()
+	case string:
+		nname = convname
+	}
+
+	res := make([]property.Property, 0)
+	for _, v := range e.Buffs {
+		if _, found := v.Properties[nname]; found {
+			res = append(res, v.Properties[nname])
+		}
+	}
+	return res
+}
+
+func (e *Entity) BuffTickDown() {
+	nbbuf := make([]property.TemporaryProperties, 0)
+	for _, buff := range e.Buffs {
+		if !buff.TickDown() {
+			nbbuf = append(nbbuf, buff)
+		}
+	}
+	e.Buffs = nbbuf
 }

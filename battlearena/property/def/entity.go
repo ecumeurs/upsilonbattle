@@ -27,8 +27,8 @@ func Attack() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.Attack, 1, property.FriendlyController, property.Character)
 }
 
-func Defence() *defaultproperty.DefaultIntProperty {
-	return defaultproperty.MakeIntProperty(property.Defence, 0, property.FriendlyController, property.Character)
+func Defense() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.Defense, 0, property.FriendlyController, property.Character)
 }
 
 func JumpHeight() *defaultproperty.DefaultIntProperty {
@@ -70,7 +70,41 @@ func PropertiesForCharacter() []property.Property {
 		defaultproperty.MakeIntCounterProperty(property.Movement, 10, 10, property.Public, property.Character),
 		defaultproperty.MakeIntProperty(property.Attack, 3, property.Public, property.Character),
 		defaultproperty.MakeIntProperty(property.AttackRange, 1, property.Public, property.Character),
-		defaultproperty.MakeIntProperty(property.Defence, 0, property.Public, property.Character),
+		defaultproperty.MakeIntProperty(property.Defense, 0, property.Public, property.Character),
 		defaultproperty.MakeIntProperty(property.JumpHeight, 2, property.Public, property.Character),
 	}
+}
+
+func EntityProperty(name property.EntityProperties) property.Property {
+	switch name {
+	case property.HP:
+		return HP()
+	case property.Movement:
+		return Movement()
+	case property.SP:
+		return SP()
+	case property.MP:
+		return MP()
+	case property.Attack:
+		return Attack()
+	case property.Defense:
+		return Defense()
+	case property.JumpHeight:
+		return JumpHeight()
+	case property.IsDying:
+		return IsDying()
+	case property.HasMoved:
+		return HasMoved()
+	case property.HasAttacked:
+		return HasAttacked()
+	case property.AttackRange:
+		return AttackRange()
+	case property.Shield:
+		return Shield()
+	case property.Poison:
+		return Poison()
+	case property.Stun:
+		return Stun()
+	}
+	return nil
 }

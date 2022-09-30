@@ -9,7 +9,7 @@ const (
 	MP       EntityProperties = "MP"       // Absence means 10
 
 	Attack     EntityProperties = "Attack"     // Absence means 1, basic attack
-	Defence    EntityProperties = "Defence"    // Absence means 0, basic defense
+	Defense    EntityProperties = "Defense"    // Absence means 0, basic defense
 	JumpHeight EntityProperties = "JumpHeight" // Absence means 2
 
 	// Flags
@@ -46,16 +46,16 @@ const (
 	TargetType         SkillProperties = "TargetType"         // Entity, Tile, Both, Self
 	TargetingMechanics SkillProperties = "TargetingMechanics" // Anywhere, Line of Sight, and maybe other mechanics later.
 
-	Damage          SkillProperties = "Damage"          // Absence means 0
-	Heal            SkillProperties = "Heal"            // Absence means 0
-	ShieldPower     SkillProperties = "Shield"          // Absence means 0 , can be negative or positive.
-	StunPower       SkillProperties = "Stun"            // Absence means 0 , can be negative or positive.
-	StunChance      SkillProperties = "StunChance"      // Absence means 0%
-	CriticialChance SkillProperties = "CriticialChance" // Absence means 0%
-	CriticialDamage SkillProperties = "CriticialDamage" // Absence means 0%
-	Duration        SkillProperties = "Duration"        // Absence means 0
-	PoisonPower     SkillProperties = "Poison"          // Absence means 0 , can be negative or positive.
-	PoisonChance    SkillProperties = "PoisonChance"    // Absence means 0%
+	Damage         SkillProperties = "Damage"         // Absence means 0
+	Heal           SkillProperties = "Heal"           // Absence means 0
+	ShieldPower    SkillProperties = "Shield"         // Absence means 0 , can be negative or positive.
+	StunPower      SkillProperties = "Stun"           // Absence means 0 , can be negative or positive.
+	StunChance     SkillProperties = "StunChance"     // Absence means 0%
+	CriticalChance SkillProperties = "CriticalChance" // Absence means 0%
+	CriticalDamage SkillProperties = "CriticalDamage" // Absence means 0%
+	Duration       SkillProperties = "Duration"       // Absence means 0
+	PoisonPower    SkillProperties = "Poison"         // Absence means 0 , can be negative or positive.
+	PoisonChance   SkillProperties = "PoisonChance"   // Absence means 0%
 
 	Delay    SkillProperties = "Delay"    // Absence means 500
 	HPLeech  SkillProperties = "HPLeech"  // Absence means 0
@@ -81,16 +81,16 @@ var SkillTargetingProperties = map[SkillProperties]bool{
 }
 
 var SkillEffectProperties = map[SkillProperties]bool{
-	Damage:          true,
-	Heal:            true,
-	ShieldPower:     true,
-	StunPower:       true,
-	StunChance:      true,
-	CriticialChance: true,
-	CriticialDamage: true,
-	Duration:        true,
-	PoisonPower:     true,
-	PoisonChance:    true,
+	Damage:         true,
+	Heal:           true,
+	ShieldPower:    true,
+	StunPower:      true,
+	StunChance:     true,
+	CriticalChance: true,
+	CriticalDamage: true,
+	Duration:       true,
+	PoisonPower:    true,
+	PoisonChance:   true,
 }
 
 var SkillCostProperties = map[SkillProperties]bool{
@@ -116,6 +116,7 @@ const (
 	Stackable        ItemProperties = "Stackable"        // Absence means 0: not stackable
 	StackSize        ItemProperties = "StackSize"        // Absence means 0: no stack size
 	Effect           ItemProperties = "Effect"           // Absence means nil: No effect. Effects are Skills. (except None)
+	Value            ItemProperties = "Value"            // Absence means 0: no value
 )
 
 // String

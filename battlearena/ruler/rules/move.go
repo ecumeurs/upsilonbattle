@@ -2,7 +2,7 @@ package rules
 
 import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/cell"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property/def"
+	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/defaultproperty"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
@@ -81,7 +81,7 @@ func (ctx *localMoveCtx) preMoveChecks(msg message.Message, req rulermethods.Con
 	}
 
 	// fetch movement distance
-	mvt := ent.GetProperty("Movement", def.Movement())
+	mvt := ent.GetProperty(property.Movement)
 	movementDistance := mvt.(*defaultproperty.DefaultIntCounterProperty).Value
 
 	// check path length
@@ -94,7 +94,7 @@ func (ctx *localMoveCtx) preMoveChecks(msg message.Message, req rulermethods.Con
 	}
 
 	// fetch jumpheight
-	jumpHeight := ent.GetPropertyI("JumpHeight", def.JumpHeight()).I()
+	jumpHeight := ent.GetPropertyI(property.JumpHeight).I()
 
 	// Check if the path is valid
 	cells := ctx.Grid.CellsForPositions(req.Path)
