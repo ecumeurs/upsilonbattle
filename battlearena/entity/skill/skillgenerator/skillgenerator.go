@@ -27,7 +27,7 @@ var propertiesEffectRandomizers = []func() property.Property{
 }
 var propertiesCostRandomizers = []func() property.Property{
 	func() property.Property {
-		return defaultproperty.MakeIntProperty(property.Cooldown, tools.RandomInt(1, 3), property.Public, property.Skill)
+		return defaultproperty.MakeIntCounterProperty(property.Cooldown, 0, tools.RandomInt(1, 3), property.Public, property.Skill)
 	},
 	func() property.Property {
 		return defaultproperty.MakeIntProperty(property.HPLeech, tools.RandomInt(1, 3), property.Public, property.Skill)
@@ -48,17 +48,17 @@ func GenerateRandomSkill() skill.Skill {
 
 	for _, v := range propertiesTargetingRandomizers {
 		if tools.RandomInt(0, 100) > 50 {
-			sk.Targeting = append(sk.Targeting, v())
+			sk.Targeting[v().Name(property.GameMaster)] = v()
 		}
 	}
-	for len(sk.Effect) == 0 {
+	for len(sk.Effect.Properties) == 0 {
 		for _, v := range propertiesEffectRandomizers {
 			if tools.RandomInt(0, 100) > 50 {
 				skp := v()
 				log.Println(skp)
-				sk.Effect = append(sk.Effect, skp)
-				log.Println("Effect", sk.Effect)
-				sk.Name = sk.Effect[0].Name(property.GameMaster)
+				sk.Effect.Properties = append(sk.Effect.Properties, skp)
+				log.Println("Effect", sk.Effect.Properties)
+				sk.Name = sk.Effect.Properties[0].Name(property.GameMaster)
 				break // only one effect for now.
 			}
 		}
@@ -66,7 +66,7 @@ func GenerateRandomSkill() skill.Skill {
 	// might have multiple costs... for fun.
 	for _, v := range propertiesCostRandomizers {
 		if tools.RandomInt(0, 100) > 50 {
-			sk.Cost = append(sk.Cost, v())
+			sk.Costs[v().Name(property.GameMaster)] = v()
 		}
 	}
 

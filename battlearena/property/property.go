@@ -65,3 +65,11 @@ type BoolProperty interface {
 	B() bool
 	SetB(bool)
 }
+
+type IntCounterProperty interface {
+	IntProperty
+	GetValue() int
+	GetMaxValue() int
+	SetValue(int)
+	SetMaxValue(int)
+}

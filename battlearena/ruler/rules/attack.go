@@ -88,8 +88,10 @@ func (gs *GameState) Attack(msg message.Message, req rulermethods.ControllerAtta
 
 	} else {
 		foectrl.NotifyActor(message.Create(nil, rulermethods.ControllerAttacked{
-			Entity:   foe,
-			Attacker: ent,
+			Entity:               foe,
+			Attacker:             ent,
+			ControllerID:         foe.ControllerID,
+			AttackerControllerID: ent.ControllerID,
 		}, nil))
 	}
 

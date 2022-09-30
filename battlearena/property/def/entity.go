@@ -51,8 +51,8 @@ func AttackRange() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.AttackRange, 1, property.FriendlyController, property.Character)
 }
 
-func Shield() *defaultproperty.DefaultIntProperty {
-	return defaultproperty.MakeIntProperty(property.Shield, 0, property.FriendlyController, property.Character)
+func Shield() *defaultproperty.DefaultIntCounterProperty {
+	return defaultproperty.MakeIntCounterProperty(property.Shield, 0, 0, property.FriendlyController, property.Character)
 }
 
 func Poison() *defaultproperty.DefaultIntProperty {
