@@ -170,3 +170,11 @@ func (e *Entity) BuffTickDown() {
 	}
 	e.Buffs = nbbuf
 }
+
+func (e Entity) HasActed() bool {
+	return e.GetProperty(property.HasActed).Get().(bool)
+}
+
+func (e Entity) HasMoved() bool {
+	return e.GetProperty(property.HasMoved).Get().(bool)
+}

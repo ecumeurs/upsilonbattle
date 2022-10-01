@@ -61,6 +61,13 @@ func (gs *GameState) Attack(msg message.Message, req rulermethods.ControllerAtta
 	// Update the entity
 	gs.Entities[req.EntityID] = ent
 
+	hasActed := ent.GetProperty(property.HasActed)
+	hasActed.Set(true)
+	ent.UpdateProperty(hasActed)
+	hasMoved := ent.GetProperty(property.HasMoved)
+	hasMoved.Set(true)
+	ent.UpdateProperty(hasMoved)
+
 	// apply damage
 	foeHP.SetI(foeHP.I() - computedDamage)
 	// update foe's HP
@@ -107,6 +114,12 @@ func (gs *GameState) Attack(msg message.Message, req rulermethods.ControllerAtta
 
 func (ctx *localAttackCtx) preAttackChecks(msg message.Message, req rulermethods.ControllerAttack) (ok bool, reply message.Message) {
 
+	ent, found := ctx.Entities[req.EntityID]
+	if !found {
+		ctx.log.Error("Entity not found")
+		return false, msg.ReplyWithError("Entity not found", "entity.notfound")
+	}
+
 	// Check if the controller is allowed to use the entity
 	if !ctx.CheckControllerForEntity(req.ControllerID, req.EntityID) {
 		ctx.log.Error("Controller is not allowed to use this entity")
@@ -118,12 +131,6 @@ func (ctx *localAttackCtx) preAttackChecks(msg message.Message, req rulermethods
 		return false, msg.ReplyWithError("It is not this entity turn", "entity.turn.missmatch")
 	}
 
-	ent, found := ctx.Entities[req.EntityID]
-	if !found {
-		ctx.log.Error("Entity not found")
-		return false, msg.ReplyWithError("Entity not found", "entity.notfound")
-	}
-
 	// Check if the attack is valid
 	target, found := ctx.Grid.CellAt(req.Target)
 	if !found {
@@ -133,24 +140,31 @@ func (ctx *localAttackCtx) preAttackChecks(msg message.Message, req rulermethods
 
 	if target.Type != cell.Ground {
 		ctx.log.Error("Target is not valid")
-		return false, msg.ReplyWithError("Invalid attack", "entity.attack.invalid")
+		return false, msg.ReplyWithError("Invalid attack", "entity.attack.celltype")
 	}
 
 	if target.EntityID == uuid.Nil {
 		ctx.log.Error("Target has no entities")
-		return false, msg.ReplyWithError("Invalid attack", "entity.attack.invalid")
+		return false, msg.ReplyWithError("Invalid attack", "entity.attack.noentity")
 	}
 
 	// range check.
 
 	attackerRange := ent.GetPropertyI(property.AttackRange)
 	distance := ent.Position.Distance(target.Position)
-	if attackerRange.I() <= distance {
+	if attackerRange.I() < distance {
 		ctx.log.WithFields(logrus.Fields{
 			"attackrange": attackerRange.I(),
 			"distance":    distance,
+			"attacker":    ent.Position,
 		}).Error("Target is out of range")
 		return false, msg.ReplyWithError("Invalid attack", "entity.attack.outofrange")
+	}
+
+	propHasActed := ent.GetProperty(property.HasActed).Get().(bool)
+	if propHasActed {
+		ctx.log.Error("Entity has already acted")
+		return false, msg.ReplyWithError("Entity has already acted", "entity.hasacted")
 	}
 
 	return true, reply

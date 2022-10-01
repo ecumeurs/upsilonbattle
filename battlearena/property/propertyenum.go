@@ -16,9 +16,9 @@ const (
 
 	// Flags
 
-	IsDying     EntityProperties = "IsDying"     // Absence means false
-	HasMoved    EntityProperties = "HasMoved"    // Absence means false
-	HasAttacked EntityProperties = "HasAttacked" // Absence means false
+	IsDying  EntityProperties = "IsDying"  // Absence means false
+	HasMoved EntityProperties = "HasMoved" // Absence means false, can move multiple times up to acting, once acted, can't move. Trap triggered or reaction can also mark the target as having moved.
+	HasActed EntityProperties = "HasActed" // Absence means false, will be set after the target has attacked or used a skill.
 
 	// Buffs and other applied, inherited properties ... ?
 	AttackRange EntityProperties = "AttackRange" // Absence means 1, Basic attack range. Altered with items, mostly.

@@ -43,8 +43,8 @@ func HasMoved() *defaultproperty.DefaultBoolProperty {
 	return defaultproperty.MakeBoolProperty(property.HasMoved, false, property.GameMaster, property.Character)
 }
 
-func HasAttacked() *defaultproperty.DefaultBoolProperty {
-	return defaultproperty.MakeBoolProperty(property.HasAttacked, false, property.GameMaster, property.Character)
+func HasActed() *defaultproperty.DefaultBoolProperty {
+	return defaultproperty.MakeBoolProperty(property.HasActed, false, property.GameMaster, property.Character)
 }
 
 func AttackRange() *defaultproperty.DefaultIntProperty {
@@ -72,6 +72,9 @@ func PropertiesForCharacter() []property.Property {
 		defaultproperty.MakeIntProperty(property.AttackRange, 1, property.Public, property.Character),
 		defaultproperty.MakeIntProperty(property.Defense, 0, property.Public, property.Character),
 		defaultproperty.MakeIntProperty(property.JumpHeight, 2, property.Public, property.Character),
+		defaultproperty.MakeBoolProperty(property.IsDying, false, property.Public, property.Character),
+		defaultproperty.MakeBoolProperty(property.HasMoved, false, property.GameMaster, property.Character),
+		defaultproperty.MakeBoolProperty(property.HasActed, false, property.GameMaster, property.Character),
 	}
 }
 
@@ -95,8 +98,8 @@ func EntityProperty(name property.EntityProperties) property.Property {
 		return IsDying()
 	case property.HasMoved:
 		return HasMoved()
-	case property.HasAttacked:
-		return HasAttacked()
+	case property.HasActed:
+		return HasActed()
 	case property.AttackRange:
 		return AttackRange()
 	case property.Shield:
