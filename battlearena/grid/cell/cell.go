@@ -25,3 +25,12 @@ type Cell struct {
 	EntityID uuid.UUID
 	Position position.Position
 }
+
+// NewCell
+func NewCell(t CellType, p position.Position) *Cell {
+	return &Cell{
+		Type:     t,
+		Position: p,
+		EntityID: uuid.Nil,
+	}
+}

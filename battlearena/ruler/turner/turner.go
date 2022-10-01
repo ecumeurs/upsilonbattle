@@ -29,6 +29,26 @@ func NewTurner() Turner {
 	}
 }
 
+func (t *Turner) ForceTurn(entityid uuid.UUID) {
+	if t.CurrentEntityTurn == entityid {
+		return
+	}
+	if t.CurrentEntityTurn != uuid.Nil {
+		// reinsert it at 200
+		t.AddEntity(t.CurrentEntityTurn, 200)
+	}
+	t.CurrentEntityTurn = entityid
+
+	// remove entity from turns
+	for i := range t.Turns {
+		if t.Turns[i].entityid == entityid {
+			t.Turns = append(t.Turns[:i], t.Turns[i+1:]...)
+			break
+		}
+	}
+	// next turn removes entity from stack.
+}
+
 // GetEntityDelay returns the delay of the entity or error if not present
 func (t Turner) GetEntityDelay(entityid uuid.UUID) (int, error) {
 	for i := range t.Turns {

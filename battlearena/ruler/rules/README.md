@@ -74,3 +74,9 @@ Move now makes use of the new properties system. It will use the following prope
 
 Attack are death sentences: the attacked entity will be removed from the game.
 Attack reach is 1 tile away from the attacker.
+
+## Test 	
+
+`rules_test.go` contains structures and functions to assist testings.
+
+See dedicated test files for rules testing.
