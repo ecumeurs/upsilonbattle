@@ -19,6 +19,28 @@ type Grid struct {
 	Cells map[position.Position]*cell.Cell
 }
 
+// NewGrid Makes a flat grid at groundlevel.
+func NewGrid(width, length, groundlevel int) *Grid {
+	g := &Grid{
+		Width:  width,
+		Length: length,
+		Height: groundlevel + 2,
+		Cells:  make(map[position.Position]*cell.Cell),
+	}
+	for x := 0; x < width; x++ {
+		for y := 0; y < length; y++ {
+			for z := 0; z < groundlevel+1; z++ {
+				if z < groundlevel {
+					g.Cells[position.New(x, y, z)] = cell.NewCell(cell.Dirt, position.New(x, y, z))
+				} else {
+					g.Cells[position.New(x, y, z)] = cell.NewCell(cell.Ground, position.New(x, y, z))
+				}
+			}
+		}
+	}
+	return g
+}
+
 // RandomPosition returns a random valid position in the grid
 func (g *Grid) RandomPosition() position.Position {
 	for {

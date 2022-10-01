@@ -6,6 +6,7 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/defaultproperty"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -48,6 +49,12 @@ func (gs *GameState) Move(msg message.Message, req rulermethods.ControllerMove) 
 	// Compute the new delay
 	ent.CurrentDelay = ent.CurrentDelay + len(req.Path)*200
 
+	// Pay the move cost ! (1/tile)
+	prop := ent.GetPropertyC(property.Movement)
+	prop.SetValue(prop.GetValue() - len(req.Path))
+
+	ent.UpdateProperty(prop)
+
 	// Update the entity
 	ctx.Entities[req.EntityID] = ent
 
@@ -64,6 +71,12 @@ func (gs *GameState) Move(msg message.Message, req rulermethods.ControllerMove) 
 func (ctx *localMoveCtx) preMoveChecks(msg message.Message, req rulermethods.ControllerMove) (ok bool, reply message.Message) {
 	// Check if the entity exists.
 
+	ent, found := ctx.Entities[req.EntityID]
+	if !found {
+		ctx.log.Error("Entity not found")
+		return false, msg.ReplyWithError("Entity not found", "entity.notfound")
+	}
+
 	// Check if the controller is allowed to move the entity
 	if !ctx.CheckControllerForEntity(req.ControllerID, req.EntityID) {
 		ctx.log.Error("Controller is not allowed to move this entity")
@@ -74,15 +87,9 @@ func (ctx *localMoveCtx) preMoveChecks(msg message.Message, req rulermethods.Con
 		return false, msg.ReplyWithError("It is not this entity turn", "entity.turn.missmatch")
 	}
 
-	ent, found := ctx.Entities[req.EntityID]
-	if !found {
-		ctx.log.Error("Entity not found")
-		return false, msg.ReplyWithError("Entity not found", "entity.notfound")
-	}
-
 	// fetch movement distance
 	mvt := ent.GetProperty(property.Movement)
-	movementDistance := mvt.(*defaultproperty.DefaultIntCounterProperty).Value
+	movementDistance := mvt.(*defaultproperty.DefaultIntCounterProperty).MaxValue
 
 	// check path length
 	if len(req.Path) > movementDistance {
@@ -101,19 +108,43 @@ func (ctx *localMoveCtx) preMoveChecks(msg message.Message, req rulermethods.Con
 	// a valid path is a path that contains only walkable cells and all cells must be adjascent
 	for i, c := range cells {
 		if c.Type == cell.Ground {
+			if c.EntityID != uuid.Nil {
+				ctx.log.WithFields(logrus.Fields{
+					"position": c.Position,
+				}).Error("Path contains an occupied cell")
+				return false, msg.ReplyWithError("Path contains an occupied cell", "entity.path.occupied")
+			}
 			if i > 0 && !cells[i-1].Position.IsAdjacent(c.Position, jumpHeight) {
 				ctx.log.WithFields(logrus.Fields{
 					"jumpHeight": jumpHeight,
 				}).Error("Path is not valid")
-				return false, msg.ReplyWithError("Invalid path", "entity.path.invalid")
+				return false, msg.ReplyWithError("Invalid path", "entity.path.notvalid")
 			}
 		} else {
 			ctx.log.WithFields(logrus.Fields{
 				"cellType": c.Type,
 				"position": c.Position,
 			}).Error("Path is not valid")
-			return false, msg.ReplyWithError("Invalid path(wrong type)", "entity.path.invalid")
+			return false, msg.ReplyWithError("Invalid path(wrong type)", "entity.path.obstacle")
 		}
+	}
+
+	// ensure entity has movement credits to perform the action.
+	prop := ent.GetPropertyC(property.Movement)
+	if prop.GetValue() <= 0 {
+		ctx.log.Error("Entity has no movement credits")
+		return false, msg.ReplyWithError("Entity has no movement credits", "entity.movement.nocredits")
+	}
+
+	if prop.GetValue() < len(req.Path) {
+		ctx.log.Error("Entity has not enough movement credits")
+		return false, msg.ReplyWithError("Entity has not enough movement credits", "entity.movement.credits")
+	}
+
+	// ensure entity is adjascent to the first move.
+	if !ent.Position.IsAdjacent(req.Path[0], jumpHeight) {
+		ctx.log.Error("Entity is not adjascent to the first move")
+		return false, msg.ReplyWithError("Entity is not adjascent to the first move", "entity.path.notadjascent")
 	}
 
 	return true, reply
