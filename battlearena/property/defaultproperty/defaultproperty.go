@@ -343,11 +343,11 @@ func (d DefaultBoolProperty) GetType() property.PropertyType {
 	return d.propertyType
 }
 
-func (d DefaultBoolProperty) I() bool {
+func (d DefaultBoolProperty) B() bool {
 	return d.value
 }
 
-func (d *DefaultBoolProperty) SetI(f bool) {
+func (d *DefaultBoolProperty) SetB(f bool) {
 	d.value = f
 }
 

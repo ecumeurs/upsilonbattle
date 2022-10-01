@@ -36,12 +36,14 @@ func (fc *FakeController) SendActor(m message.Message, replyTo chan message.Mess
 }
 
 type FakeState struct {
-	Controller1 uuid.UUID
-	Controller2 uuid.UUID
-	Entity1     uuid.UUID
-	Entity2     uuid.UUID
-	Entity3     uuid.UUID
-	Entity4     uuid.UUID
+	Controller1     uuid.UUID
+	Controller2     uuid.UUID
+	Entity1         uuid.UUID
+	Entity2         uuid.UUID
+	Entity3         uuid.UUID
+	Entity4         uuid.UUID
+	FakeController1 *FakeController
+	FakeController2 *FakeController
 }
 
 func makeGameStateForTwo() (*GameState, FakeState) {
@@ -104,12 +106,14 @@ func makeGameStateForTwo() (*GameState, FakeState) {
 	gs.Turner.AddEntity(ent4.ID, ent4.CurrentDelay)
 
 	fake := FakeState{
-		Controller1: ctrl.ID,
-		Controller2: ctrl2.ID,
-		Entity1:     ent1.ID,
-		Entity2:     ent2.ID,
-		Entity3:     ent3.ID,
-		Entity4:     ent4.ID,
+		Controller1:     ctrl.ID,
+		Controller2:     ctrl2.ID,
+		Entity1:         ent1.ID,
+		Entity2:         ent2.ID,
+		Entity3:         ent3.ID,
+		Entity4:         ent4.ID,
+		FakeController1: ctrl,
+		FakeController2: ctrl2,
 	}
 
 	return gs, fake

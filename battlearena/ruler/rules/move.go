@@ -147,5 +147,12 @@ func (ctx *localMoveCtx) preMoveChecks(msg message.Message, req rulermethods.Con
 		return false, msg.ReplyWithError("Entity is not adjascent to the first move", "entity.path.notadjascent")
 	}
 
+	// can't move if has already moved this turn.
+	propMoved := ent.GetProperty(property.HasMoved)
+	if propMoved.Get().(bool) {
+		ctx.log.Error("Entity has already moved this turn")
+		return false, msg.ReplyWithError("Entity has already moved this turn", "entity.movement.already")
+	}
+
 	return true, reply
 }
