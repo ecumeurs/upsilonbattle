@@ -128,9 +128,9 @@ func TestRuleAttackFailTargetNotFound(t *testing.T) {
 	// Attack Entity 3
 	msg := message.Create(nil,
 		rulermethods.ControllerAttack{
-			EntityID:     uuid.New(),
+			EntityID:     fake.Attacker,
 			ControllerID: fake.AttackerControllerID,
-			Target:       fake.FoePosition,
+			Target:       position.New(11, 11, 3), // board is 10x10
 		}, nil)
 
 	reply := gs.Attack(msg, msg.TargetMethod.(rulermethods.ControllerAttack))
@@ -139,8 +139,8 @@ func TestRuleAttackFailTargetNotFound(t *testing.T) {
 		t.Errorf("Expected error, got none.")
 	}
 
-	if reply.ErrorKey != "entity.notfound" {
-		t.Errorf("Expected error 'entity.notfound', got '%s'", reply.ErrorKey)
+	if reply.ErrorKey != "entity.attack.target.invalid" {
+		t.Errorf("Expected error 'entity.attack.target.invalid', got '%s'", reply.ErrorKey)
 	}
 }
 
