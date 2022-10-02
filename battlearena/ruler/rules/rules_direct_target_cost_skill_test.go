@@ -25,12 +25,6 @@ func (gs *GameState) addSkillToEntity(entityID uuid.UUID, skill skill.Skill) {
 	gs.Entities[entityID] = e
 }
 
-func (gs *GameState) removeSkillFromEntity(entityID uuid.UUID, skillID uuid.UUID) {
-	e := gs.Entities[entityID]
-	delete(e.Skills, skillID)
-	gs.Entities[entityID] = e
-}
-
 func makeGameStateForTwoSkill() (*GameState, FakeStateSkill) {
 	// attacker is at (5,5,3), foe is at (5,6,3) and they are facing each other.
 	gs, f := makeGameStateForTwoAttack()
@@ -118,6 +112,28 @@ func TestRuleSkillFailUnknownEntity(t *testing.T) {
 
 	if reply.ErrorKey != "entity.notfound" {
 		t.Errorf("Expected error 'entity.notfound', got '%s'", reply.ErrorKey)
+	}
+}
+
+func TestRuleSkillFailUnknownSkill(t *testing.T) {
+	gs, fake := makeGameStateForTwoSkill()
+
+	msg := message.Create(nil,
+		rulermethods.ControllerUseSkill{
+			EntityID:     fake.Attacker,
+			ControllerID: fake.AttackerControllerID,
+			Target:       fake.FoePosition,
+			SkillID:      uuid.New(),
+		}, nil)
+
+	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+
+	if !reply.HasError {
+		t.Errorf("Expected error, got none.")
+	}
+
+	if reply.ErrorKey != "skill.notfound" {
+		t.Errorf("Expected error 'skill.notfound', got '%s'", reply.ErrorKey)
 	}
 }
 
