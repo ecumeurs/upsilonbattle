@@ -5,8 +5,9 @@ import "fmt"
 type EntityProperties string
 
 const (
-	HP       EntityProperties = "HP"       // Absence means 10 /!\ this is a counter (has two value: current, max)
-	Movement EntityProperties = "Movement" // Absence means 5 /!\ this is a counter (has two value: current, max), reset at end of turn
+	// all these are counters
+	HP       EntityProperties = "HP"       // Absence means 10
+	Movement EntityProperties = "Movement" // Absence means 3; reset at end of turn
 	SP       EntityProperties = "SP"       // Absence means 10
 	MP       EntityProperties = "MP"       // Absence means 10
 
@@ -15,16 +16,16 @@ const (
 	JumpHeight EntityProperties = "JumpHeight" // Absence means 2
 
 	// Flags
-
-	IsDying  EntityProperties = "IsDying"  // Absence means false
+	// Absence means -1 (not dying), when HP reaches 0, IsDying is set to 3, and at each end of entity's turn, will be reduced by one. When it reaches 0, the entity is removed from game.
+	IsDying  EntityProperties = "IsDying"
 	HasMoved EntityProperties = "HasMoved" // Absence means false, can move multiple times up to acting, once acted, can't move. Trap triggered or reaction can also mark the target as having moved.
 	HasActed EntityProperties = "HasActed" // Absence means false, will be set after the target has attacked or used a skill.
 
 	// Buffs and other applied, inherited properties ... ?
 	AttackRange EntityProperties = "AttackRange" // Absence means 1, Basic attack range. Altered with items, mostly.
 
-	// Computed at end of turn.
-	Shield EntityProperties = "Shield" // Absence means 0,0 (counter)
+	// (counters) Absence means 0,0, can have overshield (when applied through healing and buffs...) Max shield is only used at initialisation of battle. Allowed to twice HP Max
+	Shield EntityProperties = "Shield"
 	Poison EntityProperties = "Poison" // Absence means 0, Poisoned state. Sum of all poison damage taken per turn. Mostly a temporary status. Negative PoisonPower will cure; /2 each turn, remove at <1
 	Stun   EntityProperties = "Stun"   // Absence means 0, Stunned state. Sum of all stun taken per turn. Mostly a temporary status. Negative StunPower will cure; /2 each turn, remove at <1
 )
@@ -48,16 +49,16 @@ const (
 	TargetType         SkillProperties = "TargetType"         // Entity, Tile, Both, Self
 	TargetingMechanics SkillProperties = "TargetingMechanics" // Anywhere, Line of Sight, and maybe other mechanics later.
 
-	Damage         SkillProperties = "Damage"         // Absence means 0
-	Heal           SkillProperties = "Heal"           // Absence means 0
-	ShieldPower    SkillProperties = "Shield"         // Absence means 0 , can be negative or positive.
-	StunPower      SkillProperties = "Stun"           // Absence means 0 , can be negative or positive.
-	StunChance     SkillProperties = "StunChance"     // Absence means 0%
-	CriticalChance SkillProperties = "CriticalChance" // Absence means 0%
-	CriticalDamage SkillProperties = "CriticalDamage" // Absence means 0%
-	Duration       SkillProperties = "Duration"       // Absence means 0
-	PoisonPower    SkillProperties = "Poison"         // Absence means 0 , can be negative or positive.
-	PoisonChance   SkillProperties = "PoisonChance"   // Absence means 0%
+	Damage             SkillProperties = "Damage"             // Absence means 100%
+	Heal               SkillProperties = "Heal"               // Absence means 0
+	ShieldPower        SkillProperties = "Shield"             // Absence means 0 , can be negative or positive.
+	StunPower          SkillProperties = "Stun"               // Absence means 0 , can be negative or positive.
+	StunChance         SkillProperties = "StunChance"         // Absence means 0%
+	CriticalChance     SkillProperties = "CriticalChance"     // Absence means 0%
+	CriticalMultiplier SkillProperties = "CriticalMultiplier" // Absence means 0%
+	Duration           SkillProperties = "Duration"           // Absence means 0
+	PoisonPower        SkillProperties = "Poison"             // Absence means 0 , can be negative or positive.
+	PoisonChance       SkillProperties = "PoisonChance"       // Absence means 0%
 
 	Delay   SkillProperties = "Delay"   // Absence means 500
 	HPLeech SkillProperties = "HPLeech" // Absence means 0
@@ -86,16 +87,16 @@ var SkillTargetingProperties = map[SkillProperties]bool{
 }
 
 var SkillEffectProperties = map[SkillProperties]bool{
-	Damage:         true,
-	Heal:           true,
-	ShieldPower:    true,
-	StunPower:      true,
-	StunChance:     true,
-	CriticalChance: true,
-	CriticalDamage: true,
-	Duration:       true,
-	PoisonPower:    true,
-	PoisonChance:   true,
+	Damage:             true,
+	Heal:               true,
+	ShieldPower:        true,
+	StunPower:          true,
+	StunChance:         true,
+	CriticalChance:     true,
+	CriticalMultiplier: true,
+	Duration:           true,
+	PoisonPower:        true,
+	PoisonChance:       true,
 }
 
 var SkillCostProperties = map[SkillProperties]bool{

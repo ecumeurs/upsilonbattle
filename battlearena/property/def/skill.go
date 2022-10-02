@@ -27,7 +27,7 @@ func Parry() *defaultproperty.DefaultIntProperty {
 }
 
 func Damage() *defaultproperty.DefaultIntProperty {
-	return defaultproperty.MakeIntProperty(property.Damage, 0, property.FriendlyController, property.Skill)
+	return defaultproperty.MakeIntProperty(property.Damage, 100, property.FriendlyController, property.Skill)
 }
 
 func Heal() *defaultproperty.DefaultIntProperty {
@@ -50,8 +50,8 @@ func CriticalChance() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.CriticalChance, 0, property.FriendlyController, property.Skill)
 }
 
-func CriticalDamage() *defaultproperty.DefaultFloatProperty {
-	return defaultproperty.MakeFloatProperty(property.CriticalDamage, 0, property.FriendlyController, property.Skill)
+func CriticalMultiplier() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.CriticalMultiplier, 100, property.FriendlyController, property.Skill)
 }
 
 func Duration() *defaultproperty.DefaultIntCounterProperty {
@@ -184,6 +184,13 @@ func (bh *BehaviorProperty) ApplyBuff(p property.Property) property.Property {
 	return res
 }
 
+func (bh *BehaviorProperty) UnapplyBuff(p property.Property) property.Property {
+	res := bh.Duplicate().(*BehaviorProperty)
+	// TODO ... :)
+	res.BehaviorType = p.(*BehaviorProperty).BehaviorType
+	return res
+}
+
 // Range property.Property: 	Range TargetingProperties = "Range" // Range of the property.Skill
 
 type RangeProperty struct {
@@ -208,6 +215,13 @@ func DefaultRange() *RangeProperty {
 func (bh *RangeProperty) ApplyBuff(p property.Property) property.Property {
 	res := bh.Duplicate().(*RangeProperty)
 	// replace
+	res.MinRange = p.(*RangeProperty).MinRange
+	res.MaxRange = p.(*RangeProperty).MaxRange
+	return res
+}
+func (bh *RangeProperty) UnapplyBuff(p property.Property) property.Property {
+	res := bh.Duplicate().(*RangeProperty)
+	// TODO :)
 	res.MinRange = p.(*RangeProperty).MinRange
 	res.MaxRange = p.(*RangeProperty).MaxRange
 	return res
@@ -266,6 +280,13 @@ func DefaultZone() *ZoneProperty {
 func (bh *ZoneProperty) ApplyBuff(p property.Property) property.Property {
 	res := bh.Duplicate().(*ZoneProperty)
 	// replace
+	res.ZonePattern = p.(*ZoneProperty).ZonePattern
+	return res
+}
+
+func (bh *ZoneProperty) UnapplyBuff(p property.Property) property.Property {
+	res := bh.Duplicate().(*ZoneProperty)
+	// TODO
 	res.ZonePattern = p.(*ZoneProperty).ZonePattern
 	return res
 }
@@ -333,6 +354,13 @@ func DefaultTargetType() *TargetTypeProperty {
 func (bh *TargetTypeProperty) ApplyBuff(p property.Property) property.Property {
 	res := bh.Duplicate().(*TargetTypeProperty)
 	// replace
+	res.TargetType = p.(*TargetTypeProperty).TargetType
+	return res
+}
+
+func (bh *TargetTypeProperty) UnapplyBuff(p property.Property) property.Property {
+	res := bh.Duplicate().(*TargetTypeProperty)
+	// TODO
 	res.TargetType = p.(*TargetTypeProperty).TargetType
 	return res
 }
@@ -428,8 +456,17 @@ func (bh *TargetingMechanicsProperty) ApplyBuff(p property.Property) property.Pr
 	return res
 }
 
+func (bh *TargetingMechanicsProperty) UnapplyBuff(p property.Property) property.Property {
+	res := bh.Duplicate().(*TargetingMechanicsProperty)
+	// TODO
+	res.TargetingMechanics = p.(*TargetingMechanicsProperty).TargetingMechanics
+	return res
+}
+
 func SkillProperty(ps property.SkillProperties) property.Property {
 	switch ps {
+	case property.Accuracy:
+		return Accuracy()
 	case property.Behavior:
 		return DefaultBehavior()
 	case property.Range:
@@ -456,8 +493,8 @@ func SkillProperty(ps property.SkillProperties) property.Property {
 		return StunChance()
 	case property.CriticalChance:
 		return CriticalChance()
-	case property.CriticalDamage:
-		return CriticalDamage()
+	case property.CriticalMultiplier:
+		return CriticalMultiplier()
 	case property.Duration:
 		return Duration()
 	case property.PoisonPower:

@@ -45,7 +45,7 @@ func (gs *GameState) UseSkill(msg message.Message, req rulermethods.ControllerUs
 	sk := ent.Skills[req.SkillID]
 
 	// now we have a target identifed! yata! For now only work on direct effect ... later :)
-	dds, aff, err, errkey := effectapplicator.ApplyDirectEffect(&ent, sk.Effect, ctx.targetedTiles, ctx.Grid, ctx.targetedEntities)
+	dds, aff, err, errkey := effectapplicator.ApplyDirectEffect(ctx.log, &ent, sk.Effect, req.Target, ctx.targetedTiles, ctx.Grid, ctx.targetedEntities)
 	if err != "" {
 		ctx.log.Error(err)
 		return msg.ReplyWithError(err, errkey), damaged, affected

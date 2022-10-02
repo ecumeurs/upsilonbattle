@@ -40,6 +40,7 @@ type Property interface {
 	GetType() PropertyType
 	Duplicate() Property
 	ApplyBuff(p Property) Property
+	UnapplyBuff(p Property) Property
 }
 
 // PrettyPrint

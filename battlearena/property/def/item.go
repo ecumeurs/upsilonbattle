@@ -109,6 +109,10 @@ func (bh *ItemTypeProperty) ApplyBuff(p property.Property) property.Property {
 	return bh.Duplicate() // property.Item can't be buffed.
 }
 
+func (bh *ItemTypeProperty) UnapplyBuff(p property.Property) property.Property {
+	return bh.Duplicate() // property.Item can't be buffed.
+}
+
 // 	Effect           ItemProperties = "Effect"           // Absence means nil: No effect. Effects are Skills. (except None)
 
 type EffectProperty struct {
@@ -166,6 +170,10 @@ func (bh *EffectProperty) Duplicate() property.Property {
 }
 
 func (bh *EffectProperty) ApplyBuff(p property.Property) property.Property {
+	return bh.Duplicate() // property.Item can't be buffed.
+}
+
+func (bh *EffectProperty) UnapplyBuff(p property.Property) property.Property {
 	return bh.Duplicate() // property.Item can't be buffed.
 }
 
@@ -229,6 +237,9 @@ func (bh *WeaponTypeProperty) Duplicate() property.Property {
 }
 
 func (bh *WeaponTypeProperty) ApplyBuff(p property.Property) property.Property {
+	return bh.Duplicate() // property.Item can't be buffed.
+}
+func (bh *WeaponTypeProperty) UnapplyBuff(p property.Property) property.Property {
 	return bh.Duplicate() // property.Item can't be buffed.
 }
 
@@ -296,6 +307,9 @@ func (bh *ArmorTypeProperty) Duplicate() property.Property {
 func (bh *ArmorTypeProperty) ApplyBuff(p property.Property) property.Property {
 	return bh.Duplicate() // property.Item can't be buffed.
 }
+func (bh *ArmorTypeProperty) UnapplyBuff(p property.Property) property.Property {
+	return bh.Duplicate() // property.Item can't be buffed.
+}
 
 //ToolType         ItemProperties = "ToolType"         // Absence means 0: no tool type (only for Wearable)
 
@@ -355,6 +369,10 @@ func (bh *ToolTypeProperty) ApplyBuff(p property.Property) property.Property {
 	return bh.Duplicate() // property.Item can't be buffed.
 }
 
+func (bh *ToolTypeProperty) UnapplyBuff(p property.Property) property.Property {
+	return bh.Duplicate() // property.Item can't be buffed.
+}
+
 func ItemProperty(name property.ItemProperties) property.Property {
 	switch name {
 	case property.Effect:
@@ -377,6 +395,8 @@ func ItemProperty(name property.ItemProperties) property.Property {
 		return WeaponBaseDamage()
 	case property.WeaponRange:
 		return WeaponRange()
+	case property.ArmorRating:
+		return ArmorRating()
 	case property.StackSize:
 		return StackSize()
 	case property.Stackable:

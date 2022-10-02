@@ -2,6 +2,7 @@ package defaultproperty
 
 import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/property"
+	"github.com/ecumeurs/upsilontools/tools"
 )
 
 type DefaultIntProperty struct {
@@ -82,6 +83,12 @@ func (d *DefaultIntProperty) SetI(i int) {
 func (d DefaultIntProperty) ApplyBuff(p property.Property) property.Property {
 	res := d.Duplicate()
 	res.Set(d.Get().(int) + p.Get().(int))
+	return res
+}
+
+func (d DefaultIntProperty) UnapplyBuff(p property.Property) property.Property {
+	res := d.Duplicate()
+	res.Set(d.Get().(int) - p.Get().(int))
 	return res
 }
 
@@ -177,6 +184,14 @@ func (d DefaultIntCounterProperty) ApplyBuff(p property.Property) property.Prope
 	res := d.Duplicate().(*DefaultIntCounterProperty)
 	res.Value = d.Value + p.(*DefaultIntCounterProperty).Value
 	res.MaxValue = d.MaxValue + p.(*DefaultIntCounterProperty).MaxValue
+	return res
+}
+
+func (d DefaultIntCounterProperty) UnapplyBuff(p property.Property) property.Property {
+	res := d.Duplicate().(*DefaultIntCounterProperty)
+
+	res.MaxValue = d.MaxValue - p.(*DefaultIntCounterProperty).MaxValue
+	res.Value = tools.Max(d.Value-p.(*DefaultIntCounterProperty).Value, res.MaxValue)
 	return res
 }
 
@@ -276,6 +291,11 @@ func (d DefaultFloatProperty) ApplyBuff(p property.Property) property.Property {
 	res.Set(d.Get().(float64) + p.Get().(float64))
 	return res
 }
+func (d DefaultFloatProperty) UnapplyBuff(p property.Property) property.Property {
+	res := d.Duplicate()
+	res.Set(d.Get().(float64) - p.Get().(float64))
+	return res
+}
 
 // Bool default value are essentially flags ...
 
@@ -363,5 +383,11 @@ func (d DefaultBoolProperty) Duplicate() property.Property {
 func (d DefaultBoolProperty) ApplyBuff(p property.Property) property.Property {
 	res := d.Duplicate()
 	res.Set(d.Get().(bool) && p.Get().(bool))
+	return res
+}
+
+func (d DefaultBoolProperty) UnapplyBuff(p property.Property) property.Property {
+	res := d.Duplicate()
+	res.Set(!p.Get().(bool))
 	return res
 }
