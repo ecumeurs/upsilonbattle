@@ -1,6 +1,8 @@
 package effect
 
-import "github.com/ecumeurs/upsilonbattle/battlearena/property"
+import (
+	"github.com/ecumeurs/upsilonbattle/battlearena/property"
+)
 
 type Effect struct {
 	Properties []property.Property
@@ -50,6 +52,33 @@ func (s Effect) HasNegativeProperty(p interface{}) bool {
 		}
 	}
 	return false
+}
+
+// GetProperty
+func (e Effect) GetProperty(p interface{}) property.Property {
+	pstr := property.PropertyToString(p)
+	for _, v := range e.Properties {
+		if v.Name(property.GameMaster) == pstr {
+			return v
+		}
+	}
+
+	return nil
+}
+
+// GetProperty
+func (e Effect) GetPropertyI(p interface{}) property.IntProperty {
+	return e.GetProperty(p).(property.IntProperty)
+}
+
+// GetProperty
+func (e Effect) GetPropertyF(p interface{}) property.FloatProperty {
+	return e.GetProperty(p).(property.FloatProperty)
+}
+
+// GetProperty
+func (e Effect) GetPropertyC(p interface{}) property.IntCounterProperty {
+	return e.GetProperty(p).(property.IntCounterProperty)
 }
 
 // IsDamaging

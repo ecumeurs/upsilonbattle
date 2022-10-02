@@ -6,8 +6,8 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/position"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/def"
+	"github.com/ecumeurs/upsilonbattle/battlearena/property/effect/effectapplicator"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
-	"github.com/ecumeurs/upsilontools/tools"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -44,138 +44,36 @@ func (gs *GameState) UseSkill(msg message.Message, req rulermethods.ControllerUs
 	ent := ctx.Entities[req.EntityID]
 	sk := ent.Skills[req.SkillID]
 
-	// now we have a target identifed! yata!
-
-	// Hit test!
-	if sk.Effect.IsDamaging() {
-		if len(ctx.targetedEntities) > 0 {
-			newTargets := make([]entity.Entity, 0)
-			accuracy := ent.GetPropertyI(property.Accuracy).I()
-
-			for _, target := range ctx.targetedEntities {
-				dodge := ent.GetPropertyI(property.Dodge).I()
-				if tools.RandomInt(0, 100) < accuracy-dodge {
-					newTargets = append(newTargets, target)
-				}
-			}
-			ctx.targetedEntities = newTargets
-		}
-	}
-
-	// Apply skill effect
-	if sk.Effect.IsDamaging() {
-		damage := sk.GetPropertyI(property.Damage).I()
-		stunpwr := sk.GetPropertyI(property.StunPower).I()
-		stunchance := sk.GetPropertyI(property.StunChance).I()
-		poisonpwr := sk.GetPropertyI(property.PoisonPower).I()
-		poisonchance := sk.GetPropertyI(property.PoisonChance).I()
-
-		updatedEntities := make([]entity.Entity, 0)
-
-		for _, target := range ctx.targetedEntities {
-			hp := target.GetPropertyC(property.HP).GetValue()
-			defense := target.GetPropertyI(property.Defense).I()
-			shield := target.GetPropertyC(property.Shield).GetValue()
-			armor := target.GetPropertyI(property.ArmorRating).I()
-
-			truepoison := poisonpwr - defense
-			truestun := stunpwr - armor
-
-			truedmg := damage - defense - armor + truepoison + truestun
-
-			// check poisoning & stunning.
-			if truepoison > 0 {
-				if tools.RandomInt(0, 100) < poisonchance {
-					// target is poisoned
-					// update poison value.
-					poison := target.GetPropertyI(property.Poison).I()
-					target.GetPropertyI(property.Poison).Set(poison + truepoison)
-				}
-			}
-			if truestun > 0 {
-				if tools.RandomInt(0, 100) < stunchance {
-					// target is stunned
-					// update stun value.
-					stun := target.GetPropertyI(property.Stun).I()
-					target.GetPropertyI(property.Stun).Set(stun + truestun)
-				}
-			}
-			if truedmg > 0 {
-				// first killoff shield.
-				if shield > 0 {
-					if shield > truedmg {
-						shield -= truedmg
-						truedmg = 0
-					} else {
-						truedmg -= shield
-						shield = 0
-					}
-					//update shield
-					target.GetPropertyC(property.Shield).SetValue(shield)
-				}
-				// then kill off hp.
-				if hp > 0 {
-					if hp > truedmg {
-						hp -= truedmg
-						truedmg = 0
-					} else {
-						truedmg -= hp
-						hp = 0
-					}
-					//update hp
-					target.GetPropertyC(property.HP).SetValue(hp)
-				}
-			}
-			updatedEntities = append(updatedEntities, target)
-		}
-
-		ctx.targetedEntities = updatedEntities
-
-		for _, tar := range updatedEntities {
-			damaged = append(damaged, rulermethods.ControllerAttacked{
-				ControllerID:         tar.ControllerID,
-				Entity:               tar,
-				SkillID:              sk.ID,
-				AttackerControllerID: ent.ControllerID,
-				Attacker:             ent,
-			})
-		}
-	}
-
-	if sk.Effect.IsHealing() {
-		heal := sk.GetPropertyI(property.Heal).I()
-		updatedEntities := make([]entity.Entity, 0)
-		for _, target := range ctx.targetedEntities {
-			hp := target.GetPropertyC(property.HP).GetValue()
-			maxhp := target.GetPropertyC(property.HP).GetMaxValue()
-			if hp < maxhp {
-				if hp+heal > maxhp {
-					hp = maxhp
-				} else {
-					hp += heal
-				}
-				target.GetPropertyC(property.HP).SetValue(hp)
-			}
-			updatedEntities = append(updatedEntities, target)
-		}
-		ctx.targetedEntities = updatedEntities
-
-		for _, tar := range updatedEntities {
-			affected = append(affected, rulermethods.ControllerSkillUsed{
-				ControllerID:        tar.ControllerID,
-				Entity:              tar,
-				SkillID:             sk.ID,
-				EmitterControllerID: ent.ControllerID,
-				Emitter:             ent,
-			})
-		}
+	// now we have a target identifed! yata! For now only work on direct effect ... later :)
+	dds, aff, err, errkey := effectapplicator.ApplyDirectEffect(&ent, sk.Effect, ctx.targetedTiles, ctx.Grid, ctx.targetedEntities)
+	if err != "" {
+		ctx.log.Error(err)
+		return msg.ReplyWithError(err, errkey), damaged, affected
 	}
 
 	// for the moment ignore buffs and dots.
 
 	// update entities in global context.
-	for _, tar := range ctx.targetedEntities {
+	for _, tar := range dds {
 		ctx.Entities[tar.ID] = tar
+		damaged = append(damaged, rulermethods.ControllerAttacked{
+			ControllerID:         tar.ControllerID,
+			Entity:               tar,
+			SkillID:              sk.ID,
+			AttackerControllerID: ent.ControllerID,
+			Attacker:             ent,
+		})
+	}
+
+	for _, tar := range aff {
+		ctx.Entities[tar.ID] = tar
+		affected = append(affected, rulermethods.ControllerSkillUsed{
+			ControllerID:        tar.ControllerID,
+			Entity:              tar,
+			SkillID:             sk.ID,
+			EmitterControllerID: ent.ControllerID,
+			Emitter:             ent,
+		})
 	}
 
 	// now user pay the cost
