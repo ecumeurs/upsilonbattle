@@ -178,3 +178,36 @@ func (e Entity) HasActed() bool {
 func (e Entity) HasMoved() bool {
 	return e.GetProperty(property.HasMoved).Get().(bool)
 }
+
+func (e Entity) HasProperty(name interface{}) bool {
+	_, found := e.Properties[property.PropertyToString(name)]
+	return found
+}
+
+// RepsertPropertyValue will insert property if unknown!
+func (e *Entity) RepsertPropertyValue(p interface{}, value interface{}) {
+	prop := e.GetProperty(p)
+	prop.Set(value)
+	e.Properties[prop.Name(property.GameMaster)] = prop
+}
+
+// RepsertPropertyCMaxValue will insert property if unknown!
+func (e Entity) RepsertPropertyCMaxValue(p interface{}, maxvalue int) {
+	prop := e.GetProperty(p).(property.IntCounterProperty)
+	prop.SetMaxValue(maxvalue)
+	e.Properties[prop.Name(property.GameMaster)] = prop
+}
+
+// UpdatePropertyValue Will only update value if known to the entity (wont affect buffs)
+func (e *Entity) UpdatePropertyValue(p interface{}, value interface{}) {
+	prop := e.GetProperty(p)
+	prop.Set(value)
+	e.UpdateProperty(prop)
+}
+
+// UpdatePropertyCMaxValue Will only update value if known to the entity (wont affect buffs)
+func (e Entity) UpdatePropertyCMaxValue(p interface{}, maxvalue int) {
+	prop := e.GetProperty(p).(property.IntCounterProperty)
+	prop.SetMaxValue(maxvalue)
+	e.UpdateProperty(prop)
+}

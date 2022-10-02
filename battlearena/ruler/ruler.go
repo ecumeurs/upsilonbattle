@@ -439,42 +439,23 @@ func (r *Ruler) endOfTurn(msg message.Message, req rulermethods.EndOfTurn) {
 		return
 	}
 
-	if req.EntityID == uuid.Nil {
-		loclog.Error("Can't work with nil entity")
-		r.act.Reply(msg.ReplyWithError("Can't work with nil entity", "entity.nil"))
-		return
-	}
-	if _, found := r.GameState.Entities[req.EntityID]; !found {
-		loclog.WithFields(logrus.Fields{
-			"RequestID":    msg.RequestId.String()[0:8],
-			"controllerID": req.ControllerID.String()[0:8],
-			"entityID":     req.EntityID.String()[0:8]}).Error("Can't work with absent entity")
-		r.act.Reply(msg.ReplyWithError("Can't work with absent entity", "entity.absent"))
+	ok, reply := r.GameState.EndOfTurn(msg, req, r.GameState.Entities[req.EntityID])
+	if !ok {
+		r.act.Reply(reply)
 		return
 	}
 
-	// Check if the controller is allowed to end the turn
-	// Check if the controller is allowed to use the entity
-	if !r.GameState.CheckControllerForEntity(req.ControllerID, req.EntityID) {
-		loclog.WithFields(logrus.Fields{
-			"controllerID":       req.ControllerID.String()[0:8],
-			"entityID":           req.EntityID.String()[0:8],
-			"entityControllerID": r.GameState.Entities[req.EntityID].ControllerID.String()[0:8],
-		}).Error("Controller is not allowed to use this entity")
-		r.act.Reply(msg.ReplyWithError("Controller is not allowed to use this entity", "entity.controller.missmatch"))
-		return
-	}
-	if r.GameState.Turner.CurrentEntityTurn != req.EntityID {
-		loclog.Error("It is not this entity turn")
-
-		r.act.Reply(msg.ReplyWithError("It is not this entity turn", "entity.turn.missmatch"))
-		return
+	nextTurnEnt := r.GameState.Turner.NextTurn()
+	if nextTurnEnt == uuid.Nil {
+		loclog.Info("##### END OF BATTLE! (WEIRD) #####")
+	} else {
+		// if entity is in gamestate.
+		if beg, found := r.GameState.Entities[nextTurnEnt]; found {
+			r.GameState.BeginingOfTurn(beg)
+		}
 	}
 
-	loclog.WithFields(logrus.Fields{
-		"entityID": req.EntityID.String()[0:8],
-		"newDelay": r.GameState.Entities[req.EntityID].CurrentDelay + 500}).Debug("Entity end of turn, reinserting entity in the turn")
-	r.GameState.Turner.AddEntity(req.EntityID, r.GameState.Entities[req.EntityID].CurrentDelay+500) // well ...end of turn delay
+	// checks begining of turn for next entity.
 
 	ent := make([]entity.Entity, 0)
 	// fill entities
@@ -495,7 +476,7 @@ func (r *Ruler) endOfTurn(msg message.Message, req rulermethods.EndOfTurn) {
 		remainingControllerID = ent.ControllerID
 	}
 
-	if len(remainingController) <= 1 {
+	if len(remainingController) <= 1 || nextTurnEnt == uuid.Nil {
 		loclog.Info("##### END OF BATTLE! #####")
 		// End of game
 		r.CurrentState = Finished
@@ -522,7 +503,6 @@ func (r *Ruler) endOfTurn(msg message.Message, req rulermethods.EndOfTurn) {
 		// Based on the entity delay, compute the next turn
 		// Trigger the next turn and notify all controllers
 
-		nextTurnEnt := r.GameState.Turner.NextTurn()
 		if nextTurnEnt == uuid.Nil {
 			// No more turn, end of the game
 		} else {

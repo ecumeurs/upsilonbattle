@@ -1,6 +1,8 @@
 package effectapplicator
 
 import (
+	"math"
+
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid"
 	"github.com/ecumeurs/upsilonbattle/battlearena/grid/position"
@@ -8,6 +10,7 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/def"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/effect"
 	"github.com/ecumeurs/upsilontools/tools"
+	"github.com/sirupsen/logrus"
 )
 
 // GetPropertyOrDefault(eff Effect, p interface{}) property.Property
@@ -32,28 +35,51 @@ func getPropertyOrDefaultC(eff effect.Effect, p interface{}) property.IntCounter
 }
 
 // Machine that apply effects
-func ApplyDirectEffect(ent *entity.Entity, eff effect.Effect, pos []position.Position, grd *grid.Grid, targetedEntities []entity.Entity) (damaged []entity.Entity, affected []entity.Entity, err string, errkey string) {
-
+func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effect, target position.Position, cells []position.Position, grd *grid.Grid, targetedEntities []entity.Entity) (damaged []entity.Entity, affected []entity.Entity, err string, errkey string) {
+	logger.WithFields(logrus.Fields{}).Info("ApplyDirectEffect")
 	// Hit test!
 	if eff.IsDamaging() {
+		logger.WithFields(logrus.Fields{}).Info("Damaging")
 
 		damageTargets := []entity.Entity{}
 		if len(targetedEntities) > 0 {
 			accuracy := ent.GetPropertyI(property.Accuracy).I()
+			logger.WithFields(logrus.Fields{"accuracy": accuracy}).Info("Accuracy")
 
 			for _, target := range targetedEntities {
 				dodge := ent.GetPropertyI(property.Dodge).I()
-				if tools.RandomInt(0, 100) < accuracy-dodge {
+				hittest := tools.RandomInt(0, 100)
+				logger.WithFields(logrus.Fields{"dodge": dodge,
+					"hittest": hittest,
+					"test":    accuracy - dodge}).Info("Dodge ?")
+				if hittest < accuracy-dodge {
 					damageTargets = append(damageTargets, target)
 				}
 			}
 		}
 
+		attack := ent.GetPropertyI(property.Attack).I()
 		damage := getPropertyOrDefaultI(eff, property.Damage).I()
+		shieldPower := getPropertyOrDefaultI(eff, property.ShieldPower).I()
 		stunpwr := getPropertyOrDefaultI(eff, property.StunPower).I()
 		stunchance := getPropertyOrDefaultI(eff, property.StunChance).I()
 		poisonpwr := getPropertyOrDefaultI(eff, property.PoisonPower).I()
 		poisonchance := getPropertyOrDefaultI(eff, property.PoisonChance).I()
+
+		critChance := getPropertyOrDefaultI(eff, property.CriticalChance).I()
+		critMultiplier := getPropertyOrDefaultI(eff, property.CriticalMultiplier).I()
+
+		logger.WithFields(logrus.Fields{
+			"attack":         attack,
+			"damage":         damage,
+			"shieldPower":    shieldPower,
+			"stunpwr":        stunpwr,
+			"stunchance":     stunchance,
+			"poisonpwr":      poisonpwr,
+			"poisonchance":   poisonchance,
+			"critChance":     critChance,
+			"critMultiplier": critMultiplier,
+		}).Info("Attacker")
 
 		for _, target := range damageTargets {
 			hp := target.GetPropertyC(property.HP).GetValue()
@@ -61,10 +87,38 @@ func ApplyDirectEffect(ent *entity.Entity, eff effect.Effect, pos []position.Pos
 			shield := target.GetPropertyC(property.Shield).GetValue()
 			armor := target.GetPropertyI(property.ArmorRating).I()
 
-			truepoison := poisonpwr - defense
-			truestun := stunpwr - armor
+			truepoison := tools.Max(poisonpwr-defense, 0)
+			truestun := tools.Max(stunpwr-armor, 0)
 
-			truedmg := damage - defense - armor + truepoison + truestun
+			multiplier := 1.0
+			// roll for crit
+			if critChance > 0 && tools.RandomInt(0, 100) < critChance {
+				multiplier = float64(critMultiplier) / 100.0
+			}
+
+			truedmg := tools.Max((attack*damage/100)-defense-armor, 0) + truepoison + truestun
+			truedmg = tools.Max(int(math.Floor(float64(truedmg)*multiplier)), 0)
+
+			logger.WithFields(logrus.Fields{
+				"hp":          hp,
+				"defense":     defense,
+				"shield":      shield,
+				"armor":       armor,
+				"truepoison":  truepoison,
+				"truestun":    truestun,
+				"truedmg":     truedmg,
+				"shieldPower": shieldPower,
+				"multiplier":  multiplier,
+			}).Info("Target")
+
+			// apply shield damage (only if negative! otherwise it's healing the shield)
+			if shieldPower < 0 {
+				target.UpdatePropertyValue(property.Shield, shield+shieldPower)
+				shield = shield + shieldPower
+				logger.WithFields(logrus.Fields{
+					"shield": shield,
+				}).Info("Shield")
+			}
 
 			// check poisoning & stunning.
 			if truepoison > 0 {
@@ -72,7 +126,9 @@ func ApplyDirectEffect(ent *entity.Entity, eff effect.Effect, pos []position.Pos
 					// target is poisoned
 					// update poison value.
 					poison := target.GetPropertyI(property.Poison).I()
-					target.GetPropertyI(property.Poison).Set(poison + truepoison)
+					// Don't expect poison property to be preset ... this isn't something that sticks between game
+					target.RepsertPropertyValue(property.Poison, truepoison+poison)
+					logger.WithFields(logrus.Fields{"oldpoison": poison, "newpoison": (poison + truepoison)}).Info("Poisoned")
 				}
 			}
 			if truestun > 0 {
@@ -80,7 +136,9 @@ func ApplyDirectEffect(ent *entity.Entity, eff effect.Effect, pos []position.Pos
 					// target is stunned
 					// update stun value.
 					stun := target.GetPropertyI(property.Stun).I()
-					target.GetPropertyI(property.Stun).Set(stun + truestun)
+					target.RepsertPropertyValue(property.Stun, stun+truestun)
+					// Don't expect stun property to be preset ... this isn't something that sticks between game
+					logger.WithFields(logrus.Fields{"oldstun": stun, "newstun": (stun + truestun)}).Info("Stunned")
 				}
 			}
 			if truedmg > 0 {
@@ -94,7 +152,8 @@ func ApplyDirectEffect(ent *entity.Entity, eff effect.Effect, pos []position.Pos
 						shield = 0
 					}
 					//update shield
-					target.GetPropertyC(property.Shield).SetValue(shield)
+					target.UpdatePropertyValue(property.Shield, shield)
+					logger.WithFields(logrus.Fields{"shield": shield}).Info("Shield")
 				}
 				// then kill off hp.
 				if hp > 0 {
@@ -106,7 +165,8 @@ func ApplyDirectEffect(ent *entity.Entity, eff effect.Effect, pos []position.Pos
 						hp = 0
 					}
 					//update hp
-					target.GetPropertyC(property.HP).SetValue(hp)
+					target.UpdatePropertyValue(property.HP, hp)
+					logger.WithFields(logrus.Fields{"hp": hp}).Info("HP")
 				}
 			}
 			damaged = append(damaged, target)
@@ -116,6 +176,10 @@ func ApplyDirectEffect(ent *entity.Entity, eff effect.Effect, pos []position.Pos
 
 	if eff.IsHealing() {
 		heal := getPropertyOrDefaultI(eff, property.Heal).I()
+		shieldPower := getPropertyOrDefaultI(eff, property.ShieldPower).I()
+		poisonPower := getPropertyOrDefaultI(eff, property.PoisonPower).I()
+		stunPower := getPropertyOrDefaultI(eff, property.StunPower).I()
+
 		for _, target := range targetedEntities {
 			hp := target.GetPropertyC(property.HP).GetValue()
 			maxhp := target.GetPropertyC(property.HP).GetMaxValue()
@@ -125,8 +189,27 @@ func ApplyDirectEffect(ent *entity.Entity, eff effect.Effect, pos []position.Pos
 				} else {
 					hp += heal
 				}
-				target.GetPropertyC(property.HP).SetValue(hp)
+				logger.WithFields(logrus.Fields{"hp": hp}).Info("HP")
+				target.UpdatePropertyValue(property.HP, hp)
 			}
+
+			shield := target.GetPropertyC(property.Shield).GetValue()
+			poison := target.GetPropertyI(property.Poison).I()
+			stun := target.GetPropertyI(property.Stun).I()
+
+			// Can have overshield.
+			if shieldPower > 0 {
+				target.UpdatePropertyValue(property.Shield, tools.Min(shield+shieldPower, maxhp*2))
+			}
+			// ONLY IF NEGATIVE! Otherwise it's a damaging effect
+			if poisonPower < 0 {
+				target.UpdatePropertyValue(property.Poison, tools.Max(poison+poisonPower, 0))
+			}
+			// ONLY IF NEGATIVE! Otherwise it's a damaging effect
+			if stunPower < 0 {
+				target.UpdatePropertyValue(property.Stun, tools.Max(stun+stunPower, 0))
+			}
+
 			affected = append(affected, target)
 		}
 

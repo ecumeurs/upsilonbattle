@@ -35,8 +35,8 @@ func JumpHeight() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.JumpHeight, 2, property.FriendlyController, property.Character)
 }
 
-func IsDying() *defaultproperty.DefaultBoolProperty {
-	return defaultproperty.MakeBoolProperty(property.IsDying, false, property.Public, property.Character)
+func IsDying() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.IsDying, -1, property.Public, property.Character)
 }
 
 func HasMoved() *defaultproperty.DefaultBoolProperty {
@@ -70,12 +70,12 @@ func PropertiesForCharacter() []property.Property {
 		defaultproperty.MakeIntCounterProperty(property.Movement, 3, 3, property.Public, property.Character),
 		defaultproperty.MakeIntCounterProperty(property.SP, 10, 10, property.Public, property.Character),
 		defaultproperty.MakeIntCounterProperty(property.MP, 10, 10, property.Public, property.Character),
-
+		defaultproperty.MakeIntCounterProperty(property.Shield, 0, 0, property.Public, property.Character),
 		defaultproperty.MakeIntProperty(property.Attack, 3, property.Public, property.Character),
 		defaultproperty.MakeIntProperty(property.AttackRange, 1, property.Public, property.Character),
 		defaultproperty.MakeIntProperty(property.Defense, 0, property.Public, property.Character),
 		defaultproperty.MakeIntProperty(property.JumpHeight, 2, property.Public, property.Character),
-		defaultproperty.MakeBoolProperty(property.IsDying, false, property.Public, property.Character),
+		defaultproperty.MakeIntProperty(property.IsDying, -1, property.Public, property.Character),
 		defaultproperty.MakeBoolProperty(property.HasMoved, false, property.GameMaster, property.Character),
 		defaultproperty.MakeBoolProperty(property.HasActed, false, property.GameMaster, property.Character),
 	}
