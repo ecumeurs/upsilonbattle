@@ -82,6 +82,10 @@ func SPLeech() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.SPLeech, 0, property.FriendlyController, property.Skill)
 }
 
+func MvtCost() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.MvtCost, 0, property.FriendlyController, property.Skill)
+}
+
 // Cooldown() Default to 0, 3 ;Special note: Cool down is stored as a counter, minValue represent initial cooldown at battle start. MaxValue represent the cooldown value when used.
 func Cooldown() *defaultproperty.DefaultIntCounterProperty {
 
@@ -138,7 +142,7 @@ func MakeBehaviorProperty(bh BehaviorType) *BehaviorProperty {
 }
 
 // DefaultBehaviorProperty
-func DefaultBehaviorProperty() *BehaviorProperty {
+func DefaultBehavior() *BehaviorProperty {
 	return MakeBehaviorProperty(BehaviorTypeDirect)
 }
 
@@ -197,7 +201,7 @@ func MakeRangeProperty(min, max int) *RangeProperty {
 }
 
 // DefaultRangeProperty
-func DefaultRangeProperty() *RangeProperty {
+func DefaultRange() *RangeProperty {
 	return MakeRangeProperty(1, 1)
 }
 
@@ -255,7 +259,7 @@ func MakeZoneProperty(zp pattern.Pattern) *ZoneProperty {
 }
 
 // DefaultZoneProperty
-func DefaultZoneProperty() *ZoneProperty {
+func DefaultZone() *ZoneProperty {
 	return MakeZoneProperty(pattern.Single())
 }
 
@@ -322,7 +326,7 @@ func MakeTargetTypeProperty(tt TargetTypes) *TargetTypeProperty {
 }
 
 // DefaultTargetTypeProperty
-func DefaultTargetTypeProperty() *TargetTypeProperty {
+func DefaultTargetType() *TargetTypeProperty {
 	return MakeTargetTypeProperty(TargetTypeEntity)
 }
 
@@ -384,7 +388,7 @@ func MakeTargetingMechanicsProperty(tm TargetingMechanicsType) *TargetingMechani
 }
 
 // DefaultTargetingMechanicsProperty
-func DefaultTargetingMechanicsProperty() *TargetingMechanicsProperty {
+func DefaultTargetingMechanics() *TargetingMechanicsProperty {
 	return MakeTargetingMechanicsProperty(TargetingMechanicsAnywhere)
 }
 
@@ -427,15 +431,15 @@ func (bh *TargetingMechanicsProperty) ApplyBuff(p property.Property) property.Pr
 func SkillProperty(ps property.SkillProperties) property.Property {
 	switch ps {
 	case property.Behavior:
-		return DefaultBehaviorProperty()
+		return DefaultBehavior()
 	case property.Range:
-		return DefaultRangeProperty()
+		return DefaultRange()
 	case property.Zone:
-		return DefaultZoneProperty()
+		return DefaultZone()
 	case property.TargetType:
-		return DefaultTargetTypeProperty()
+		return DefaultTargetType()
 	case property.TargetingMechanics:
-		return DefaultTargetingMechanicsProperty()
+		return DefaultTargetingMechanics()
 	case property.Dodge:
 		return Dodge()
 	case property.Parry:
@@ -470,6 +474,8 @@ func SkillProperty(ps property.SkillProperties) property.Property {
 		return MPLeech()
 	case property.SPLeech:
 		return SPLeech()
+	case property.MvtCost:
+		return MvtCost()
 	}
 	return nil
 }

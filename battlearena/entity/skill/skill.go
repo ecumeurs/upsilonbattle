@@ -24,7 +24,7 @@ func New() Skill {
 	return Skill{
 		ID:        uuid.New(),
 		Name:      "New Skill",
-		Behavior:  *def.DefaultBehaviorProperty(),
+		Behavior:  *def.DefaultBehavior(),
 		Targeting: make(map[string]property.Property),
 		Costs:     make(map[string]property.Property),
 		Effect:    *effect.New(),
@@ -37,7 +37,7 @@ func NewSkill(name string, targeting, cost map[string]property.Property, effect 
 	return Skill{
 		ID:        uuid.New(),
 		Name:      name,
-		Behavior:  *def.DefaultBehaviorProperty(),
+		Behavior:  *def.DefaultBehavior(),
 		Targeting: targeting,
 		Costs:     cost,
 		Effect:    effect,
@@ -98,70 +98,23 @@ func (s Skill) GetProperty(p interface{}) property.Property {
 			return v
 		}
 	}
-	return nil
+
+	return def.DefaultProperty(p)
 }
 
 // GetProperty
 func (s Skill) GetPropertyI(p interface{}) property.IntProperty {
-	pstr := property.PropertyToString(p)
-	for _, v := range s.Targeting {
-		if v.Name(property.GameMaster) == pstr {
-			return v.(property.IntProperty)
-		}
-	}
-	for _, v := range s.Costs {
-		if v.Name(property.GameMaster) == pstr {
-			return v.(property.IntProperty)
-		}
-	}
-	for _, v := range s.Effect.Properties {
-		if v.Name(property.GameMaster) == pstr {
-			return v.(property.IntProperty)
-		}
-	}
-	return nil
+	return s.GetProperty(p).(property.IntProperty)
 }
 
 // GetProperty
 func (s Skill) GetPropertyF(p interface{}) property.FloatProperty {
-	pstr := property.PropertyToString(p)
-	for _, v := range s.Targeting {
-		if v.Name(property.GameMaster) == pstr {
-			return v.(property.FloatProperty)
-		}
-	}
-	for _, v := range s.Costs {
-		if v.Name(property.GameMaster) == pstr {
-			return v.(property.FloatProperty)
-		}
-	}
-	for _, v := range s.Effect.Properties {
-		if v.Name(property.GameMaster) == pstr {
-			return v.(property.FloatProperty)
-		}
-	}
-	return nil
+	return s.GetProperty(p).(property.FloatProperty)
 }
 
 // GetProperty
 func (s Skill) GetPropertyC(p interface{}) property.IntCounterProperty {
-	pstr := property.PropertyToString(p)
-	for _, v := range s.Targeting {
-		if v.Name(property.GameMaster) == pstr {
-			return v.(property.IntCounterProperty)
-		}
-	}
-	for _, v := range s.Costs {
-		if v.Name(property.GameMaster) == pstr {
-			return v.(property.IntCounterProperty)
-		}
-	}
-	for _, v := range s.Effect.Properties {
-		if v.Name(property.GameMaster) == pstr {
-			return v.(property.IntCounterProperty)
-		}
-	}
-	return nil
+	return s.GetProperty(p).(property.IntCounterProperty)
 }
 
 // IsDirect

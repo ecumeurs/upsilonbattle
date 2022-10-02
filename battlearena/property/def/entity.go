@@ -68,6 +68,9 @@ func PropertiesForCharacter() []property.Property {
 	return []property.Property{
 		defaultproperty.MakeIntCounterProperty(property.HP, 10, 10, property.Public, property.Character),
 		defaultproperty.MakeIntCounterProperty(property.Movement, 3, 3, property.Public, property.Character),
+		defaultproperty.MakeIntCounterProperty(property.SP, 10, 10, property.Public, property.Character),
+		defaultproperty.MakeIntCounterProperty(property.MP, 10, 10, property.Public, property.Character),
+
 		defaultproperty.MakeIntProperty(property.Attack, 3, property.Public, property.Character),
 		defaultproperty.MakeIntProperty(property.AttackRange, 1, property.Public, property.Character),
 		defaultproperty.MakeIntProperty(property.Defense, 0, property.Public, property.Character),

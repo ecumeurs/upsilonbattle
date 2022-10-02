@@ -189,7 +189,7 @@ func (gs *GameState) UseSkill(msg message.Message, req rulermethods.ControllerUs
 
 	// reply to user
 	reply = msg.Reply()
-	reply.TargetMethod = rulermethods.ControllerUseSkillReply{
+	reply.Content = rulermethods.ControllerUseSkillReply{
 		Entity: ent,
 	}
 
@@ -197,6 +197,12 @@ func (gs *GameState) UseSkill(msg message.Message, req rulermethods.ControllerUs
 }
 
 func (ctx *localSkillCtx) preSkillChecks(msg message.Message, req rulermethods.ControllerUseSkill) (ok bool, reply message.Message) {
+
+	ent, found := ctx.Entities[req.EntityID]
+	if !found {
+		ctx.log.Error("Entity not found")
+		return false, msg.ReplyWithError("Entity not found", "entity.notfound")
+	}
 
 	// Check if the controller is allowed to use the entity
 	if !ctx.CheckControllerForEntity(req.ControllerID, req.EntityID) {
@@ -209,17 +215,17 @@ func (ctx *localSkillCtx) preSkillChecks(msg message.Message, req rulermethods.C
 		return false, msg.ReplyWithError("It is not this entity turn", "entity.turn.missmatch")
 	}
 
-	ent, found := ctx.Entities[req.EntityID]
-	if !found {
-		ctx.log.Error("Entity not found")
-		return false, msg.ReplyWithError("Entity not found", "entity.notfound")
-	}
-
 	// seek skill in entity
 	skill, found := ent.Skills[req.SkillID]
 	if !found {
 		ctx.log.Error("Skill not found")
 		return false, msg.ReplyWithError("Skill not found", "skill.notfound")
+	}
+
+	// entity has already acted this turn.
+	if ent.HasActed() {
+		ctx.log.Error("Entity has already acted this turn")
+		return false, msg.ReplyWithError("Entity has already acted this turn", "entity.alreadyacted")
 	}
 
 	// no target for passives!
@@ -248,17 +254,18 @@ func (ctx *localSkillCtx) checkSkillTarget(msg message.Message, user entity.Enti
 	zone := sk.GetProperty(property.Zone).(*def.ZoneProperty)
 	rng := sk.GetProperty(property.Range).(*def.RangeProperty)
 
-	selectedZone := ctx.Grid.SelectPositionsByPattern(target, zone.ZonePattern)
-	if len(selectedZone) == 0 {
-		ctx.log.Error("Target is not in grid")
-		return false, msg.ReplyWithError("Target is not in grid", "skill.target.outofgrid")
-	}
-
 	// Check target within range
 	dist := user.Position.Distance(target)
 	if dist > rng.MaxRange || dist < rng.MinRange {
 		ctx.log.Error("Target is not in range")
 		return false, msg.ReplyWithError("Target is not in range", "skill.target.range")
+	}
+
+	selectedZone := ctx.Grid.SelectPositionsByPattern(target, zone.ZonePattern)
+
+	if len(selectedZone) == 0 {
+		ctx.log.Error("Target is not in grid")
+		return false, msg.ReplyWithError("Target is not in grid", "skill.target.outofgrid")
 	}
 
 	// considere only TargetingMechanicsAnywhere for now ... because it's the only one implemented :p
@@ -274,7 +281,13 @@ func (ctx *localSkillCtx) checkSkillTarget(msg message.Message, user entity.Enti
 		}
 		ctx.targetedEntities = append(ctx.targetedEntities, user)
 	case def.TargetTypeTile:
-		ctx.targetedTiles = selectedZone
+		ctx.targetedEntities = make([]entity.Entity, 0)
+		for _, pos := range selectedZone {
+			c, _ := ctx.Grid.CellAt(pos) // should be ok because it has been veted before.
+			if c.EntityID == uuid.Nil {
+				ctx.targetedEntities = append(ctx.targetedEntities, ctx.Entities[c.EntityID])
+			}
+		}
 	case def.TargetTypeEntity:
 		ctx.targetedEntities = make([]entity.Entity, 0)
 		for _, pos := range selectedZone {
@@ -333,80 +346,60 @@ func (ctx *localSkillCtx) checkSkillCost(msg message.Message, user entity.Entity
 
 	// delay and cooldown don't remove anything.
 
-	if skp := sk.GetPropertyI(property.HPLeech); skp != nil {
-
-		hp := user.GetPropertyC(property.HP)
-		if hp.GetValue() < skp.I() {
-			ctx.log.Error("Not enough HP")
-			return false, msg.ReplyWithError("Not enough HP", "skill.cost.hp")
-		}
+	skp := sk.GetPropertyI(property.HPLeech)
+	hp := user.GetPropertyC(property.HP)
+	if hp.GetValue() < skp.I() {
+		ctx.log.Error("Not enough HP")
+		return false, msg.ReplyWithError("Not enough HP", "skill.cost.hp")
 	}
 
-	if skp := sk.GetPropertyI(property.MPLeech); skp != nil {
-
-		hp := user.GetPropertyC(property.MP)
-		if hp.GetValue() < skp.I() {
-			ctx.log.Error("Not enough HP")
-			return false, msg.ReplyWithError("Not enough HP", "skill.cost.hp")
-		}
+	skp = sk.GetPropertyI(property.MPLeech)
+	hp = user.GetPropertyC(property.MP)
+	if hp.GetValue() < skp.I() {
+		ctx.log.Error("Not enough MP")
+		return false, msg.ReplyWithError("Not enough MP", "skill.cost.mp")
 	}
 
-	if skp := sk.GetPropertyI(property.SPLeech); skp != nil {
-
-		hp := user.GetPropertyC(property.SP)
-		if hp.GetValue() < skp.I() {
-			ctx.log.Error("Not enough HP")
-			return false, msg.ReplyWithError("Not enough HP", "skill.cost.hp")
-		}
+	skp = sk.GetPropertyI(property.SPLeech)
+	hp = user.GetPropertyC(property.SP)
+	if hp.GetValue() < skp.I() {
+		ctx.log.Error("Not enough SP")
+		return false, msg.ReplyWithError("Not enough SP", "skill.cost.sp")
 	}
 
-	if skp := sk.GetPropertyI(property.MvtCost); skp != nil {
-
-		hp := user.GetPropertyC(property.Movement)
-		if hp.GetValue() < skp.I() {
-			ctx.log.Error("Not enough HP")
-			return false, msg.ReplyWithError("Not enough HP", "skill.cost.hp")
-		}
+	skp = sk.GetPropertyI(property.MvtCost)
+	hp = user.GetPropertyC(property.Movement)
+	if hp.GetValue() < skp.I() {
+		ctx.log.Error("Not enough Mvt")
+		return false, msg.ReplyWithError("Not enough Mvt", "skill.cost.mvt")
 	}
 
 	return true, msg
 }
 
 func (ctx *localSkillCtx) paySkillCost(user entity.Entity, sk skill.Skill) (entity.Entity, skill.Skill) {
-	if skp := sk.GetPropertyC(property.Cooldown); skp != nil {
-		sk.Cooldown = skp.GetMaxValue()
-	}
+	skpc := sk.GetPropertyC(property.Cooldown)
+	sk.Cooldown = skpc.GetMaxValue()
 
-	// delay and cooldown don't remove anything.
+	skp := sk.GetPropertyI(property.HPLeech)
+	hp := user.GetPropertyC(property.HP)
+	hp.SetValue(hp.GetValue() - skp.I())
+	user.UpdateProperty(hp)
 
-	if skp := sk.GetPropertyI(property.HPLeech); skp != nil {
+	skp = sk.GetPropertyI(property.MPLeech)
+	mp := user.GetPropertyC(property.MP)
+	mp.SetValue(mp.GetValue() - skp.I())
+	user.UpdateProperty(mp)
 
-		hp := user.GetPropertyC(property.HP)
-		hp.SetValue(hp.GetValue() - skp.I())
-		user.UpdateProperty(hp)
+	skp = sk.GetPropertyI(property.SPLeech)
+	sp := user.GetPropertyC(property.SP)
+	sp.SetValue(sp.GetValue() - skp.I())
+	user.UpdateProperty(sp)
 
-	}
-
-	if skp := sk.GetPropertyI(property.MPLeech); skp != nil {
-
-		mp := user.GetPropertyC(property.MP)
-		mp.SetValue(mp.GetValue() - skp.I())
-		user.UpdateProperty(mp)
-	}
-
-	if skp := sk.GetPropertyI(property.SPLeech); skp != nil {
-
-		sp := user.GetPropertyC(property.SP)
-		sp.SetValue(sp.GetValue() - skp.I())
-		user.UpdateProperty(sp)
-	}
-
-	if skp := sk.GetPropertyI(property.MvtCost); skp != nil {
-
-		mvt := user.GetPropertyC(property.Movement)
-		mvt.SetValue(mvt.GetValue() - skp.I())
-		user.UpdateProperty(mvt)
-	}
+	skp = sk.GetPropertyI(property.MvtCost)
+	mvt := user.GetPropertyC(property.Movement)
+	mvt.SetValue(mvt.GetValue() - skp.I())
+	user.UpdateProperty(mvt)
 
 	return user, sk
 }
