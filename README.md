@@ -2,10 +2,10 @@
 
 T RPG
 
-# Version 0.0.3 ( WIP )
+# Version 0.0.3 
 
 Skill usage, limiters (1 action per turn, n move, etc), skill cooldown.
-Buffs and Curses 
+-Buffs and Curses- 
 
 ## Objectives 
 
@@ -14,7 +14,17 @@ Buffs and Curses
   * An action that have its own properties. 
   * Attacks using skill will use both set of properties. 
   * Skill have cooldown. 
-* Buff and curses are applied to properties for a certain number of rounds.
+* -Buff and curses are applied to properties for a certain number of rounds.-
+
+
+Added Use Skill methods in rule & End Of Turn/ Begin of Turn to handle poison and stun.
+[See Rules](battlearena/ruler/rules/README.md)
+
+[See Effects](battlearena/property/effect/README.md)
+
+[See Skill](battlearena/entity/skill/README.md)
+
+[See Effect Application](battlearena/property/effect/effectapplicator/README.md)
 
 # Version 0.0.2 
 

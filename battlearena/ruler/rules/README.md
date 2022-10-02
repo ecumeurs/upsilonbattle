@@ -16,6 +16,12 @@ Note: if a property is missing on an entity, a default value will be used instea
 
 Structs and helper functions around the game state.
 
+## Use Skill 
+
+Allow one to activate a skill.  It's job is mostly to handle targeting validation, and cost of the skill.
+Effect application is handled by the [EffectApplicator](../../property/effect/effectapplicator/README.md)
+
+
 ## Movement
 
 Movement is the action entities uses to move from tile to tile.
@@ -31,6 +37,12 @@ type localMoveCtx struct {
 	log *logrus.Entry
 }
 ```
+
+### v0.0.3
+
+Added checks for HasMoved and HasActed. Can't move after having acted.
+=> HasMoved is only set after having acted, or having been stunned (begining the turn with more than Half MaxPV in Stun applied)
+Expect HasMoved to be set in reaction to other effects in the future. (like traps, reactions, and such.)
 
 ### v0.0.2
 
