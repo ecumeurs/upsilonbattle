@@ -21,6 +21,19 @@ Structs and helper functions around the game state.
 Allow one to activate a skill.  It's job is mostly to handle targeting validation, and cost of the skill.
 Effect application is handled by the [EffectApplicator](../../property/effect/effectapplicator/README.md)
 
+## End of Turn / Begining of Turn 
+
+This rule is responsible for handling the end of turn and the beginning of turn.
+
+
+### v0.0.3
+
+End of turn is essentially checking two things: 
+
+* Reinsertion of current entity in the turn queue (with added delay of 500)
+* Applying Poison damage (and reducing it's value) to the entity
+
+Begining of the turn is responsible only for the handling of stun damage.
 
 ## Movement
 

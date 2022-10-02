@@ -2,10 +2,24 @@
 
 T RPG
 
+# Version 0.0.4 (WIP)
+
+Buff & Curses
+API Controller (XML RPC? JSON RPC? Something else? to be decided.)
+
+## Objective:
+
+* Allow an API to be started for x Controllers. When claimant comes and connect themselves to the API, they are given a random controller.
+* They must be able to interact with the controller, and the controller must be able to interact with the claimant (notifications)
+
+=> End result must allow a full battle to be handled through API ( expect some python script or a side go app as tester )
+
+
 # Version 0.0.3 
 
 Skill usage, limiters (1 action per turn, n move, etc), skill cooldown.
--Buffs and Curses- 
+
+~~Buffs and Curses~~
 
 ## Objectives 
 
@@ -14,7 +28,7 @@ Skill usage, limiters (1 action per turn, n move, etc), skill cooldown.
   * An action that have its own properties. 
   * Attacks using skill will use both set of properties. 
   * Skill have cooldown. 
-* -Buff and curses are applied to properties for a certain number of rounds.-
+* ~~Buff and curses are applied to properties for a certain number of rounds.~~
 
 
 Added Use Skill methods in rule & End Of Turn/ Begin of Turn to handle poison and stun.
