@@ -20,9 +20,9 @@ import (
 )
 
 type FakeController struct {
-	act             *actor.Actor
+	*actor.Actor
 	ID              uuid.UUID
-	Stoppers        map[string]chan message.Message
+	Stoppers        map[string]chan *message.Message
 	KnownEntities   map[uuid.UUID]entity.Entity
 	StopperCallback chan bool
 }
@@ -30,23 +30,36 @@ type FakeController struct {
 // New
 func NewFake(name string) *FakeController {
 	ctrl := &FakeController{
-		Stoppers:        make(map[string]chan message.Message),
+		Actor:           actor.New(name),
+		Stoppers:        make(map[string]chan *message.Message),
 		ID:              uuid.New(),
 		KnownEntities:   make(map[uuid.UUID]entity.Entity),
 		StopperCallback: make(chan bool),
 	}
 
-	ctrl.act = actor.New(name)
-	ctrl.act.SetReceiveMessageHandler(ctrl.handleMessage)
-	ctrl.act.SetReplyMessageHandler(ctrl.handleReply)
-	ctrl.act.Start()
+	ctrl.AddMethod(controllermethods.SetQueue{}, ctrl.SetQueue, nil)
+	ctrl.AddMethod(controllermethods.Send{}, ctrl.Send, nil)
+	ctrl.AddMethod(controllermethods.ReceiveAPIMessage{}, ctrl.ReceiveAPIMessage, nil)
+	ctrl.AddMethod(rulermethods.ControllerNextTurn{}, ctrl.ControllerNextTurn, nil)
+	ctrl.AddMethod(rulermethods.BattleStart{}, ctrl.BattleStart, nil)
+	ctrl.AddMethod(rulermethods.BattleEnd{}, ctrl.BattleEnd, nil)
+	ctrl.AddMethod(rulermethods.EntitiesStateChanged{}, ctrl.EntitiesStateChanged, nil)
+	ctrl.AddMethod(rulermethods.ControllerAttacked{}, ctrl.ControllerAttacked, nil)
+
+	ctrl.AddReply(rulermethods.GetState{}, ctrl.GetStateReply, nil)
+	ctrl.AddReply(rulermethods.GetGridState{}, ctrl.GetGridStateReply, nil)
+	ctrl.AddReply(rulermethods.GetEntitiesState{}, ctrl.GetEntitiesStateReply, nil)
+	ctrl.AddReply(rulermethods.ControllerMove{}, ctrl.ControllerMoveReply, nil)
+	ctrl.AddReply(rulermethods.ControllerAttack{}, ctrl.ControllerAttackReply, nil)
+
+	ctrl.Start()
 
 	return ctrl
 }
 
 // AddStopper
-func (c *FakeController) AddStopper(method interface{}) chan message.Message {
-	stopper := make(chan message.Message)
+func (c *FakeController) AddStopper(method interface{}) chan *message.Message {
+	stopper := make(chan *message.Message)
 	c.Stoppers[reflect.TypeOf(method).String()] = stopper
 	return stopper
 }
@@ -59,7 +72,7 @@ func (c *FakeController) AddStoppers(methods ...interface{}) {
 }
 
 // GetStopper
-func (c *FakeController) GetStopper(method interface{}) chan message.Message {
+func (c *FakeController) GetStopper(method interface{}) chan *message.Message {
 	return c.Stoppers[reflect.TypeOf(method).String()]
 }
 
@@ -70,167 +83,73 @@ func (c *FakeController) Close() {
 	}
 }
 
-func (c *FakeController) handleMessage(msg message.Message) bool {
-	logrus.WithFields(logrus.Fields{
-		"Controller":   c.act.Name(),
-		"message_type": reflect.TypeOf(msg.TargetMethod).String(),
-		"controllerID": c.ID.String()[0:8]}).Info("Controller received message: ", reflect.TypeOf(msg.TargetMethod).String())
-
-	if msg.HasError {
-		logrus.WithFields(logrus.Fields{
-			"error":      msg.ErrorMessage,
-			"Controller": c.act.Name,
-		}).Error("Error received")
-	}
-
-	if stopper, ok := c.Stoppers[reflect.TypeOf(msg.TargetMethod).String()]; ok {
-		if stopper == nil {
-			logrus.Error("You created a stopper on a non remoty call function. This is an error in your test" + reflect.TypeOf(msg.TargetMethod).String())
-		}
-		logrus.WithFields(logrus.Fields{
-			"Controller": c.act.Name()}).Debug("Calling Stopper: ", reflect.TypeOf(msg.TargetMethod).String())
-		stopper <- msg
-		<-c.StopperCallback // ensure the message duly arrived and handled.
-	}
-
-	logrus.WithFields(logrus.Fields{
-		"Controller":   c.act.Name(),
-		"message_type": reflect.TypeOf(msg.TargetMethod).String(),
-		"controllerID": c.ID.String()[0:8]}).Info("End of eventual treatment of message")
-
-	switch msg.TargetMethod.(type) {
-	case controllermethods.SetQueue:
-		c.SetQueue(msg, msg.TargetMethod.(controllermethods.SetQueue))
-		return true
-	case controllermethods.Send:
-		c.Send(msg)
-		return true
-	case controllermethods.ReceiveAPIMessage:
-		c.ReceiveAPIMessage(msg)
-		return true
-	case rulermethods.ControllerNextTurn:
-		c.ControllerNextTurn(msg)
-		return true
-	case rulermethods.BattleStart:
-		c.BattleStart(msg)
-		return true
-	case rulermethods.BattleEnd:
-		c.BattleEnd(msg)
-		return true
-	case rulermethods.EntitiesStateChanged:
-		c.EntitiesStateChanged(msg)
-		return true
-	case rulermethods.ControllerAttacked:
-		c.ControllerAttacked(msg)
-		return true
-	}
-	return false
-}
-
-func (c *FakeController) handleReply(msg message.Message) bool {
-	logrus.WithFields(logrus.Fields{
-		"Controller": c.act.Name()}).Debug("Controller received reply: ", reflect.TypeOf(msg.TargetMethod).String())
-
-	if msg.HasError {
-		logrus.WithFields(logrus.Fields{
-			"Controller": c.act.Name(),
-			"RequestId":  msg.RequestId.String()[0:8],
-			"Error":      msg.ErrorMessage,
-		}).Error("Error")
-	}
-
-	if stopper, ok := c.Stoppers[reflect.TypeOf(msg.TargetMethod).String()]; ok {
-		stopper <- msg
-		<-c.StopperCallback // ensure the message duly arrived and handled.
-
-	}
-
-	switch msg.TargetMethod.(type) {
-	case rulermethods.GetStateReply:
-		c.GetStateReply(msg)
-		return true
-	case rulermethods.GetGridStateReply:
-		c.GetGridStateReply(msg)
-		return true
-	case rulermethods.GetEntitiesStateReply:
-		c.GetEntitiesStateReply(msg)
-		return true
-	case rulermethods.ControllerMoveReply:
-		c.ControllerMoveReply(msg)
-		return true
-	case rulermethods.ControllerAttackReply:
-		c.ControllerAttackReply(msg)
-		return true
-	}
-	return true // replies are always handled. we don't care about them.
-}
-
 // implement all FakeController methods handlers.
 
-func (c *FakeController) SetQueue(msg message.Message, m controllermethods.SetQueue) {
-	c.act.NoReply(msg.Reply())
+func (c *FakeController) SetQueue(msg *message.Message) bool {
+	c.NoReply(msg.Reply())
+	return true
 }
 
-func (c *FakeController) Send(msg message.Message) {
-	c.act.NoReply(msg.Reply())
+func (c *FakeController) Send(msg *message.Message) bool {
+	c.NoReply(msg.Reply())
+	return true
 }
 
-func (c *FakeController) ReceiveAPIMessage(msg message.Message) {
-	c.act.NoReply(msg.Reply())
+func (c *FakeController) ReceiveAPIMessage(msg *message.Message) bool {
+	c.NoReply(msg.Reply())
+	return true
 }
 
-func (c *FakeController) ControllerNextTurn(msg message.Message) {
-	c.act.NoReply(msg.Reply())
+func (c *FakeController) ControllerNextTurn(msg *message.Message) bool {
+	c.NoReply(msg.Reply())
+	return true
 }
 
-func (c *FakeController) BattleStart(msg message.Message) {
-	c.act.NoReply(msg.Reply())
+func (c *FakeController) BattleStart(msg *message.Message) bool {
+	c.NoReply(msg.Reply())
+	return true
 }
 
-func (c *FakeController) BattleEnd(msg message.Message) {
-	c.act.NoReply(msg.Reply())
+func (c *FakeController) BattleEnd(msg *message.Message) bool {
+	c.NoReply(msg.Reply())
+	return true
 }
 
-func (c *FakeController) ControllerAttacked(msg message.Message) {
-	c.act.NoReply(msg.Reply())
+func (c *FakeController) ControllerAttacked(msg *message.Message) bool {
+	c.NoReply(msg.Reply())
+	return true
 }
 
-func (c *FakeController) EntitiesStateChanged(msg message.Message) {
-	logrus.WithFields(logrus.Fields{
-		"Controller": c.act.Name(),
-		"RequestId":  msg.RequestId.String()[0:8],
-		"Turn":       msg.TargetMethod.(rulermethods.EntitiesStateChanged).Turn.String()}).Info("New Turn Received")
+func (c *FakeController) EntitiesStateChanged(msg *message.Message) bool {
+	c.RequestLogger.WithFields(logrus.Fields{
+		"Turn": msg.TargetMethod.(rulermethods.EntitiesStateChanged).Turn.String()}).Info("New Turn Received")
 	// fill in known entities (clear them beforehand.)
 	c.KnownEntities = make(map[uuid.UUID]entity.Entity)
 	for _, e := range msg.TargetMethod.(rulermethods.EntitiesStateChanged).Entities {
 		c.KnownEntities[e.ID] = e
 	}
-	c.act.NoReply(msg.Reply())
+	c.NoReply(msg.Reply())
+	return true
 }
 
-func (c *FakeController) GetStateReply(msg message.Message) {
+func (c *FakeController) GetStateReply(msg *message.Message) bool {
+	return true
 }
 
-func (c *FakeController) GetGridStateReply(msg message.Message) {
+func (c *FakeController) GetGridStateReply(msg *message.Message) bool {
+	return true
 }
 
-func (c *FakeController) GetEntitiesStateReply(msg message.Message) {
+func (c *FakeController) GetEntitiesStateReply(msg *message.Message) bool {
+	return true
 }
 
-func (c *FakeController) ControllerMoveReply(msg message.Message) {
+func (c *FakeController) ControllerMoveReply(msg *message.Message) bool {
+	return true
 }
 
-func (c *FakeController) ControllerAttackReply(msg message.Message) {
-}
-
-// Implement the actor.Communication interface
-// Notify Actor
-func (c *FakeController) NotifyActor(msg message.Message) {
-	c.act.Notify(msg)
-}
-
-func (c *FakeController) SendActor(msg message.Message, callback chan message.Message) {
-	c.act.Send(msg, callback)
+func (c *FakeController) ControllerAttackReply(msg *message.Message) bool {
+	return true
 }
 
 func TestRulerBattleBegin(t *testing.T) {
@@ -239,8 +158,8 @@ func TestRulerBattleBegin(t *testing.T) {
 	ctrl2 := NewFake("Fake2")
 
 	// expect a battle start
-	ctrl.Stoppers[reflect.TypeOf(rulermethods.BattleStart{}).String()] = make(chan message.Message)
-	ctrl2.Stoppers[reflect.TypeOf(rulermethods.BattleStart{}).String()] = make(chan message.Message)
+	ctrl.Stoppers[reflect.TypeOf(rulermethods.BattleStart{}).String()] = make(chan *message.Message)
+	ctrl2.Stoppers[reflect.TypeOf(rulermethods.BattleStart{}).String()] = make(chan *message.Message)
 	// defer close of stoppers
 	defer func() {
 		close(ctrl.Stoppers[reflect.TypeOf(rulermethods.BattleStart{}).String()])
@@ -278,8 +197,8 @@ func TestRulerBattleBeginNextTurn(t *testing.T) {
 	ctrl2 := NewFake("Fake2")
 
 	// expect a battle start
-	ctrl.Stoppers[reflect.TypeOf(rulermethods.ControllerNextTurn{}).String()] = make(chan message.Message)
-	ctrl2.Stoppers[reflect.TypeOf(rulermethods.ControllerNextTurn{}).String()] = make(chan message.Message)
+	ctrl.Stoppers[reflect.TypeOf(rulermethods.ControllerNextTurn{}).String()] = make(chan *message.Message)
+	ctrl2.Stoppers[reflect.TypeOf(rulermethods.ControllerNextTurn{}).String()] = make(chan *message.Message)
 	defer func() {
 		close(ctrl.Stoppers[reflect.TypeOf(rulermethods.ControllerNextTurn{}).String()])
 		close(ctrl2.Stoppers[reflect.TypeOf(rulermethods.ControllerNextTurn{}).String()])
@@ -318,8 +237,8 @@ func TestRulerBattleBeginNextTurnFetchGridAndEntities(t *testing.T) {
 	ctrl2 := NewFake("Fake2")
 
 	// expect a battle start
-	ctrl.Stoppers[reflect.TypeOf(rulermethods.BattleStart{}).String()] = make(chan message.Message)
-	ctrl2.Stoppers[reflect.TypeOf(rulermethods.BattleStart{}).String()] = make(chan message.Message)
+	ctrl.Stoppers[reflect.TypeOf(rulermethods.BattleStart{}).String()] = make(chan *message.Message)
+	ctrl2.Stoppers[reflect.TypeOf(rulermethods.BattleStart{}).String()] = make(chan *message.Message)
 	defer func() {
 		close(ctrl.Stoppers[reflect.TypeOf(rulermethods.BattleStart{}).String()])
 		close(ctrl2.Stoppers[reflect.TypeOf(rulermethods.BattleStart{}).String()])
@@ -348,7 +267,7 @@ func TestRulerBattleBeginNextTurnFetchGridAndEntities(t *testing.T) {
 	<-endchan
 
 	// now either controller should be able to access the grid and entities
-	replyChan := make(chan message.Message)
+	replyChan := make(chan *message.Message)
 	defer close(replyChan)
 
 	var grd *grid.Grid
@@ -444,7 +363,7 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 	<-endchan
 
 	// now either controller should be able to access the grid and entities
-	replyChan := make(chan message.Message)
+	replyChan := make(chan *message.Message)
 	defer close(replyChan)
 
 	var grd *grid.Grid
@@ -512,7 +431,7 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 						EntityID:     attacker.ID,
 						Path:         attackerMovePath,
 						ControllerID: ctrl.ID,
-					}, rulermethods.ControllerMoveReply{}), ctrl.act.CallbackChan)
+					}, rulermethods.ControllerMoveReply{}), ctrl.CallbackChan)
 				} else {
 					// it is already in place. Send attack
 					logrus.WithFields(logrus.Fields{
@@ -522,7 +441,7 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 						EntityID:     attacker.ID,
 						Target:       targetNewPos,
 						ControllerID: ctrl.ID,
-					}, rulermethods.ControllerAttackReply{}), ctrl.act.CallbackChan)
+					}, rulermethods.ControllerAttackReply{}), ctrl.CallbackChan)
 				}
 			} else {
 				// that's another entity, end turn.
@@ -530,7 +449,7 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 				ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
 					EntityID:     msg.TargetMethod.(rulermethods.ControllerNextTurn).Entity.ID,
 					ControllerID: ctrl.ID,
-				}, rulermethods.EndOfTurn{}), ctrl.act.CallbackChan)
+				}, rulermethods.EndOfTurn{}), ctrl.CallbackChan)
 			}
 			ctrl.StopperCallback <- true
 		case msg := <-ctrl.GetStopper(rulermethods.ControllerMoveReply{}):
@@ -553,7 +472,7 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 				ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
 					EntityID:     msg.Content.(rulermethods.ControllerMoveReply).Entity.ID,
 					ControllerID: ctrl.ID,
-				}, rulermethods.EndOfTurn{}), ctrl.act.CallbackChan)
+				}, rulermethods.EndOfTurn{}), ctrl.CallbackChan)
 			}
 			ctrl.StopperCallback <- true
 		case msg := <-ctrl.GetStopper(rulermethods.ControllerAttackReply{}):
@@ -567,7 +486,7 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 			ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
 				EntityID:     msg.Content.(rulermethods.ControllerAttackReply).Entity.ID,
 				ControllerID: ctrl.ID,
-			}, rulermethods.EndOfTurn{}), ctrl.act.CallbackChan)
+			}, rulermethods.EndOfTurn{}), ctrl.CallbackChan)
 			ctrl.StopperCallback <- true
 		case <-ctrl.GetStopper(rulermethods.EndOfTurn{}):
 			logrus.Info("EndOfTurn received by ctrl")
@@ -604,14 +523,14 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 						EntityID:     target.ID,
 						Path:         targetMovePath,
 						ControllerID: ctrl2.ID,
-					}, rulermethods.ControllerMoveReply{}), ctrl2.act.CallbackChan)
+					}, rulermethods.ControllerMoveReply{}), ctrl2.CallbackChan)
 				} else {
 					// it is already in place. Send Wait
 					logrus.Info("Target is at the right position, waiting")
 					ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
 						EntityID:     msg.TargetMethod.(rulermethods.ControllerNextTurn).Entity.ID,
 						ControllerID: ctrl2.ID,
-					}, rulermethods.EndOfTurn{}), ctrl2.act.CallbackChan)
+					}, rulermethods.EndOfTurn{}), ctrl2.CallbackChan)
 				}
 			} else {
 				// that's another entity, end turn.
@@ -619,7 +538,7 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 				ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
 					EntityID:     msg.TargetMethod.(rulermethods.ControllerNextTurn).Entity.ID,
 					ControllerID: ctrl2.ID,
-				}, rulermethods.EndOfTurn{}), ctrl2.act.CallbackChan)
+				}, rulermethods.EndOfTurn{}), ctrl2.CallbackChan)
 			}
 			ctrl2.StopperCallback <- true
 		case msg := <-ctrl2.GetStopper(rulermethods.ControllerMoveReply{}):
@@ -642,7 +561,7 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 				ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
 					EntityID:     msg.Content.(rulermethods.ControllerMoveReply).Entity.ID,
 					ControllerID: ctrl2.ID,
-				}, rulermethods.EndOfTurn{}), ctrl2.act.CallbackChan)
+				}, rulermethods.EndOfTurn{}), ctrl2.CallbackChan)
 			}
 			ctrl2.StopperCallback <- true
 		case <-ctrl2.GetStopper(rulermethods.EndOfTurn{}):
@@ -690,19 +609,19 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 		ControllerID: ctrl2.ID,
 	}, nil))
 
-	ctrl1stop := ctrl.act.PrepareToStop()
-	ctrl2stop := ctrl2.act.PrepareToStop()
+	ctrl1stop := ctrl.PrepareToStop()
+	ctrl2stop := ctrl2.PrepareToStop()
 
 	go func() {
 		<-ctrl1stop
 		logrus.Info("ctrl1 stopped")
-		ctrl.act.Stop()
+		ctrl.Stop()
 	}()
 
 	go func() {
 		<-ctrl2stop
 		logrus.Info("ctrl2 stopped")
-		ctrl2.act.Stop()
+		ctrl2.Stop()
 	}()
 
 	after := time.After(1 * time.Second)

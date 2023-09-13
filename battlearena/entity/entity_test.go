@@ -9,14 +9,14 @@ import (
 )
 
 func TestEntity(t *testing.T) {
-	e := NewEntity()
+	e := New()
 	if e.ID == uuid.Nil {
-		t.Error("NewEntity() should not return nil")
+		t.Error("New() should not return nil")
 	}
 }
 
 func TestEntityGetPropertyWithoutBuffs(t *testing.T) {
-	e := NewEntity()
+	e := New()
 
 	e.Properties[property.HP.String()] = defaultproperty.MakeIntCounterProperty(property.HP, 10, 10, property.Public, property.Character)
 
@@ -26,7 +26,7 @@ func TestEntityGetPropertyWithoutBuffs(t *testing.T) {
 }
 
 func TestEntityGetPropertyWithBuffs(t *testing.T) {
-	e := NewEntity()
+	e := New()
 
 	e.Properties[property.HP.String()] = defaultproperty.MakeIntCounterProperty(property.HP, 10, 10, property.Public, property.Character)
 	tmpBuff := property.MakeTemporaryProperties(10)
@@ -39,7 +39,7 @@ func TestEntityGetPropertyWithBuffs(t *testing.T) {
 }
 
 func TestEntityGetPropertyWithBuffsAndNegativeValue(t *testing.T) {
-	e := NewEntity()
+	e := New()
 
 	e.Properties[property.HP.String()] = defaultproperty.MakeIntCounterProperty(property.HP, 10, 10, property.Public, property.Character)
 	tmpBuff := property.MakeTemporaryProperties(10)
@@ -52,7 +52,7 @@ func TestEntityGetPropertyWithBuffsAndNegativeValue(t *testing.T) {
 }
 
 func TestBuffGetRemovedAfterTime(t *testing.T) {
-	e := NewEntity()
+	e := New()
 
 	e.Properties[property.HP.String()] = defaultproperty.MakeIntCounterProperty(property.HP, 10, 10, property.Public, property.Character)
 	tmpBuff := property.MakeTemporaryProperties(5)

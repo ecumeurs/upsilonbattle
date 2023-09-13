@@ -18,7 +18,7 @@ var propertyRandomizers = map[string]tools.IntRange{
 }
 
 func GenerateRandomEntity() entity.Entity {
-	ent := entity.NewEntity()
+	ent := entity.New()
 
 	for _, v := range def.PropertiesForCharacter() {
 		ent.Properties[v.Name(property.OwnController)] = v

@@ -27,7 +27,7 @@ func makeTestingEnvironment() effectapplicatorContext {
 		Pos:      []position.Position{},
 	}
 
-	res.Caster = entity.NewEntity()
+	res.Caster = entity.New()
 	res.Caster.ControllerID = uuid.New()
 	res.Caster.Position = position.Position{X: 0, Y: 0, Z: 3}
 	res.Caster.CurrentDelay = 200
@@ -37,7 +37,7 @@ func makeTestingEnvironment() effectapplicatorContext {
 	}
 	res.Grid.MoveEntity(res.Caster.Position, res.Caster.Position, res.Caster.ID)
 
-	res.Target = entity.NewEntity()
+	res.Target = entity.New()
 	res.Target.ControllerID = uuid.New()
 	res.Target.Position = position.Position{X: 1, Y: 0, Z: 3}
 	res.TargetPos = res.Target.Position
@@ -49,7 +49,7 @@ func makeTestingEnvironment() effectapplicatorContext {
 	res.Grid.MoveEntity(res.Target.Position, res.Target.Position, res.Target.ID)
 	res.Entities = append(res.Entities, res.Target)
 
-	res.Other = entity.NewEntity()
+	res.Other = entity.New()
 	res.Other.ControllerID = uuid.New()
 	res.Other.Position = position.Position{X: 2, Y: 0, Z: 3}
 	res.Other.CurrentDelay = 300

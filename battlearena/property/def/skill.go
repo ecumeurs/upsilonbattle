@@ -94,6 +94,9 @@ func Cooldown() *defaultproperty.DefaultIntCounterProperty {
 
 // Behavior property.Property: 	Behavior SkillProperties = "Behavior" property.Skill broad category: Direct, Reaction, Passive, Counter
 
+// Note: Behavior is a property because ...
+// Expect buffs to have an impact on behavior (e.g. a buff that makes a skill a counter skill)
+
 type BehaviorType int
 
 const (

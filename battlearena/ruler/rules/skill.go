@@ -20,7 +20,7 @@ type localSkillCtx struct {
 	targetedEntities []entity.Entity
 }
 
-func (gs *GameState) UseSkill(msg message.Message, req rulermethods.ControllerUseSkill) (reply message.Message, damaged []rulermethods.ControllerAttacked, affected []rulermethods.ControllerSkillUsed) {
+func (gs *GameState) UseSkill(msg *message.Message, req rulermethods.ControllerUseSkill) (reply *message.Message, damaged []rulermethods.ControllerAttacked, affected []rulermethods.ControllerSkillUsed) {
 	ctx := localSkillCtx{
 		GameState: gs,
 		log: gs.Logger.WithFields(logrus.Fields{
@@ -94,7 +94,7 @@ func (gs *GameState) UseSkill(msg message.Message, req rulermethods.ControllerUs
 	return
 }
 
-func (ctx *localSkillCtx) preSkillChecks(msg message.Message, req rulermethods.ControllerUseSkill) (ok bool, reply message.Message) {
+func (ctx *localSkillCtx) preSkillChecks(msg *message.Message, req rulermethods.ControllerUseSkill) (ok bool, reply *message.Message) {
 
 	ent, found := ctx.Entities[req.EntityID]
 	if !found {
@@ -146,7 +146,7 @@ func (ctx *localSkillCtx) preSkillChecks(msg message.Message, req rulermethods.C
 	return true, reply
 }
 
-func (ctx *localSkillCtx) checkSkillTarget(msg message.Message, user entity.Entity, target position.Position, sk skill.Skill) (bool, message.Message) {
+func (ctx *localSkillCtx) checkSkillTarget(msg *message.Message, user entity.Entity, target position.Position, sk skill.Skill) (bool, *message.Message) {
 	mech := sk.GetProperty(property.TargetingMechanics).(*def.TargetingMechanicsProperty)
 	targetype := sk.GetProperty(property.TargetType).(*def.TargetTypeProperty)
 	zone := sk.GetProperty(property.Zone).(*def.ZoneProperty)
@@ -235,7 +235,7 @@ func (ctx *localSkillCtx) checkSkillTarget(msg message.Message, user entity.Enti
 	return true, msg
 }
 
-func (ctx *localSkillCtx) checkSkillCost(msg message.Message, user entity.Entity, sk skill.Skill) (bool, message.Message) {
+func (ctx *localSkillCtx) checkSkillCost(msg *message.Message, user entity.Entity, sk skill.Skill) (bool, *message.Message) {
 	// for all costs in skill check if the user has enough.
 	if sk.Cooldown > 0 {
 		ctx.log.Error("Skill is on cooldown")

@@ -48,7 +48,7 @@ type Entity struct {
 }
 
 // NewEntity
-func NewEntity() Entity {
+func New() Entity {
 	return Entity{
 		ID:           uuid.New(),
 		ControllerID: uuid.Nil,

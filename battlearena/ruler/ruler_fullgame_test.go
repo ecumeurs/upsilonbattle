@@ -45,12 +45,12 @@ func TestRulerControllerFullGame(t *testing.T) {
 
 	logrus.Info("Battle Finished, doing end of game Checks")
 
-	replyChan := make(chan message.Message)
+	replyChan := make(chan *message.Message)
 	ruler.SendActor(message.Create(nil, rulermethods.GetGridState{}, nil), replyChan)
-	msg := <-replyChan
+	<-replyChan
 
 	ruler.SendActor(message.Create(nil, rulermethods.GetEntitiesState{}, nil), replyChan)
-	msg = <-replyChan
+	msg := <-replyChan
 
 	entities := msg.Content.(rulermethods.GetEntitiesStateReply).Entities
 	// there must be only entities of one controller left.

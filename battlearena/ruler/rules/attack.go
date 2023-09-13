@@ -14,7 +14,7 @@ type localAttackCtx struct {
 	log *logrus.Entry
 }
 
-func (gs *GameState) Attack(msg message.Message, req rulermethods.ControllerAttack) (reply message.Message) {
+func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAttack) (reply *message.Message) {
 	ctx := localAttackCtx{
 		GameState: gs,
 		log: gs.Logger.WithFields(logrus.Fields{
@@ -112,7 +112,7 @@ func (gs *GameState) Attack(msg message.Message, req rulermethods.ControllerAtta
 	return reply
 }
 
-func (ctx *localAttackCtx) preAttackChecks(msg message.Message, req rulermethods.ControllerAttack) (ok bool, reply message.Message) {
+func (ctx *localAttackCtx) preAttackChecks(msg *message.Message, req rulermethods.ControllerAttack) (ok bool, reply *message.Message) {
 
 	ent, found := ctx.Entities[req.EntityID]
 	if !found {

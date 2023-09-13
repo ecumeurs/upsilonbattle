@@ -10,7 +10,7 @@ import (
 )
 
 type Controller struct {
-	act            *actor.Actor
+	*actor.Actor
 	ID             uuid.UUID
 	Assigned       bool
 	ControllerName string
@@ -19,65 +19,39 @@ type Controller struct {
 
 // New
 func New() *Controller {
+	id := uuid.New()
 	ctrl := &Controller{
-		ID:       uuid.New(),
+		ID:    id,
+		Actor: actor.New(fmt.Sprintf("Controller %s", id.String()[0:8])),
+
 		Assigned: false,
 	}
 
-	ctrl.act = actor.New(fmt.Sprintf("Controller %s", ctrl.ID.String()[0:8]))
-	ctrl.act.SetReceiveMessageHandler(ctrl.handleMessage)
-	ctrl.act.SetReplyMessageHandler(ctrl.handleReply)
-	ctrl.act.Start()
+	ctrl.AddMethod(controllermethods.SetQueue{}, ctrl.setQueue, nil)
+	ctrl.AddMethod(controllermethods.Send{}, ctrl.send, nil)
+	ctrl.AddMethod(controllermethods.ReceiveAPIMessage{}, ctrl.receiveAPIMessage, nil)
+	ctrl.AddReply(controllermethods.Send{}, ctrl.send, nil)
+	ctrl.Start()
 
 	return ctrl
 }
 
-func (c *Controller) handleMessage(msg message.Message) bool {
-	switch msg.TargetMethod.(type) {
-	case controllermethods.SetQueue:
-		c.setQueue(msg, msg.TargetMethod.(controllermethods.SetQueue))
-		return true
-	case controllermethods.Send:
-		c.send(msg)
-		return true
-	case controllermethods.ReceiveAPIMessage:
-		c.receiveAPIMessage(msg)
-		return true
-	}
-	return false
-}
-
-func (c *Controller) handleReply(msg message.Message) bool {
-	switch msg.TargetMethod.(type) {
-	case controllermethods.Send:
-		c.send(msg)
-		return true
-	}
-	return false
-}
-
-// Implement the actor.Communication interface
-// Notify Actor
-func (c *Controller) NotifyActor(msg message.Message) {
-	c.act.Notify(msg)
-}
-
-func (c *Controller) SendActor(msg message.Message, callback chan message.Message) {
-	c.act.Send(msg, callback)
-}
-
-func (c *Controller) setQueue(msg message.Message, method controllermethods.SetQueue) {
+func (c *Controller) setQueue(msg *message.Message) bool {
+	method := msg.Content.(controllermethods.SetQueue)
 	c.Ruler = method.Ruler
-	c.act.NoReply(msg.Reply())
+	c.NoReply(msg)
 	fmt.Println("Controller: ", c.ID, " is now assigned to a player")
+	return true
 }
 
-func (c *Controller) send(msg message.Message) {
+func (c *Controller) send(msg *message.Message) bool {
 	// this code depend on the type of controller and it's linked API Client
-	c.act.NoReply(msg.Reply())
+	c.NoReply(msg)
 	fmt.Println("Controller: ", c.ID, msg, " sent a message: ", msg.Content)
+	return true
 }
 
-func (c *Controller) receiveAPIMessage(msg message.Message) {
-	c.act.NoReply(msg.Reply())
+func (c *Controller) receiveAPIMessage(msg *message.Message) bool {
+	c.NoReply(msg)
+	return true
 }

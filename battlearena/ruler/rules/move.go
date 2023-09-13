@@ -15,7 +15,7 @@ type localMoveCtx struct {
 	log *logrus.Entry
 }
 
-func (gs *GameState) Move(msg message.Message, req rulermethods.ControllerMove) (reply message.Message) {
+func (gs *GameState) Move(msg *message.Message, req rulermethods.ControllerMove) (reply *message.Message) {
 	ctx := localMoveCtx{
 		GameState: gs,
 		log: gs.Logger.WithFields(logrus.Fields{
@@ -68,7 +68,7 @@ func (gs *GameState) Move(msg message.Message, req rulermethods.ControllerMove) 
 	return reply
 }
 
-func (ctx *localMoveCtx) preMoveChecks(msg message.Message, req rulermethods.ControllerMove) (ok bool, reply message.Message) {
+func (ctx *localMoveCtx) preMoveChecks(msg *message.Message, req rulermethods.ControllerMove) (ok bool, reply *message.Message) {
 	// Check if the entity exists.
 
 	ent, found := ctx.Entities[req.EntityID]

@@ -12,23 +12,23 @@ import (
 
 type FakeController struct {
 	ID             uuid.UUID
-	NotifyMessages []message.Message
-	SentMessages   []message.Message // expect only no reply.
+	NotifyMessages []*message.Message
+	SentMessages   []*message.Message // expect only no reply.
 }
 
 func newFakeController() *FakeController {
 	return &FakeController{
 		ID:             uuid.New(),
-		NotifyMessages: make([]message.Message, 0),
-		SentMessages:   make([]message.Message, 0),
+		NotifyMessages: make([]*message.Message, 0),
+		SentMessages:   make([]*message.Message, 0),
 	}
 }
 
-func (fc *FakeController) NotifyActor(m message.Message) {
+func (fc *FakeController) NotifyActor(m *message.Message) {
 	fc.NotifyMessages = append(fc.NotifyMessages, m)
 }
 
-func (fc *FakeController) SendActor(m message.Message, replyTo chan message.Message) {
+func (fc *FakeController) SendActor(m *message.Message, replyTo chan *message.Message) {
 	fc.SentMessages = append(fc.SentMessages, m)
 	go func() {
 		replyTo <- m.Reply()
@@ -48,7 +48,7 @@ type FakeState struct {
 
 func makeGameStateForTwo() (*GameState, FakeState) {
 
-	gs := NewGameState(uuid.New())
+	gs := New(uuid.New())
 	ctrl := newFakeController()
 	gs.Controllers[ctrl.ID] = ctrl
 	ctrl2 := newFakeController()
@@ -57,7 +57,7 @@ func makeGameStateForTwo() (*GameState, FakeState) {
 	gs.Grid = grid.NewGrid(10, 10, 3)
 	// Generate 2 entities for each controller.
 
-	ent1 := entity.NewEntity()
+	ent1 := entity.New()
 	ent1.ControllerID = ctrl.ID
 	ent1.Position = position.Position{X: 0, Y: 0, Z: 3}
 	ent1.CurrentDelay = 200
@@ -69,7 +69,7 @@ func makeGameStateForTwo() (*GameState, FakeState) {
 	gs.Entities[ent1.ID] = ent1
 	gs.Turner.AddEntity(ent1.ID, ent1.CurrentDelay)
 
-	ent2 := entity.NewEntity()
+	ent2 := entity.New()
 	ent2.ControllerID = ctrl.ID
 	ent2.Position = position.Position{X: 1, Y: 0, Z: 3}
 	ent2.CurrentDelay = 250
@@ -81,7 +81,7 @@ func makeGameStateForTwo() (*GameState, FakeState) {
 	gs.Entities[ent2.ID] = ent2
 	gs.Turner.AddEntity(ent2.ID, ent2.CurrentDelay)
 
-	ent3 := entity.NewEntity()
+	ent3 := entity.New()
 	ent3.ControllerID = ctrl2.ID
 	ent3.Position = position.Position{X: 9, Y: 9, Z: 3}
 	ent3.CurrentDelay = 300
@@ -93,7 +93,7 @@ func makeGameStateForTwo() (*GameState, FakeState) {
 	gs.Entities[ent3.ID] = ent3
 	gs.Turner.AddEntity(ent3.ID, ent3.CurrentDelay)
 
-	ent4 := entity.NewEntity()
+	ent4 := entity.New()
 	ent4.ControllerID = ctrl2.ID
 	ent4.Position = position.Position{X: 8, Y: 9, Z: 3}
 	ent4.CurrentDelay = 350

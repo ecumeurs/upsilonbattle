@@ -18,7 +18,7 @@ type GameState struct {
 	Logger      *logrus.Entry
 }
 
-func NewGameState(rulerID uuid.UUID) *GameState {
+func New(rulerID uuid.UUID) *GameState {
 	gs := &GameState{
 		RulerID:     rulerID,
 		Turner:      turner.NewTurner(),
