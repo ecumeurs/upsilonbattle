@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity/skill"
-	"github.com/ecumeurs/upsilonbattle/battlearena/grid/position"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/def"
+	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/google/uuid"
 )
 

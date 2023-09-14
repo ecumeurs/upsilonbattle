@@ -3,9 +3,9 @@ package def
 import (
 	"fmt"
 
-	"github.com/ecumeurs/upsilonbattle/battlearena/grid/position/pattern"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/defaultproperty"
+	"github.com/ecumeurs/upsilonmapdata/grid/position/pattern"
 )
 
 // Prepare default Properties.

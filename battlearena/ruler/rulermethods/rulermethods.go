@@ -2,9 +2,9 @@ package rulermethods
 
 import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
-	"github.com/ecumeurs/upsilonbattle/battlearena/grid"
-	"github.com/ecumeurs/upsilonbattle/battlearena/grid/position"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/turner"
+	"github.com/ecumeurs/upsilonmapdata/grid"
+	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/ecumeurs/upsilontools/tools/actor"
 	"github.com/google/uuid"
 )
