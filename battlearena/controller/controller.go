@@ -5,7 +5,6 @@ import (
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
 	"github.com/ecumeurs/upsilontools/tools/actor"
-	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
 )
 
@@ -27,31 +26,29 @@ func New() *Controller {
 		Assigned: false,
 	}
 
-	ctrl.AddMethod(controllermethods.SetQueue{}, ctrl.setQueue, nil)
-	ctrl.AddMethod(controllermethods.Send{}, ctrl.send, nil)
-	ctrl.AddMethod(controllermethods.ReceiveAPIMessage{}, ctrl.receiveAPIMessage, nil)
-	ctrl.AddReply(controllermethods.Send{}, ctrl.send, nil)
+	ctrl.AddNotificationHandler(controllermethods.SetQueue{}, ctrl.setQueue, nil)
+	ctrl.AddNotificationHandler(controllermethods.Send{}, ctrl.send, nil)
+	ctrl.AddNotificationHandler(controllermethods.ReceiveAPIMessage{}, ctrl.receiveAPIMessage, nil)
+	ctrl.AddReplyHandler(controllermethods.Send{}, ctrl.sendReply, nil)
 	ctrl.Start()
 
 	return ctrl
 }
 
-func (c *Controller) setQueue(msg *message.Message) bool {
-	method := msg.Content.(controllermethods.SetQueue)
+func (c *Controller) setQueue(ctx actor.NotificationContext) {
+	method := ctx.Msg.Content.(controllermethods.SetQueue)
 	c.Ruler = method.Ruler
-	c.NoReply(msg)
 	fmt.Println("Controller: ", c.ID, " is now assigned to a player")
-	return true
 }
 
-func (c *Controller) send(msg *message.Message) bool {
+func (c *Controller) send(ctx actor.NotificationContext) {
 	// this code depend on the type of controller and it's linked API Client
-	c.NoReply(msg)
-	fmt.Println("Controller: ", c.ID, msg, " sent a message: ", msg.Content)
-	return true
+	fmt.Println("Controller: ", c.ID, ctx.Msg, " sent a message: ", ctx.Msg.Content)
 }
 
-func (c *Controller) receiveAPIMessage(msg *message.Message) bool {
-	c.NoReply(msg)
-	return true
+func (c *Controller) sendReply(ctx actor.ReplyContext) {
+	fmt.Println("Controller: ", c.ID, ctx.Msg, " sent a message (from reply): ", ctx.Msg.Content)
+}
+
+func (c *Controller) receiveAPIMessage(ctx actor.NotificationContext) {
 }

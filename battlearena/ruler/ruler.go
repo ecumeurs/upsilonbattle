@@ -90,19 +90,19 @@ func NewRuler() Ruler {
 		r.GameState.Turner.AddEntity(e.ID, e.CurrentDelay)
 	}
 
-	r.AddMethod(rulermethods.AddController{}, r.addController, nil)
-	r.AddMethod(rulermethods.GetState{}, r.getState, nil)
-	r.AddMethod(rulermethods.GetGridState{}, r.getGridState, nil)
-	r.AddMethod(rulermethods.GetEntitiesState{}, r.getEntitiesState, nil)
-	r.AddMethod(rulermethods.ControllerMove{}, r.controllerMove, nil)
-	r.AddMethod(rulermethods.ControllerAttack{}, r.controllerAttack, nil)
-	r.AddMethod(rulermethods.ControllerUseSkill{}, r.controllerUseSkill, nil)
-	r.AddMethod(rulermethods.NotifyController{}, r.notifyController, nil)
-	r.AddMethod(rulermethods.EndOfTurn{}, r.endOfTurn, nil)
-	r.AddMethod(rulermethods.ControllerQuit{}, r.controllerQuit, nil)
-	r.AddMethod(rulermethods.BattleStart{}, r.battleStart, nil)
-	r.AddMethod(rulermethods.ControllerBattleReady{}, r.controllerBattleReady, nil)
-	r.AddMethod(rulermethods.ControllerTurnReady{}, r.controllerTurnReady, nil)
+	r.AddCallHandler(rulermethods.AddController{}, r.addController, nil)
+	r.AddCallHandler(rulermethods.GetState{}, r.getState, nil)
+	r.AddCallHandler(rulermethods.GetGridState{}, r.getGridState, nil)
+	r.AddCallHandler(rulermethods.GetEntitiesState{}, r.getEntitiesState, nil)
+	r.AddCallHandler(rulermethods.ControllerMove{}, r.controllerMove, nil)
+	r.AddCallHandler(rulermethods.ControllerAttack{}, r.controllerAttack, nil)
+	r.AddCallHandler(rulermethods.ControllerUseSkill{}, r.controllerUseSkill, nil)
+	r.AddNotificationHandler(rulermethods.NotifyController{}, r.notifyController, nil)
+	r.AddCallHandler(rulermethods.EndOfTurn{}, r.endOfTurn, nil)
+	r.AddNotificationHandler(rulermethods.ControllerQuit{}, r.controllerQuit, nil)
+	r.AddNotificationHandler(rulermethods.BattleStart{}, r.battleStart, nil)
+	r.AddNotificationHandler(rulermethods.ControllerBattleReady{}, r.controllerBattleReady, nil)
+	r.AddNotificationHandler(rulermethods.ControllerTurnReady{}, r.controllerTurnReady, nil)
 
 	r.Start()
 
@@ -113,16 +113,16 @@ func (r *Ruler) PrintStack() {
 	r.GetQueue().PrintStack()
 }
 
-func (r *Ruler) addController(msg *message.Message) bool {
-	req := msg.Content.(rulermethods.AddController)
+func (r *Ruler) addController(ctx actor.CallContext) {
+	req := ctx.Msg.TargetMethod.(rulermethods.AddController)
 	r.RequestLogger.WithFields(logrus.Fields{
 		"ControllerID": req.ControllerID.String()[0:8]}).Info("AddController")
 
 	// reject if already registered
 	if _, ok := r.GameState.Controllers[req.ControllerID]; ok {
 		r.RequestLogger.Warn("Controller already registered")
-		r.Reply(msg, msg.ReplyWithError(fmt.Sprintf("Controller %s already registered", req.ControllerID), "controller.already.registered"))
-		return true
+		ctx.Reply(ctx.Msg.ReplyWithError(fmt.Sprintf("Controller %s already registered", req.ControllerID), "controller.already.registered"))
+		return
 	}
 
 	req.Controller.NotifyActor(message.Create(nil, controllermethods.SetQueue{Ruler: r}, nil))
@@ -138,12 +138,7 @@ func (r *Ruler) addController(msg *message.Message) bool {
 		}
 	}
 
-	// reply with current map state (as visible for controller)
-	// reply with current entities state (as visible for controller)
-	// reply with current turn state (as visible for controller)
-	// if all controllers are ready, start the game
-
-	reply := msg.Reply()
+	reply := ctx.Msg.Reply()
 	ent := make([]entity.Entity, 0)
 	// fill entities
 	for _, e := range r.GameState.Entities {
@@ -160,7 +155,7 @@ func (r *Ruler) addController(msg *message.Message) bool {
 	r.GameState.Controllers[req.ControllerID] = req.Controller
 
 	// Controller added
-	r.Reply(msg, reply)
+	ctx.Reply(reply)
 
 	// check if game is ready to begin.
 	r.RequestLogger.WithFields(logrus.Fields{
@@ -170,15 +165,13 @@ func (r *Ruler) addController(msg *message.Message) bool {
 	if len(r.GameState.Controllers) == r.NbControllers {
 		r.NotifyActor(message.Create(nil, rulermethods.BattleStart{}, nil))
 	}
-	return true
 }
 
-func (r *Ruler) controllerBattleReady(msg *message.Message) bool {
-	req := msg.Content.(rulermethods.ControllerBattleReady)
+func (r *Ruler) controllerBattleReady(ctx actor.NotificationContext) {
+	req := ctx.Msg.TargetMethod.(rulermethods.ControllerBattleReady)
 	r.RequestLogger.Info("ControllerBattleReady")
 	r.ControllerBattleReady[req.ControllerID] = true
 	if len(r.ControllerBattleReady) == r.NbControllers {
-		// All controllers are ready, start the game
 
 		entID := r.GameState.Turner.CurrentEntityTurn
 		r.RequestLogger.WithFields(logrus.Fields{
@@ -186,27 +179,20 @@ func (r *Ruler) controllerBattleReady(msg *message.Message) bool {
 
 		ent := r.GameState.Entities[entID]
 		ent.CurrentDelay = 0
-		// notify controller of his turn
 		r.GameState.Controllers[ent.ControllerID].NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
 			Entity: ent,
 			Turn:   r.GameState.Turner.GetTurnState(),
 		}, nil))
-
 	}
-	r.NoReply(msg)
-	return true
 }
 
-func (r *Ruler) controllerTurnReady(msg *message.Message) bool {
+func (r *Ruler) controllerTurnReady(ctx actor.NotificationContext) {
 	r.RequestLogger.Info("ControllerTurnReady")
-	r.NoReply(msg)
-	return true
 }
 
-func (r *Ruler) battleStart(msg *message.Message) bool {
+func (r *Ruler) battleStart(ctx actor.NotificationContext) {
 	r.RequestLogger.Info("Game started")
 	r.CurrentState = InProgress
-	// Select first entity to play
 	entID := r.GameState.Turner.NextTurn()
 	r.RequestLogger.WithFields(logrus.Fields{
 		"entityID": entID.String()[0:8]}).Info("First entity to play")
@@ -215,26 +201,16 @@ func (r *Ruler) battleStart(msg *message.Message) bool {
 	ent.CurrentDelay = 0
 	r.GameState.Entities[entID] = ent
 
-	// notify all controller that the game is about to start.
 	for _, c := range r.GameState.Controllers {
 		c.NotifyActor(message.Create(nil, rulermethods.BattleStart{
 			Turn: r.GameState.Turner.GetTurnState(),
 		}, nil))
 	}
-
-	// expect all controller to send a battle ready message when they are ready to play.
-
-	r.NoReply(msg)
-	return true
 }
 
-func (r *Ruler) getState(msg *message.Message) bool {
+func (r *Ruler) getState(ctx actor.CallContext) {
 	r.RequestLogger.Debug("GetState")
-	// return current game state (waiting for controllers, in progress, finished)
-	// will also return number of controllers expected, number of controllers ready, number of controllers not ready
-	// will also return, when in progress, the current turn state (as visible for controller)
-
-	reply := msg.Reply()
+	reply := ctx.Msg.Reply()
 	reply.Content = rulermethods.GetStateReply{
 		GameState:               r.CurrentState.String(),
 		NbControllers:           len(r.GameState.Controllers),
@@ -243,31 +219,24 @@ func (r *Ruler) getState(msg *message.Message) bool {
 		CurrentEntityTurn:       r.GameState.Turner.CurrentEntityTurn,
 	}
 
-	r.Reply(msg, reply)
-	return true
+	ctx.Reply(reply)
 }
 
-func (r *Ruler) getGridState(msg *message.Message) bool {
+func (r *Ruler) getGridState(ctx actor.CallContext) {
 	r.RequestLogger.Debug("GetGridState")
-	// reply with the grid state (opaque to the client)
-	reply := msg.Reply()
+	reply := ctx.Msg.Reply()
 	reply.Content = rulermethods.GetGridStateReply{
 		Grid: r.GameState.Grid,
 	}
 
-	r.Reply(msg, reply)
-	return true
+	ctx.Reply(reply)
 }
 
-func (r *Ruler) getEntitiesState(msg *message.Message) bool {
+func (r *Ruler) getEntitiesState(ctx actor.CallContext) {
 	r.RequestLogger.Debug("GetEntitiesState")
-	// reply with the entities state (opaque to the client)
-	// will also return the current turn state (as visible for controller)
-	// especially if one of these entity should act
 
-	reply := msg.Reply()
+	reply := ctx.Msg.Reply()
 	ent := make([]entity.Entity, 0)
-	// fill entities
 	for _, e := range r.GameState.Entities {
 		ent = append(ent, e)
 	}
@@ -277,57 +246,49 @@ func (r *Ruler) getEntitiesState(msg *message.Message) bool {
 		Turn:     r.GameState.Turner.GetTurnState(),
 	}
 
-	r.Reply(msg, reply)
-	return true
+	ctx.Reply(reply)
 }
 
-func (r *Ruler) controllerMove(msg *message.Message) bool {
-	req := msg.Content.(rulermethods.ControllerMove)
-	// check gamestate
+func (r *Ruler) controllerMove(ctx actor.CallContext) {
+	req := ctx.Msg.TargetMethod.(rulermethods.ControllerMove)
 	if r.CurrentState != InProgress {
 		r.RequestLogger.Error("Game is not in progress")
-		r.Reply(msg, msg.ReplyWithError("Game is not in progress", "game.not.in.progress"))
-		return true
+		ctx.Reply(ctx.Msg.ReplyWithError("Game is not in progress", "game.not.in.progress"))
+		return
 	}
 
-	r.Reply(msg, r.GameState.Move(msg, req))
-	return true
+	ctx.Reply(r.GameState.Move(ctx.Msg, req))
 }
 
-func (r *Ruler) controllerAttack(msg *message.Message) bool {
-	req := msg.Content.(rulermethods.ControllerAttack)
-	// check gamestate
-
+func (r *Ruler) controllerAttack(ctx actor.CallContext) {
+	req := ctx.Msg.TargetMethod.(rulermethods.ControllerAttack)
 	if r.CurrentState != InProgress {
 		r.RequestLogger.Error("Game is not in progress")
-		r.Reply(msg, msg.ReplyWithError("Game is not in progress", "game.not.in.progress"))
-		return true
+		ctx.Reply(ctx.Msg.ReplyWithError("Game is not in progress", "game.not.in.progress"))
+		return
 	}
 
-	r.Reply(msg, r.GameState.Attack(msg, req))
-	return true
+	ctx.Reply(r.GameState.Attack(ctx.Msg, req))
 }
 
-func (r *Ruler) controllerUseSkill(msg *message.Message) bool {
-	req := msg.Content.(rulermethods.ControllerUseSkill)
+func (r *Ruler) controllerUseSkill(ctx actor.CallContext) {
+	req := ctx.Msg.TargetMethod.(rulermethods.ControllerUseSkill)
 	if r.CurrentState != InProgress {
 		r.RequestLogger.Error("Game is not in progress")
-		r.Reply(msg, msg.ReplyWithError("Game is not in progress", "game.not.in.progress"))
-		return true
+		ctx.Reply(ctx.Msg.ReplyWithError("Game is not in progress", "game.not.in.progress"))
+		return
 	}
 
-	reply, damaged, affected := r.GameState.UseSkill(msg, req)
+	reply, damaged, affected := r.GameState.UseSkill(ctx.Msg, req)
 
-	r.Reply(msg, reply)
+	ctx.Reply(reply)
 
 	for _, d := range damaged {
 		foectrlid := d.ControllerID
-		// notify foe controller of the attack.
 		foectrl, found := r.GameState.Controllers[foectrlid]
 		if !found {
 			r.RequestLogger.WithFields(logrus.Fields{
 				"foeControllerID": foectrlid.String()[0:8]}).Error("Foe controller not found")
-
 		} else {
 			foectrl.NotifyActor(message.Create(nil, d, nil))
 		}
@@ -335,66 +296,51 @@ func (r *Ruler) controllerUseSkill(msg *message.Message) bool {
 
 	for _, d := range affected {
 		targetctrlid := d.ControllerID
-		// notify target controller of the skill use.
 		targetctrl, found := r.GameState.Controllers[targetctrlid]
 		if !found {
 			r.RequestLogger.WithFields(logrus.Fields{
 				"targetControllerID": targetctrlid.String()[0:8]}).Error("target controller not found")
-
 		} else {
 			targetctrl.NotifyActor(message.Create(nil, d, nil))
 		}
 	}
-
-	return true
 }
 
-func (r *Ruler) notifyController(msg *message.Message) bool {
-	// NOTE: Not implemented?
-	// Notify the controller of a message
-
-	r.NoReply(msg)
-	return true
+func (r *Ruler) notifyController(ctx actor.NotificationContext) {
 }
 
-func (r *Ruler) endOfTurn(msg *message.Message) bool {
-	req := msg.Content.(rulermethods.EndOfTurn)
+func (r *Ruler) endOfTurn(ctx actor.CallContext) {
+	req := ctx.Msg.TargetMethod.(rulermethods.EndOfTurn)
 	r.RequestLogger = r.RequestLogger.WithFields(logrus.Fields{
 		"entityID": req.EntityID.String()[0:8]})
 	r.RequestLogger.Debug("End of turn request")
 
-	// check gamestate
 	if r.CurrentState != InProgress {
 		r.RequestLogger.Error("Game is not in progress")
-		r.Reply(msg, msg.ReplyWithError("Game is not in progress", "game.not.in.progress"))
-		return true
+		ctx.Reply(ctx.Msg.ReplyWithError("Game is not in progress", "game.not.in.progress"))
+		return
 	}
 
-	ok, reply := r.GameState.EndOfTurn(msg, req, r.GameState.Entities[req.EntityID])
+	ok, reply := r.GameState.EndOfTurn(ctx.Msg, req, r.GameState.Entities[req.EntityID])
 	if !ok {
-		r.Reply(msg, reply)
-		return true
+		ctx.Reply(reply)
+		return
 	}
 
 	nextTurnEnt := r.GameState.Turner.NextTurn()
 	if nextTurnEnt == uuid.Nil {
 		r.RequestLogger.Info("##### END OF BATTLE! (WEIRD) #####")
 	} else {
-		// if entity is in gamestate.
 		if beg, found := r.GameState.Entities[nextTurnEnt]; found {
 			r.GameState.BeginingOfTurn(beg)
 		}
 	}
 
-	// checks begining of turn for next entity.
-
 	ent := make([]entity.Entity, 0)
-	// fill entities
 	for _, e := range r.GameState.Entities {
 		ent = append(ent, e)
 	}
 
-	// check end of game. End of game is decided when all remaining entities are from the same controller
 	remainingController := make(map[uuid.UUID]bool)
 	remainingControllerID := uuid.Nil
 	for _, ent := range r.GameState.Entities {
@@ -409,19 +355,14 @@ func (r *Ruler) endOfTurn(msg *message.Message) bool {
 
 	if len(remainingController) <= 1 || nextTurnEnt == uuid.Nil {
 		r.RequestLogger.Info("##### END OF BATTLE! #####")
-		// End of game
 		r.CurrentState = Finished
-
-		// notify all controllers of the end of the game
 		for _, ctrl := range r.GameState.Controllers {
 			ctrl.NotifyActor(message.Create(nil, rulermethods.BattleEnd{
 				WinnerControllerID: remainingControllerID,
 			}, nil))
 		}
 	} else {
-
 		r.RequestLogger.Info("##### END OF TURN #####")
-		// notify all other controllers of the new turn
 		for _, ctrl := range r.GameState.Controllers {
 			ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
 				Entities: ent,
@@ -429,15 +370,7 @@ func (r *Ruler) endOfTurn(msg *message.Message) bool {
 			}, nil))
 		}
 
-		// Check if the entity is allowed to end the turn
-		// End the turn
-		// Based on the entity delay, compute the next turn
-		// Trigger the next turn and notify all controllers
-
-		if nextTurnEnt == uuid.Nil {
-			// No more turn, end of the game
-		} else {
-			// Notify the controller of the next turn
+		if nextTurnEnt != uuid.Nil {
 			ent := r.GameState.Entities[nextTurnEnt]
 			ent.CurrentDelay = 0
 			r.GameState.Entities[nextTurnEnt] = ent
@@ -456,25 +389,20 @@ func (r *Ruler) endOfTurn(msg *message.Message) bool {
 		}
 	}
 
-	r.Reply(msg, msg.Reply())
-	return true
+	ctx.Reply(ctx.Msg.Reply())
 }
 
-func (r *Ruler) controllerQuit(msg *message.Message) bool {
-	req := msg.Content.(rulermethods.ControllerQuit)
+func (r *Ruler) controllerQuit(ctx actor.NotificationContext) {
+	req := ctx.Msg.TargetMethod.(rulermethods.ControllerQuit)
 	r.RequestLogger.Debug("Controller quit notification")
 
-	// expect this to happend when the game is done.
-
 	if r.CurrentState != Finished {
-		// Can't do much if it isn't the case.
 	}
 
 	_, found := r.GameState.Controllers[req.ControllerID]
 	if found {
 		delete(r.GameState.Controllers, req.ControllerID)
 
-		// remove all entities from the controller
 		for _, ent := range r.GameState.Entities {
 			if ent.ControllerID == req.ControllerID {
 				r.GameState.Grid.RemoveEntity(ent.Position)
@@ -482,9 +410,5 @@ func (r *Ruler) controllerQuit(msg *message.Message) bool {
 				r.GameState.Turner.RemoveEntity(ent.ID)
 			}
 		}
-
 	}
-
-	r.NoReply(msg)
-	return true
 }

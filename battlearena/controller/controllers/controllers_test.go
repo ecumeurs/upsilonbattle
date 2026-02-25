@@ -10,11 +10,8 @@ import (
 )
 
 func TestFindNextAppropriateTarget(t *testing.T) {
-	ctrl := &AggressiveController{
-		ID:             uuid.New(),
-		KnownEntities:  make(map[uuid.UUID]entity.Entity),
-		BattleFinished: make(chan bool),
-	}
+	ctrl := NewAggressiveController("TestCtrl")
+	ctrl.RequestLogger = ctrl.Logger
 	for i := 0; i < 10; i++ {
 		e := entity.Entity{
 			ID:       uuid.New(),

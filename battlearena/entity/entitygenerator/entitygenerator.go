@@ -4,6 +4,7 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/def"
+	"github.com/sirupsen/logrus"
 
 	"github.com/ecumeurs/upsilontools/tools"
 )
@@ -21,9 +22,14 @@ func GenerateRandomEntity() entity.Entity {
 	ent := entity.New()
 
 	for _, v := range def.PropertiesForCharacter() {
-		ent.Properties[v.Name(property.OwnController)] = v
-		// use randomizer here
-		ent.Properties[v.Name(property.OwnController)].Set(propertyRandomizers[v.Name(property.OwnController)].Random())
+		propName := v.Name(property.OwnController)
+		ent.Properties[propName] = v
+		// Only randomize if we have a defined range for this property
+		if r, ok := propertyRandomizers[propName]; ok {
+			ent.Properties[propName].Set(r.Random())
+		} else {
+			logrus.Warnf("entitygenerator: Missing propertyRandomizer for '%s', using default value", propName)
+		}
 	}
 
 	return ent

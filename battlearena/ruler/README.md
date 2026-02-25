@@ -199,3 +199,119 @@ time="2022-09-24T09:15:53+02:00" level=info msg="Stopping message queue" compone
 ```
 
 
+
+### Writing Actor Tests (Ruler & Controllers)
+
+Testing the interaction between the `Ruler` and various `Controllers` involves asynchronous message passing using the actor model. Setting up tests that avoid race conditions and handle messages arriving out of order requires a structured approach.
+
+In the `ruler_test.go` suite, we use a `FakeController` that captures all asynchronous messages securely.
+
+#### The `Inbox` and `History` Pattern
+
+Because controllers emit and observe events that can arrive at slightly different execution speeds across Goroutines, tests must never rely on perfect sequential synchronous execution (which causes deadlocks when a `select` misses a frame).
+
+Instead, `FakeController` uses:
+1. **`Inbox` channel**: A generously buffered channel (`chan *message.Message`) that receives *every single message* destined for the fake controller.
+2. **`History` slice**: A fast-lookup slice of past messages (`[]*message.Message`) used for re-evaluating events that arrived earlier than expected.
+
+#### How to use `ExpectMessage()`
+When you need to assert that the Ruler sent a specific notification (or processed a specific event), use the `ExpectMessage` helper.
+
+```go
+// Wait up to 5 seconds for the battle to start
+msg := ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 5*time.Second)
+```
+
+**Why use ExpectMessage?**
+If `BattleStart` was already delivered to the `Inbox` while your test was checking a previous assertion, `ExpectMessage` will safely retrieve it from `History` without dropping other concurrent events.
+
+#### Complex Scenarios with Multiple Controllers
+When you have a test involving multiple controllers (e.g. testing the `CanMoveAttackAndEndTurn` sequence), you typically need to run a `for !done { select { ... } }` loop. 
+
+**Rules for processing an Inbox stream:**
+1. **Always Switch on `msg.TargetMethod`:** This identifies the main intended action (like `ControllerNextTurn`).
+2. **Handle Replies:** If the message is a `Reply()`, the target method signature was swapped. Replies (like `ControllerMoveReply` and `ControllerAttackReply`) will ALSO appear in `msg.TargetMethod`. 
+3. **Always End Turns:** If your fake controller receives a `ControllerNextTurn` it doesn't intend to act upon, strictly reply with an `EndOfTurn` target method. If you fail to release the turn, the `Ruler`'s Turner will stall the battle simulation forever.
+4. **Use Timeouts:** Wrap your `select` with a strict `time.After(...)` failure case to catch stalling logic immediately, so tests don't hang CI pipelines.
+
+**Example Skeleton:**
+```go
+done := false
+timeout := time.After(5 * time.Second)
+
+for !done {
+    select {
+    case msg := <-ctrl.Inbox:
+        if msg.TargetMethod != nil {
+            switch m := msg.TargetMethod.(type) {
+            case rulermethods.ControllerNextTurn:
+                // Do actions, or release the turn with EndOfTurn
+            case rulermethods.ControllerMoveReply:
+                // Move finished
+            case rulermethods.ControllerAttackReply:
+                done = true // exit the loop when the objective is met
+            }
+        }
+    case <-timeout:
+        t.Fatal("Timeout waiting for simulation to finish")
+    }
+}
+```
+
+### Writing Actor Tests (Ruler & Controllers)
+
+Testing the interaction between the `Ruler` and various `Controllers` involves asynchronous message passing using the actor model. Setting up tests that avoid race conditions and handle messages arriving out of order requires a structured approach.
+
+In the `ruler_test.go` suite, we use a `FakeController` that captures all asynchronous messages securely.
+
+#### The `Inbox` and `History` Pattern
+
+Because controllers emit and observe events that can arrive at slightly different execution speeds across Goroutines, tests must never rely on perfect sequential synchronous execution (which causes deadlocks when a `select` misses a frame).
+
+Instead, `FakeController` uses:
+1. **`Inbox` channel**: A generously buffered channel (`chan *message.Message`) that receives *every single message* destined for the fake controller.
+2. **`History` slice**: A fast-lookup slice of past messages (`[]*message.Message`) used for re-evaluating events that arrived earlier than expected.
+
+#### How to use `ExpectMessage()`
+When you need to assert that the Ruler sent a specific notification (or processed a specific event), use the `ExpectMessage` helper.
+
+```go
+// Wait up to 5 seconds for the battle to start
+msg := ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 5*time.Second)
+```
+
+**Why use ExpectMessage?**
+If `BattleStart` was already delivered to the `Inbox` while your test was checking a previous assertion, `ExpectMessage` will safely retrieve it from `History` without dropping other concurrent events.
+
+#### Complex Scenarios with Multiple Controllers
+When you have a test involving multiple controllers (e.g. testing the `CanMoveAttackAndEndTurn` sequence), you typically need to run a `for !done { select { ... } }` loop. 
+
+**Rules for processing an Inbox stream:**
+1. **Always Switch on `msg.TargetMethod`:** This identifies the main intended action (like `ControllerNextTurn`).
+2. **Handle Replies:** If the message is a `Reply()`, the target method signature was swapped. Replies (like `ControllerMoveReply` and `ControllerAttackReply`) will ALSO appear in `msg.TargetMethod`. 
+3. **Always End Turns:** If your fake controller receives a `ControllerNextTurn` it doesn't intend to act upon, strictly reply with an `EndOfTurn` target method. If you fail to release the turn, the `Ruler`'s Turner will stall the battle simulation forever.
+4. **Use Timeouts:** Wrap your `select` with a strict `time.After(...)` failure case to catch stalling logic immediately, so tests don't hang CI pipelines.
+
+**Example Skeleton:**
+```go
+done := false
+timeout := time.After(5 * time.Second)
+
+for !done {
+    select {
+    case msg := <-ctrl.Inbox:
+        if msg.TargetMethod != nil {
+            switch m := msg.TargetMethod.(type) {
+            case rulermethods.ControllerNextTurn:
+                // Do actions, or release the turn with EndOfTurn
+            case rulermethods.ControllerMoveReply:
+                // Move finished
+            case rulermethods.ControllerAttackReply:
+                done = true // exit the loop when the objective is met
+            }
+        }
+    case <-timeout:
+        t.Fatal("Timeout waiting for simulation to finish")
+    }
+}
+```

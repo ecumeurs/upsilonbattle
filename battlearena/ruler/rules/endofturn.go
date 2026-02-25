@@ -73,8 +73,8 @@ func (gs *GameState) EndOfTurn(msg *message.Message, req rulermethods.EndOfTurn,
 	// restore movement points
 	ent.UpdatePropertyValue(property.Movement, ent.GetPropertyC(property.Movement).GetMaxValue())
 	// unset HasActed, HasMoved
-	ent.UpdatePropertyValue(property.HasActed, 0)
-	ent.UpdatePropertyValue(property.HasMoved, 0)
+	ent.UpdatePropertyValue(property.HasActed, false)
+	ent.UpdatePropertyValue(property.HasMoved, false)
 
 	// update entity in state
 	gs.Entities[req.EntityID] = ent
