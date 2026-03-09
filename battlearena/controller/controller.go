@@ -35,15 +35,32 @@ func New() *Controller {
 	return ctrl
 }
 
+func NewController(id uuid.UUID) *Controller {
+	ctrl := &Controller{
+		ID:    id,
+		Actor: actor.New(fmt.Sprintf("Controller %s", id.String()[0:8])),
+
+		Assigned: false,
+	}
+
+	ctrl.AddNotificationHandler(controllermethods.SetQueue{}, ctrl.setQueue, nil)
+	ctrl.AddNotificationHandler(controllermethods.Send{}, ctrl.send, nil)
+	ctrl.AddNotificationHandler(controllermethods.ReceiveAPIMessage{}, ctrl.receiveAPIMessage, nil)
+	ctrl.AddReplyHandler(controllermethods.Send{}, ctrl.sendReply, nil)
+	ctrl.Start()
+
+	return ctrl
+}
+
 func (c *Controller) setQueue(ctx actor.NotificationContext) {
-	method := ctx.Msg.Content.(controllermethods.SetQueue)
+	method := ctx.Msg.TargetMethod.(controllermethods.SetQueue)
 	c.Ruler = method.Ruler
 	fmt.Println("Controller: ", c.ID, " is now assigned to a player")
 }
 
 func (c *Controller) send(ctx actor.NotificationContext) {
 	// this code depend on the type of controller and it's linked API Client
-	fmt.Println("Controller: ", c.ID, ctx.Msg, " sent a message: ", ctx.Msg.Content)
+	fmt.Println("Controller: ", c.ID, ctx.Msg, " sent a message: ", ctx.Msg.TargetMethod)
 }
 
 func (c *Controller) sendReply(ctx actor.ReplyContext) {

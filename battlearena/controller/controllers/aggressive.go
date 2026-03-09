@@ -29,9 +29,12 @@ type AggressiveController struct {
 	battleready    bool
 }
 
+func NewRdAggressiveController(name string) *AggressiveController {
+	return NewAggressiveController(uuid.New(), name)
+}
+
 // New
-func NewAggressiveController(name string) *AggressiveController {
-	id := uuid.New()
+func NewAggressiveController(id uuid.UUID, name string) *AggressiveController {
 	ctrl := &AggressiveController{
 		ID:             id,
 		Actor:          actor.New(name),

@@ -11,15 +11,17 @@ type BattleArena struct {
 	*actor.Actor
 	Uuid        uuid.UUID
 	Controllers map[uuid.UUID]*controller.Controller
-	Ruler       ruler.Ruler
+	Ruler       *ruler.Ruler
+	Metadata    map[string]interface{}
 }
 
-func NewBattleArena() BattleArena {
+func NewBattleArena(id uuid.UUID) *BattleArena {
 	ba := BattleArena{
 		Actor:       actor.New("BattleArena"),
 		Uuid:        uuid.New(),
 		Controllers: make(map[uuid.UUID]*controller.Controller),
-		Ruler:       ruler.NewRuler(),
+		Ruler:       ruler.NewRuler(id),
+		Metadata:    make(map[string]interface{}),
 	}
-	return ba
+	return &ba
 }

@@ -78,7 +78,7 @@ type AddControllerReply struct {
 	ControllerID uuid.UUID
 	Grid         *grid.Grid
 	Entities     []entity.Entity
-	TurnState    turner.Turner
+	TurnState    turner.TurnState
 }
 
 type GetStateReply struct {

@@ -18,9 +18,9 @@ func TestRulerControllerFullGame(t *testing.T) {
 	logrus.SetLevel(logrus.InfoLevel)
 	logrus.SetOutput(os.Stdout)
 
-	ruler := NewRuler()
-	ctrl := controllers.NewAggressiveController("Fake1")
-	ctrl2 := controllers.NewAggressiveController("Fake2")
+	ruler := NewCompleteRuler()
+	ctrl := controllers.NewRdAggressiveController("Fake1")
+	ctrl2 := controllers.NewRdAggressiveController("Fake2")
 	ctrl.Start()
 	ctrl2.Start()
 

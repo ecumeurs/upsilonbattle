@@ -8,6 +8,7 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity/entitygenerator"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rules"
+	"github.com/ecumeurs/upsilonmapdata/grid"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/ecumeurs/upsilonmapmaker/gridgenerator"
 	"github.com/ecumeurs/upsilontools/tools"
@@ -52,7 +53,7 @@ type Ruler struct {
 	ControllerBattleReady map[uuid.UUID]bool
 }
 
-func NewRuler() Ruler {
+func NewCompleteRuler() *Ruler {
 	id := uuid.New()
 	r := Ruler{
 		ID:                    id,
@@ -90,6 +91,43 @@ func NewRuler() Ruler {
 		r.GameState.Turner.AddEntity(e.ID, e.CurrentDelay)
 	}
 
+	r.init()
+	return &r
+}
+
+func NewRuler(id uuid.UUID) *Ruler {
+	r := Ruler{
+		ID:                    id,
+		Actor:                 actor.New("Ruler"),
+		CurrentState:          WaitingForControllers,
+		ControllerBattleReady: make(map[uuid.UUID]bool),
+	}
+	r.GameState = rules.New(r.ID)
+	r.logger = logrus.WithFields(logrus.Fields{
+		"component": "Ruler",
+		"name":      r.Name()})
+
+	r.init()
+	return &r
+}
+
+func (r *Ruler) SetNbControllers(nb int) {
+	r.NbControllers = nb
+}
+
+func (r *Ruler) SetGrid(g *grid.Grid) {
+	r.GameState.Grid = g
+}
+
+func (r *Ruler) AddEntity(e entity.Entity) {
+	r.GameState.Entities[e.ID] = e
+	r.GameState.Turner.AddEntity(e.ID, e.CurrentDelay)
+	e.CurrentDelay = tools.NewIntRange(1000, 1500).Random()
+	e.Position = r.GameState.Grid.RandomPosition()
+	r.GameState.Grid.MoveEntity(position.New(0, 0, 0), e.Position, e.ID)
+}
+
+func (r *Ruler) init() {
 	r.AddCallHandler(rulermethods.AddController{}, r.addController, nil)
 	r.AddCallHandler(rulermethods.GetState{}, r.getState, nil)
 	r.AddCallHandler(rulermethods.GetGridState{}, r.getGridState, nil)
@@ -105,8 +143,6 @@ func NewRuler() Ruler {
 	r.AddNotificationHandler(rulermethods.ControllerTurnReady{}, r.controllerTurnReady, nil)
 
 	r.Start()
-
-	return r
 }
 
 func (r *Ruler) PrintStack() {
@@ -148,7 +184,7 @@ func (r *Ruler) addController(ctx actor.CallContext) {
 	reply.Content = rulermethods.AddControllerReply{
 		ControllerID: req.ControllerID,
 		Grid:         r.GameState.Grid,
-		TurnState:    r.GameState.Turner,
+		TurnState:    r.GameState.Turner.GetTurnState(),
 		Entities:     ent,
 	}
 

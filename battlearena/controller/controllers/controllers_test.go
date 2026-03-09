@@ -10,7 +10,7 @@ import (
 )
 
 func TestFindNextAppropriateTarget(t *testing.T) {
-	ctrl := NewAggressiveController("TestCtrl")
+	ctrl := NewRdAggressiveController("TestCtrl")
 	ctrl.RequestLogger = ctrl.Logger
 	for i := 0; i < 10; i++ {
 		e := entity.Entity{

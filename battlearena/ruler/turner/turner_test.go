@@ -23,8 +23,8 @@ func TestTurner(t *testing.T) {
 	if len(turn.Turns) != 3 {
 		t.Errorf("len(turn.Turns) should be 3")
 	}
-	if turn.Turns[0].delay != 1 {
-		t.Errorf("turn.Turns[0].delay should be 1")
+	if turn.Turns[0].Delay != 1 {
+		t.Errorf("turn.Turns[0].Delay should be 1")
 	}
 }
 
@@ -54,10 +54,10 @@ func TestTurnerRemove(t *testing.T) {
 	if len(turn.Turns) != 2 {
 		t.Errorf("len(turn.Turns) should be 2")
 	}
-	if turn.Turns[0].delay != 2 {
-		t.Errorf("turn.Turns[0].delay should be 2")
+	if turn.Turns[0].Delay != 2 {
+		t.Errorf("turn.Turns[0].Delay should be 2")
 	}
-	if turn.Turns[0].entityid != entity3 {
-		t.Errorf("turn.Turns[0].entityid should be %v", entity3)
+	if turn.Turns[0].EntityId != entity3 {
+		t.Errorf("turn.Turns[0].EntityId should be %v", entity3)
 	}
 }
