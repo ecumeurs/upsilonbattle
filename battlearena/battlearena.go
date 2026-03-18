@@ -18,7 +18,7 @@ type BattleArena struct {
 func NewBattleArena(id uuid.UUID) *BattleArena {
 	ba := BattleArena{
 		Actor:       actor.New("BattleArena"),
-		Uuid:        uuid.New(),
+		Uuid:        id,
 		Controllers: make(map[uuid.UUID]*controller.Controller),
 		Ruler:       ruler.NewRuler(id),
 		Metadata:    make(map[string]interface{}),

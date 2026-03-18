@@ -52,6 +52,7 @@ func NewController(id uuid.UUID) *Controller {
 	return ctrl
 }
 
+// @spec-link [[mech_controller_handshake]]
 func (c *Controller) setQueue(ctx actor.NotificationContext) {
 	method := ctx.Msg.TargetMethod.(controllermethods.SetQueue)
 	c.Ruler = method.Ruler

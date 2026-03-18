@@ -75,6 +75,7 @@ func (ctl *AggressiveController) PrintStack() {
 
 // implement all AggressiveController methods handlers.
 
+// @spec-link [[mech_controller_handshake]]
 func (ctl *AggressiveController) SetQueue(ctx actor.NotificationContext) {
 	m := ctx.Msg.TargetMethod.(controllermethods.SetQueue)
 	ctl.ruler = m.Ruler

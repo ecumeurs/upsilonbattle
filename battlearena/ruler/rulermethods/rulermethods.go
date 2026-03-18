@@ -11,6 +11,7 @@ import (
 
 // Input struct
 
+// @spec-link [[api_ruler_methods]]
 type AddController struct {
 	Controller   actor.Communication
 	ControllerID uuid.UUID

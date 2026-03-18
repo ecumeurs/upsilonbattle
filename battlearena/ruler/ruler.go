@@ -161,6 +161,8 @@ func (r *Ruler) addController(ctx actor.CallContext) {
 		return
 	}
 
+	// @spec-link [[mech_controller_handshake]]
+	// @spec-link [[mech_controller_communication_sequence]]
 	req.Controller.NotifyActor(message.Create(nil, controllermethods.SetQueue{Ruler: r}, nil))
 
 	// Assign the controller to the designated number of entities
