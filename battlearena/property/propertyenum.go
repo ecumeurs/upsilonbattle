@@ -14,6 +14,7 @@ const (
 	Attack     EntityProperties = "Attack"     // Absence means 1, basic attack
 	Defense    EntityProperties = "Defense"    // Absence means 0, basic defense
 	JumpHeight EntityProperties = "JumpHeight" // Absence means 2
+	TeamID     EntityProperties = "TeamID"     // Team affiliation
 
 	// Flags
 	// Absence means -1 (not dying), when HP reaches 0, IsDying is set to 3, and at each end of entity's turn, will be reduced by one. When it reaches 0, the entity is removed from game.

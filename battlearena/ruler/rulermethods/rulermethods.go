@@ -72,6 +72,11 @@ type ControllerQuit struct {
 	actor.NoReply
 }
 
+type ControllerForfeit struct {
+	ControllerID uuid.UUID
+	EntityID     uuid.UUID
+}
+
 // Output struct (often found in Content!)
 // need to standardize this ...
 

@@ -63,6 +63,10 @@ func Stun() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.Stun, 0, property.FriendlyController, property.Character)
 }
 
+func TeamID() *defaultproperty.DefaultIntProperty {
+	return defaultproperty.MakeIntProperty(property.TeamID, 0, property.Public, property.Character)
+}
+
 // note: futher properties may be added per entity basis.
 func PropertiesForCharacter() []property.Property {
 	return []property.Property{
@@ -76,6 +80,7 @@ func PropertiesForCharacter() []property.Property {
 		defaultproperty.MakeIntProperty(property.Defense, 0, property.Public, property.Character),
 		defaultproperty.MakeIntProperty(property.JumpHeight, 2, property.Public, property.Character),
 		defaultproperty.MakeIntProperty(property.IsDying, -1, property.Public, property.Character),
+		defaultproperty.MakeIntProperty(property.TeamID, 0, property.Public, property.Character),
 		defaultproperty.MakeBoolProperty(property.HasMoved, false, property.GameMaster, property.Character),
 		defaultproperty.MakeBoolProperty(property.HasActed, false, property.GameMaster, property.Character),
 	}
@@ -111,6 +116,8 @@ func EntityProperty(name property.EntityProperties) property.Property {
 		return Poison()
 	case property.Stun:
 		return Stun()
+	case property.TeamID:
+		return TeamID()
 	}
 	return nil
 }

@@ -141,6 +141,7 @@ func (r *Ruler) init() {
 	r.AddNotificationHandler(rulermethods.BattleStart{}, r.battleStart, nil)
 	r.AddNotificationHandler(rulermethods.ControllerBattleReady{}, r.controllerBattleReady, nil)
 	r.AddNotificationHandler(rulermethods.ControllerTurnReady{}, r.controllerTurnReady, nil)
+	r.AddCallHandler(rulermethods.ControllerForfeit{}, r.controllerForfeit, nil)
 
 	r.Start()
 }
@@ -424,6 +425,34 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 					Turn:   r.GameState.Turner.GetTurnState(),
 				}, nil))
 			}
+		}
+	}
+
+	ctx.Reply(ctx.Msg.Reply())
+}
+
+func (r *Ruler) controllerForfeit(ctx actor.CallContext) {
+	req := ctx.Msg.TargetMethod.(rulermethods.ControllerForfeit)
+	r.RequestLogger.WithFields(logrus.Fields{
+		"controllerID": req.ControllerID.String()[0:8],
+		"entityID":     req.EntityID.String()[0:8]}).Info("ControllerForfeit")
+
+	if r.CurrentState != InProgress {
+		r.RequestLogger.Error("Game is not in progress")
+		ctx.Reply(ctx.Msg.ReplyWithError("Game is not in progress", "game.not.in.progress"))
+		return
+	}
+
+	winnerID, finished := r.GameState.Forfeit(req.ControllerID)
+
+	if finished {
+		r.CurrentState = Finished		
+		r.RequestLogger.Info("##### END OF BATTLE! #####")
+
+		for _, ctrl := range r.GameState.Controllers {
+			ctrl.NotifyActor(message.Create(nil, rulermethods.BattleEnd{
+				WinnerControllerID: winnerID,
+			}, nil))
 		}
 	}
 

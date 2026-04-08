@@ -312,33 +312,34 @@ func (ctl *AggressiveController) ControllerAttackReply(ctx actor.ReplyContext) {
 	}, rulermethods.EndOfTurn{}), ctl.GetCallbackChan())
 }
 
-// selectNearestFoe find nearest foe, based on controller id.
+// @spec-link [[rule_team_mechanics]]
+// selectNearestFoe find nearest foe, based on team id.
 func (ctl *AggressiveController) selectNearestFoe(currentEntity entity.Entity, entities map[uuid.UUID]entity.Entity) (entity.Entity, error) {
 	nearestid := uuid.Nil
 	minDist := 10000
 	pos := currentEntity.Position
-	currentCtrl := currentEntity.ControllerID
+	currentTeam := currentEntity.GetPropertyI(property.TeamID).I()
 
 	ctl.RequestLogger.WithFields(logrus.Fields{
-		"pos":        pos,
-		"entity":     currentEntity.ID.String()[0:8],
-		"controller": currentEntity.ControllerID.String()[0:8],
+		"pos":     pos,
+		"entity":  currentEntity.ID.String()[0:8],
+		"team_id": currentTeam,
 	}).Info("selectNearestFoe")
 
 	for id, ent := range entities {
-		if ent.ControllerID != currentCtrl {
+		if ent.GetPropertyI(property.TeamID).I() != currentTeam {
 			if currentEntity.ID != ent.ID {
 				ctl.RequestLogger.WithFields(logrus.Fields{
-					"candidate_pos":        ent.Position,
-					"candidate_entity":     ent.ID.String()[0:8],
-					"candidate_controller": ent.ControllerID.String()[0:8]}).Info("candidate")
+					"candidate_pos":    ent.Position,
+					"candidate_entity": ent.ID.String()[0:8],
+					"candidate_team":   ent.GetPropertyI(property.TeamID).I()}).Info("candidate")
 
 				dist := tools.Distance(pos.X, pos.Y, ent.Position.X, ent.Position.Y)
 				if nearestid == uuid.Nil || dist < minDist {
 					ctl.RequestLogger.WithFields(logrus.Fields{
-						"selected_pos":        ent.Position,
-						"selected_entity":     ent.ID.String()[0:8],
-						"selected_controller": ent.ControllerID.String()[0:8]}).Info("selected")
+						"selected_pos":    ent.Position,
+						"selected_entity": ent.ID.String()[0:8],
+						"selected_team":   ent.GetPropertyI(property.TeamID).I()}).Info("selected")
 					nearestid = id
 					minDist = dist
 				}
