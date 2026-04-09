@@ -296,7 +296,21 @@ func (r *Ruler) controllerMove(ctx actor.CallContext) {
 		return
 	}
 
-	ctx.Reply(r.GameState.Move(ctx.Msg, req))
+	reply := r.GameState.Move(ctx.Msg, req)
+	ctx.Reply(reply)
+	
+	if !reply.HasError {
+		ent := make([]entity.Entity, 0, len(r.GameState.Entities))
+		for _, e := range r.GameState.Entities {
+			ent = append(ent, e)
+		}
+		for _, ctrl := range r.GameState.Controllers {
+			ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
+				Entities: ent,
+				Turn:     r.GameState.Turner.GetTurnState(),
+			}, nil))
+		}
+	}
 }
 
 func (r *Ruler) controllerAttack(ctx actor.CallContext) {
@@ -307,7 +321,21 @@ func (r *Ruler) controllerAttack(ctx actor.CallContext) {
 		return
 	}
 
-	ctx.Reply(r.GameState.Attack(ctx.Msg, req))
+	reply := r.GameState.Attack(ctx.Msg, req)
+	ctx.Reply(reply)
+
+	if !reply.HasError {
+		ent := make([]entity.Entity, 0, len(r.GameState.Entities))
+		for _, e := range r.GameState.Entities {
+			ent = append(ent, e)
+		}
+		for _, ctrl := range r.GameState.Controllers {
+			ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
+				Entities: ent,
+				Turn:     r.GameState.Turner.GetTurnState(),
+			}, nil))
+		}
+	}
 }
 
 func (r *Ruler) controllerUseSkill(ctx actor.CallContext) {
@@ -341,6 +369,19 @@ func (r *Ruler) controllerUseSkill(ctx actor.CallContext) {
 				"targetControllerID": targetctrlid.String()[0:8]}).Error("target controller not found")
 		} else {
 			targetctrl.NotifyActor(message.Create(nil, d, nil))
+		}
+	}
+
+	if !reply.HasError {
+		ent := make([]entity.Entity, 0, len(r.GameState.Entities))
+		for _, e := range r.GameState.Entities {
+			ent = append(ent, e)
+		}
+		for _, ctrl := range r.GameState.Controllers {
+			ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
+				Entities: ent,
+				Turn:     r.GameState.Turner.GetTurnState(),
+			}, nil))
 		}
 	}
 }
