@@ -136,9 +136,7 @@ func (e Entity) GetPropertyC(name interface{}) property.IntCounterProperty {
 }
 
 func (e *Entity) UpdateProperty(p property.Property) {
-	if _, found := e.Properties[p.Name(property.GameMaster)]; found {
-		e.Properties[p.Name(property.GameMaster)] = p
-	}
+	e.Properties[p.Name(property.GameMaster)] = p
 }
 
 func (e *Entity) RegisterSkill(s skill.Skill) {
