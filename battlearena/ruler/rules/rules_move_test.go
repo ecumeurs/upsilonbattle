@@ -248,9 +248,11 @@ func TestRuleMoveFailStartNotAdjascent(t *testing.T) {
 func TestRuleMoveFailNoMovementCredits(t *testing.T) {
 	gs, fake := makeGameStateForTwo()
 	gs.Turner.ForceTurn(fake.Entity1)
-	p := gs.Entities[fake.Entity1].GetPropertyC(property.Movement)
+	ent1 := gs.Entities[fake.Entity1]
+	p := ent1.GetPropertyC(property.Movement)
 	p.SetValue(0)
-	gs.Entities[fake.Entity1].UpdateProperty(p)
+	ent1.UpdateProperty(p)
+	gs.Entities[fake.Entity1] = ent1
 
 	// Move entity 1
 	msg := message.Create(nil,
@@ -278,9 +280,11 @@ func TestRuleMoveFailNoMovementCredits(t *testing.T) {
 func TestRuleMoveFailNotEnoughMovementCredits(t *testing.T) {
 	gs, fake := makeGameStateForTwo()
 	gs.Turner.ForceTurn(fake.Entity1)
-	p := gs.Entities[fake.Entity1].GetPropertyC(property.Movement)
+	ent1 := gs.Entities[fake.Entity1]
+	p := ent1.GetPropertyC(property.Movement)
 	p.SetValue(2)
-	gs.Entities[fake.Entity1].UpdateProperty(p)
+	ent1.UpdateProperty(p)
+	gs.Entities[fake.Entity1] = ent1
 
 	// Move entity 1
 	msg := message.Create(nil,

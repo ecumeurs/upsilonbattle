@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
+	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -19,8 +20,12 @@ func TestFindNextAppropriateTarget(t *testing.T) {
 		}
 		if i%2 == 0 {
 			e.ControllerID = uuid.New()
+			e.Properties = make(map[string]property.Property)
+			e.RepsertPropertyValue(property.TeamID, 1)
 		} else {
 			e.ControllerID = ctrl.ID
+			e.Properties = make(map[string]property.Property)
+			e.RepsertPropertyValue(property.TeamID, 2)
 		}
 		ctrl.KnownEntities[e.ID] = e
 	}

@@ -120,11 +120,11 @@ func (r *Ruler) SetGrid(g *grid.Grid) {
 }
 
 func (r *Ruler) AddEntity(e entity.Entity) {
-	r.GameState.Entities[e.ID] = e
-	r.GameState.Turner.AddEntity(e.ID, e.CurrentDelay)
 	e.CurrentDelay = tools.NewIntRange(1000, 1500).Random()
 	e.Position = r.GameState.Grid.RandomPosition()
 	r.GameState.Grid.MoveEntity(position.New(0, 0, 0), e.Position, e.ID)
+	r.GameState.Entities[e.ID] = e
+	r.GameState.Turner.AddEntity(e.ID, e.CurrentDelay)
 }
 
 func (r *Ruler) init() {

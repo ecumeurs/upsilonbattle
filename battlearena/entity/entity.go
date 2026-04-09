@@ -135,7 +135,7 @@ func (e Entity) GetPropertyC(name interface{}) property.IntCounterProperty {
 	return e.GetProperty(name).(property.IntCounterProperty)
 }
 
-func (e Entity) UpdateProperty(p property.Property) {
+func (e *Entity) UpdateProperty(p property.Property) {
 	if _, found := e.Properties[p.Name(property.GameMaster)]; found {
 		e.Properties[p.Name(property.GameMaster)] = p
 	}
@@ -192,7 +192,7 @@ func (e *Entity) RepsertPropertyValue(p interface{}, value interface{}) {
 }
 
 // RepsertPropertyCMaxValue will insert property if unknown!
-func (e Entity) RepsertPropertyCMaxValue(p interface{}, maxvalue int) {
+func (e *Entity) RepsertPropertyCMaxValue(p interface{}, maxvalue int) {
 	prop := e.GetProperty(p).(property.IntCounterProperty)
 	prop.SetMaxValue(maxvalue)
 	e.Properties[prop.Name(property.GameMaster)] = prop
@@ -206,7 +206,7 @@ func (e *Entity) UpdatePropertyValue(p interface{}, value interface{}) {
 }
 
 // UpdatePropertyCMaxValue Will only update value if known to the entity (wont affect buffs)
-func (e Entity) UpdatePropertyCMaxValue(p interface{}, maxvalue int) {
+func (e *Entity) UpdatePropertyCMaxValue(p interface{}, maxvalue int) {
 	prop := e.GetProperty(p).(property.IntCounterProperty)
 	prop.SetMaxValue(maxvalue)
 	e.UpdateProperty(prop)
