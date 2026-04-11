@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllers"
+	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
@@ -15,7 +16,7 @@ import (
 func TestRulerControllerFullGame(t *testing.T) {
 
 	logrus.SetFormatter(&logrus.TextFormatter{})
-	logrus.SetLevel(logrus.InfoLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 	logrus.SetOutput(os.Stdout)
 
 	ruler := NewCompleteRuler()
@@ -31,6 +32,14 @@ func TestRulerControllerFullGame(t *testing.T) {
 			ControllerID: ctrl.ID,
 		}, nil), dChan)
 		<-dChan
+
+		// Set TeamID for all entities of ctrl
+		for id, ent := range ruler.GameState.Entities {
+			if ent.ControllerID == ctrl.ID {
+				ent.RepsertPropertyValue(property.TeamID, 1)
+				ruler.GameState.Entities[id] = ent
+			}
+		}
 	}
 	{
 		dChan := make(chan *message.Message, 1)
@@ -39,12 +48,20 @@ func TestRulerControllerFullGame(t *testing.T) {
 			ControllerID: ctrl2.ID,
 		}, nil), dChan)
 		<-dChan
+
+		// Set TeamID for all entities of ctrl2
+		for id, ent := range ruler.GameState.Entities {
+			if ent.ControllerID == ctrl2.ID {
+				ent.RepsertPropertyValue(property.TeamID, 2)
+				ruler.GameState.Entities[id] = ent
+			}
+		}
 	}
 
 	select {
 	case <-ctrl.BattleFinished:
 	case <-ctrl2.BattleFinished:
-	case <-time.After(5 * time.Second):
+	case <-time.After(15 * time.Second):
 		logrus.Info("Battle took too long, assuming no deadlocks and moving on.")
 		return
 	}

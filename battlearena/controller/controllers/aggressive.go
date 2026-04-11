@@ -8,6 +8,7 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/defaultproperty"
 	"github.com/ecumeurs/upsilonmapdata/grid"
+	"github.com/ecumeurs/upsilonmapdata/grid/cell"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
@@ -117,23 +118,42 @@ func (ctl *AggressiveController) ControllerNextTurn(ctx actor.NotificationContex
 		movement := ctl.KnownEntities[controllerData.Entity.ID].GetProperty(property.Movement)
 		mvt := movement.(*defaultproperty.DefaultIntCounterProperty).Value
 		atkrng := ctl.KnownEntities[controllerData.Entity.ID].GetPropertyI(property.AttackRange).I()
-		if len(path) > atkrng {
-			path = path[:atkrng]
-		} else {
-			path = nil // no need to move, already in range.
+		// 1. Determine how far we WANT to go to be in range
+		// atkrng 1 means we stop 1 cell before the target.
+		// AStarPath returns [p1, p2, ..., target], so len(path) includes target.
+		limit := len(path) - atkrng
+		if limit < 0 {
+			limit = 0
 		}
 
-		// limit path according to entity's movement
-		if len(path) > mvt {
-			path = path[:mvt]
+		// 2. Determine how far we CAN go based on movement
+		if limit > mvt {
+			limit = mvt
 		}
 
-		if len(path) != 0 {
+		// 3. Determine how far we CAN go based on occupancy and obstacles
+		// We must stop before the first blocked cell in the path.
+		actualLimit := 0
+		for i := 0; i < limit; i++ {
+			if ctl.isPathStepBlocked(path[i], controllerData.Entity.ID) {
+				ctl.RequestLogger.WithFields(logrus.Fields{
+					"blocked_pos": path[i],
+					"index":       i,
+				}).Debug("Path step is blocked")
+				break
+			}
+			actualLimit = i + 1
+		}
+
+		// The path from AStar includes the starting position at path[0].
+		// The Ruler expects a path starting from the first movement step (path[1]).
+		if actualLimit > 1 {
+			movePath := path[1:actualLimit]
 
 			ctl.RequestLogger.WithFields(logrus.Fields{
 				"EntityID":       controllerData.Entity.ID.String()[0:8],
 				"Position":       controllerData.Entity.Position,
-				"Expected":       path[len(path)-1],
+				"Expected":       movePath[len(movePath)-1],
 				"Movement":       mvt,
 				"AttackRange":    atkrng,
 				"TargetPosition": target.Position,
@@ -142,7 +162,7 @@ func (ctl *AggressiveController) ControllerNextTurn(ctx actor.NotificationContex
 
 			ctl.ruler.SendActor(message.Create(nil, rulermethods.ControllerMove{
 				EntityID:     controllerData.Entity.ID,
-				Path:         path,
+				Path:         movePath,
 				ControllerID: ctl.ID,
 			}, rulermethods.ControllerMoveReply{
 				Entity: controllerData.Entity,
@@ -369,3 +389,28 @@ func (ctl *AggressiveController) preparePathToEntity(pos position.Position, grd 
 }
 
 func (ctl *AggressiveController) EndOfTurnReply(ctx actor.ReplyContext) {}
+
+func (ctl *AggressiveController) isPathStepBlocked(pos position.Position, selfID uuid.UUID) bool {
+	// 1. Check if occupied by another entity in KnownEntities
+	for _, ent := range ctl.KnownEntities {
+		if ent.ID != selfID && ent.Position.X == pos.X && ent.Position.Y == pos.Y {
+			return true
+		}
+	}
+
+	// 2. Check Grid for obstacles or occupancy (fallback if KnownEntities is stale)
+	if ctl.Grid != nil {
+		cells := ctl.Grid.CellsForPositions([]position.Position{pos})
+		if len(cells) > 0 {
+			c := cells[0]
+			if c.Type != cell.Ground {
+				return true
+			}
+			if c.EntityID != uuid.Nil && c.EntityID != selfID {
+				return true
+			}
+		}
+	}
+
+	return false
+}
