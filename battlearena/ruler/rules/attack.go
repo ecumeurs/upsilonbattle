@@ -4,6 +4,7 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonmapdata/grid/cell"
+	"github.com/ecumeurs/upsilontools/tools"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -43,7 +44,8 @@ func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAtt
 	foeDefense := foe.GetPropertyI(property.Defense)
 	foeHP := foe.GetPropertyI(property.HP)
 
-	computedDamage := attackerAttack.I() - foeDefense.I()
+	// @spec-link [[mech_combat_standard_attack_computation]]
+	computedDamage := tools.Max(1,attackerAttack.I() - foeDefense.I())
 
 	// Compute the new delay
 	ent.CurrentDelay = ent.CurrentDelay + 500

@@ -39,6 +39,7 @@ func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effe
 	logger.WithFields(logrus.Fields{}).Info("ApplyDirectEffect")
 	// Hit test!
 	if eff.IsDamaging() {
+		// @spec-link [[mech_combat_attack_computation]]
 		logger.WithFields(logrus.Fields{}).Info("Damaging")
 
 		damageTargets := []entity.Entity{}
@@ -96,7 +97,7 @@ func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effe
 				multiplier = float64(critMultiplier) / 100.0
 			}
 
-			truedmg := tools.Max((attack*damage/100)-defense-armor, 0) + truepoison + truestun
+			truedmg := tools.Max((attack*damage/100)-defense-armor, 1) + truepoison + truestun
 			truedmg = tools.Max(int(math.Floor(float64(truedmg)*multiplier)), 0)
 
 			logger.WithFields(logrus.Fields{
@@ -113,8 +114,8 @@ func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effe
 
 			// apply shield damage (only if negative! otherwise it's healing the shield)
 			if shieldPower < 0 {
-				target.UpdatePropertyValue(property.Shield, shield+shieldPower)
-				shield = shield + shieldPower
+				target.UpdatePropertyValue(property.Shield, tools.Max(shield+shieldPower, 0))
+				shield = tools.Max(shield+shieldPower, 0)
 				logger.WithFields(logrus.Fields{
 					"shield": shield,
 				}).Info("Shield")

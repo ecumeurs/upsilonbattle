@@ -484,6 +484,19 @@ func (r *Ruler) controllerForfeit(ctx actor.CallContext) {
 		return
 	}
 
+	// Enforce turn check as per rule_forfeit_battle atom:
+	// "A player may declare 'FORFEIT' at any time during their character's turn."
+	currentEntityID := r.GameState.Turner.CurrentEntityTurn
+	currentEntity, found := r.GameState.Entities[currentEntityID]
+	if !found || currentEntity.ControllerID != req.ControllerID {
+		r.RequestLogger.WithFields(logrus.Fields{
+			"forfeiterID": req.ControllerID.String()[0:8],
+			"turnOwnerID": currentEntity.ControllerID.String()[0:8],
+		}).Error("Forfeit attempt out of turn")
+		ctx.Reply(ctx.Msg.ReplyWithError("Forfeiture is only permitted during your own character's turn.", "rules.forfireit.turn_required"))
+		return
+	}
+
 	winnerID, finished := r.GameState.Forfeit(req.ControllerID)
 
 	if finished {

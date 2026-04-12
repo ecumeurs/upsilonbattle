@@ -141,10 +141,10 @@ func (ctx *localMoveCtx) preMoveChecks(msg *message.Message, req rulermethods.Co
 		return false, msg.ReplyWithError("Entity has not enough movement credits", "entity.movement.credits")
 	}
 
-	// ensure entity is adjascent to the first move.
+	// ensure entity is adjacent to the first move.
 	if !ent.Position.IsAdjacent(req.Path[0], jumpHeight) {
-		ctx.log.Error("Entity is not adjascent to the first move")
-		return false, msg.ReplyWithError("Entity is not adjascent to the first move", "entity.path.notadjascent")
+		ctx.log.Error("Entity is not adjacent to the first move")
+		return false, msg.ReplyWithError("Entity is not adjacent to the first move", "entity.path.notadjacent")
 	}
 
 	// can't move if has already moved this turn.
