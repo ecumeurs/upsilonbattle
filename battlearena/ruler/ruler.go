@@ -6,6 +6,7 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity/entitygenerator"
+	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rules"
 	"github.com/ecumeurs/upsilonmapdata/grid"
@@ -54,6 +55,7 @@ type Ruler struct {
 }
 
 func NewCompleteRuler() *Ruler {
+	tools.Seed()
 	id := uuid.New()
 	r := Ruler{
 		ID:                    id,
@@ -96,6 +98,7 @@ func NewCompleteRuler() *Ruler {
 }
 
 func NewRuler(id uuid.UUID) *Ruler {
+	tools.Seed()
 	r := Ruler{
 		ID:                    id,
 		Actor:                 actor.New("Ruler"),
@@ -142,6 +145,7 @@ func (r *Ruler) init() {
 	r.AddNotificationHandler(rulermethods.ControllerBattleReady{}, r.controllerBattleReady, nil)
 	r.AddNotificationHandler(rulermethods.ControllerTurnReady{}, r.controllerTurnReady, nil)
 	r.AddCallHandler(rulermethods.ControllerForfeit{}, r.controllerForfeit, nil)
+	r.AddNotificationHandler(actor.ActorAboutToStop{}, r.actorAboutToStop, nil)
 
 	r.Start()
 }
@@ -150,6 +154,7 @@ func (r *Ruler) PrintStack() {
 	r.GetQueue().PrintStack()
 }
 
+// addController handles the addition of a controller to the battle.
 func (r *Ruler) addController(ctx actor.CallContext) {
 	req := ctx.Msg.TargetMethod.(rulermethods.AddController)
 	r.RequestLogger.WithFields(logrus.Fields{
@@ -171,6 +176,13 @@ func (r *Ruler) addController(ctx actor.CallContext) {
 		for idx, e := range r.GameState.Entities {
 			if e.ControllerID == uuid.Nil {
 				e.ControllerID = req.ControllerID
+				// @spec-link [[rule_team_mechanics]]
+				// Surgical Team Fallback: Seed a unique team if one isn't already assigned (for tests/mock)
+				if e.GetPropertyI(property.TeamID).I() == 0 {
+					// Use Join Order as Team ID (1-indexed)
+					e.RepsertPropertyValue(property.TeamID, len(r.GameState.Controllers))
+				}
+
 				r.GameState.Entities[idx] = e
 				break
 			}
@@ -209,14 +221,28 @@ func (r *Ruler) addController(ctx actor.CallContext) {
 func (r *Ruler) controllerBattleReady(ctx actor.NotificationContext) {
 	req := ctx.Msg.TargetMethod.(rulermethods.ControllerBattleReady)
 	r.RequestLogger.Info("ControllerBattleReady")
+
+	// GUARD: Don't process ready checks if the game is already finished
+	if r.CurrentState == Finished {
+		r.RequestLogger.Warn("Received ControllerBattleReady after battle finished")
+		return
+	}
+
 	r.ControllerBattleReady[req.ControllerID] = true
 	if len(r.ControllerBattleReady) == r.NbControllers {
 
 		entID := r.GameState.Turner.CurrentEntityTurn
+
+		// GUARD: Ensure the entity still exists and is controlled
+		ent, ok := r.GameState.Entities[entID]
+		if !ok || ent.ControllerID == uuid.Nil {
+			r.RequestLogger.Error("Current entity turn is missing or uncontrolled during ready check")
+			return
+		}
+
 		r.RequestLogger.WithFields(logrus.Fields{
 			"entityID": entID.String()[0:8]}).Info("First entity to play")
 
-		ent := r.GameState.Entities[entID]
 		ent.CurrentDelay = 0
 		r.GameState.Controllers[ent.ControllerID].NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
 			Entity: ent,
@@ -436,6 +462,7 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 	if len(remainingController) <= 1 || nextTurnEnt == uuid.Nil {
 		r.RequestLogger.Info("##### END OF BATTLE! #####")
 		r.CurrentState = Finished
+		r.GameState.WinnerID = remainingControllerID
 		for _, ctrl := range r.GameState.Controllers {
 			ctrl.NotifyActor(message.Create(nil, rulermethods.BattleEnd{
 				WinnerControllerID: remainingControllerID,
@@ -472,6 +499,8 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 	ctx.Reply(ctx.Msg.Reply())
 }
 
+// controllerForfeit handles the forfeiture of a controller.
+// @spec-link [[rule_forfeit_battle]]
 func (r *Ruler) controllerForfeit(ctx actor.CallContext) {
 	req := ctx.Msg.TargetMethod.(rulermethods.ControllerForfeit)
 	r.RequestLogger.WithFields(logrus.Fields{
@@ -484,23 +513,11 @@ func (r *Ruler) controllerForfeit(ctx actor.CallContext) {
 		return
 	}
 
-	// Enforce turn check as per rule_forfeit_battle atom:
-	// "A player may declare 'FORFEIT' at any time during their character's turn."
-	currentEntityID := r.GameState.Turner.CurrentEntityTurn
-	currentEntity, found := r.GameState.Entities[currentEntityID]
-	if !found || currentEntity.ControllerID != req.ControllerID {
-		r.RequestLogger.WithFields(logrus.Fields{
-			"forfeiterID": req.ControllerID.String()[0:8],
-			"turnOwnerID": currentEntity.ControllerID.String()[0:8],
-		}).Error("Forfeit attempt out of turn")
-		ctx.Reply(ctx.Msg.ReplyWithError("Forfeiture is only permitted during your own character's turn.", "rules.forfireit.turn_required"))
-		return
-	}
-
 	winnerID, finished := r.GameState.Forfeit(req.ControllerID)
 
 	if finished {
-		r.CurrentState = Finished		
+		r.CurrentState = Finished
+		r.GameState.WinnerID = winnerID
 		r.RequestLogger.Info("##### END OF BATTLE! #####")
 
 		for _, ctrl := range r.GameState.Controllers {
@@ -531,5 +548,14 @@ func (r *Ruler) controllerQuit(ctx actor.NotificationContext) {
 				r.GameState.Turner.RemoveEntity(ent.ID)
 			}
 		}
+	}
+}
+
+// @spec-link [[mech_arena_lifecycle]]
+func (r *Ruler) actorAboutToStop(ctx actor.NotificationContext) {
+	r.logger.Info("Ruler is about to stop, stopping all controllers")
+	for id, ctrl := range r.GameState.Controllers {
+		r.logger.Infof("Stopping controller %s", id)
+		ctrl.NotifyActor(message.Create(nil, actor.ActorStop{}, nil))
 	}
 }

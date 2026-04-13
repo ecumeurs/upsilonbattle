@@ -40,7 +40,7 @@ func NewAggressiveController(id uuid.UUID, name string) *AggressiveController {
 		ID:             id,
 		Actor:          actor.New(name),
 		KnownEntities:  make(map[uuid.UUID]entity.Entity),
-		BattleFinished: make(chan bool),
+		BattleFinished: make(chan bool, 1),
 		battleready:    false,
 	}
 	ctrl.Logger = ctrl.Logger.WithFields(logrus.Fields{
@@ -221,9 +221,13 @@ func (ctl *AggressiveController) BattleStart(ctx actor.NotificationContext) {
 	ctl.ruler.SendActor(message.Create(nil, rulermethods.GetGridState{}, rulermethods.GetGridStateReply{}), ctl.GetCallbackChan())
 }
 
+// @spec-link [[mech_ai_termination]]
 func (ctl *AggressiveController) BattleEnd(ctx actor.NotificationContext) {
 	ctl.RequestLogger.Info("##### BattleEnd #####")
-	ctl.BattleFinished <- true
+	select {
+	case ctl.BattleFinished <- true:
+	default:
+	}
 }
 
 func (ctl *AggressiveController) ControllerAttacked(ctx actor.NotificationContext) {

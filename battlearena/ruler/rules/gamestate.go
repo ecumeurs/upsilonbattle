@@ -16,6 +16,8 @@ type GameState struct {
 	Entities    map[uuid.UUID]entity.Entity
 	Controllers map[uuid.UUID]actor.Communication
 	Logger      *logrus.Entry
+	// @spec-link [[rule_team_mechanics]]
+	WinnerID    uuid.UUID
 }
 
 func New(rulerID uuid.UUID) *GameState {

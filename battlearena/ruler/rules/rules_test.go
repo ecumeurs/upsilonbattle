@@ -65,6 +65,7 @@ func makeGameStateForTwo() (*GameState, FakeState) {
 	for _, v := range def.PropertiesForCharacter() {
 		ent1.Properties[v.Name(property.GameMaster)] = v
 	}
+	ent1.RepsertPropertyValue(property.TeamID, 1)
 	gs.Grid.MoveEntity(ent1.Position, ent1.Position, ent1.ID)
 	gs.Entities[ent1.ID] = ent1
 	gs.Turner.AddEntity(ent1.ID, ent1.CurrentDelay)
@@ -77,6 +78,7 @@ func makeGameStateForTwo() (*GameState, FakeState) {
 	for _, v := range def.PropertiesForCharacter() {
 		ent2.Properties[v.Name(property.GameMaster)] = v
 	}
+	ent2.RepsertPropertyValue(property.TeamID, 1)
 	gs.Grid.MoveEntity(ent2.Position, ent2.Position, ent2.ID)
 	gs.Entities[ent2.ID] = ent2
 	gs.Turner.AddEntity(ent2.ID, ent2.CurrentDelay)
@@ -89,6 +91,7 @@ func makeGameStateForTwo() (*GameState, FakeState) {
 	for _, v := range def.PropertiesForCharacter() {
 		ent3.Properties[v.Name(property.GameMaster)] = v
 	}
+	ent3.RepsertPropertyValue(property.TeamID, 2)
 	gs.Grid.MoveEntity(ent3.Position, ent3.Position, ent3.ID)
 	gs.Entities[ent3.ID] = ent3
 	gs.Turner.AddEntity(ent3.ID, ent3.CurrentDelay)
@@ -101,6 +104,7 @@ func makeGameStateForTwo() (*GameState, FakeState) {
 	for _, v := range def.PropertiesForCharacter() {
 		ent4.Properties[v.Name(property.GameMaster)] = v
 	}
+	ent4.RepsertPropertyValue(property.TeamID, 2)
 	gs.Grid.MoveEntity(ent4.Position, ent4.Position, ent4.ID)
 	gs.Entities[ent4.ID] = ent4
 	gs.Turner.AddEntity(ent4.ID, ent4.CurrentDelay)

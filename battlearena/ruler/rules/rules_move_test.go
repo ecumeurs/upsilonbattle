@@ -240,8 +240,8 @@ func TestRuleMoveFailStartNotAdjascent(t *testing.T) {
 		t.Errorf("Expected error, got none.")
 	}
 
-	if reply.ErrorKey != "entity.path.notadjascent" {
-		t.Errorf("Expected error 'entity.path.notadjascent', got '%s'", reply.ErrorKey)
+	if reply.ErrorKey != "entity.path.notadjacent" {
+		t.Errorf("Expected error 'entity.path.notadjacent', got '%s'", reply.ErrorKey)
 	}
 }
 
