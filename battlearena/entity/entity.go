@@ -189,10 +189,17 @@ func (e *Entity) RepsertPropertyValue(p interface{}, value interface{}) {
 	e.Properties[prop.Name(property.GameMaster)] = prop
 }
 
-// RepsertPropertyCMaxValue will insert property if unknown!
+// RepsertPropertyCMaxValue inserts or updates a counter property maximum value.
 func (e *Entity) RepsertPropertyCMaxValue(p interface{}, maxvalue int) {
 	prop := e.GetProperty(p).(property.IntCounterProperty)
 	prop.SetMaxValue(maxvalue)
+	e.Properties[prop.Name(property.GameMaster)] = prop
+}
+
+// RepsertPropertyCValue inserts or updates a counter property current value.
+func (e *Entity) RepsertPropertyCValue(p interface{}, value int) {
+	prop := e.GetProperty(p).(property.IntCounterProperty)
+	prop.SetValue(value)
 	e.Properties[prop.Name(property.GameMaster)] = prop
 }
 
@@ -203,9 +210,16 @@ func (e *Entity) UpdatePropertyValue(p interface{}, value interface{}) {
 	e.UpdateProperty(prop)
 }
 
-// UpdatePropertyCMaxValue Will only update value if known to the entity (wont affect buffs)
+// UpdatePropertyCMaxValue Will only update max value if known to the entity (wont affect buffs)
 func (e *Entity) UpdatePropertyCMaxValue(p interface{}, maxvalue int) {
 	prop := e.GetProperty(p).(property.IntCounterProperty)
 	prop.SetMaxValue(maxvalue)
+	e.UpdateProperty(prop)
+}
+
+// UpdatePropertyCValue Will only update current value if known to the entity (wont affect buffs)
+func (e *Entity) UpdatePropertyCValue(p interface{}, value int) {
+	prop := e.GetProperty(p).(property.IntCounterProperty)
+	prop.SetValue(value)
 	e.UpdateProperty(prop)
 }
