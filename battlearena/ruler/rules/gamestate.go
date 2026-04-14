@@ -18,6 +18,8 @@ type GameState struct {
 	Logger      *logrus.Entry
 	// @spec-link [[rule_team_mechanics]]
 	WinnerID    uuid.UUID
+	// @spec-link [[mech_game_state_versioning]]
+	Version     int64
 }
 
 func New(rulerID uuid.UUID) *GameState {
@@ -43,4 +45,8 @@ func (gs *GameState) CheckControllerForEntity(controllerID uuid.UUID, entityID u
 		}
 	}
 	return false
+}
+
+func (gs *GameState) IncVersion() {
+	gs.Version++
 }

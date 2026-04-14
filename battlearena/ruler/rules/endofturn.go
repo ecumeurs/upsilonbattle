@@ -81,5 +81,7 @@ func (gs *GameState) EndOfTurn(msg *message.Message, req rulermethods.EndOfTurn,
 
 	gs.Turner.AddEntity(req.EntityID, gs.Entities[req.EntityID].CurrentDelay) // well ...end of turn delay
 
+	gs.IncVersion()
+
 	return true, msg
 }

@@ -58,6 +58,8 @@ func (gs *GameState) Move(msg *message.Message, req rulermethods.ControllerMove)
 	// Update the entity
 	ctx.Entities[req.EntityID] = ent
 
+	ctx.IncVersion()
+
 	// reply with the new entities state (opaque to the client)
 	reply = msg.Reply()
 

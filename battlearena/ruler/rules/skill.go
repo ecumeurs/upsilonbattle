@@ -85,6 +85,8 @@ func (gs *GameState) UseSkill(msg *message.Message, req rulermethods.ControllerU
 	// Update the entity in the game state
 	ctx.Entities[req.EntityID] = ent
 
+	ctx.IncVersion()
+
 	// reply to user
 	reply = msg.Reply()
 	reply.Content = rulermethods.ControllerUseSkillReply{

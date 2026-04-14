@@ -59,5 +59,7 @@ func (gs *GameState) Forfeit(controllerID uuid.UUID) (uuid.UUID, bool) {
 		return winnerControllerID, true
 	}
 
+	gs.IncVersion()
+
 	return uuid.Nil, false
 }

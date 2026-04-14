@@ -230,6 +230,7 @@ func (r *Ruler) controllerBattleReady(ctx actor.NotificationContext) {
 
 	r.ControllerBattleReady[req.ControllerID] = true
 	if len(r.ControllerBattleReady) == r.NbControllers {
+		r.GameState.IncVersion() // @spec-link [[mech_game_state_versioning]]
 
 		entID := r.GameState.Turner.CurrentEntityTurn
 
@@ -258,6 +259,7 @@ func (r *Ruler) controllerTurnReady(ctx actor.NotificationContext) {
 func (r *Ruler) battleStart(ctx actor.NotificationContext) {
 	r.RequestLogger.Info("Game started")
 	r.CurrentState = InProgress
+	r.GameState.IncVersion() // @spec-link [[mech_game_state_versioning]]
 	entID := r.GameState.Turner.NextTurn()
 	r.RequestLogger.WithFields(logrus.Fields{
 		"entityID": entID.String()[0:8]}).Info("First entity to play")

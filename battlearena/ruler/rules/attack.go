@@ -104,6 +104,8 @@ func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAtt
 		}, nil))
 	}
 
+	gs.IncVersion()
+
 	// reply with the new entities state (opaque to the client)
 	reply = msg.Reply()
 
