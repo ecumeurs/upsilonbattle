@@ -86,5 +86,13 @@ func (gs *GameState) EndOfTurn(msg *message.Message, req rulermethods.EndOfTurn,
 	gs.Turner.AddEntity(req.EntityID, gs.Entities[req.EntityID].CurrentDelay) // well ...end of turn delay
 	gs.IncTurn()
 
+	// notify all controllers of the pass/turn end.
+	for _, ctrl := range gs.Controllers {
+		ctrl.NotifyActor(message.Create(nil, rulermethods.ControllerPassed{
+			EntityID:     req.EntityID,
+			ControllerID: req.ControllerID,
+		}, nil))
+	}
+
 	return true, msg
 }

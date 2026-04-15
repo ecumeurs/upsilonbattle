@@ -57,6 +57,8 @@ func NewAggressiveController(id uuid.UUID, name string) *AggressiveController {
 	ctrl.AddNotificationHandler(rulermethods.BattleEnd{}, ctrl.BattleEnd, nil)
 	ctrl.AddNotificationHandler(rulermethods.EntitiesStateChanged{}, ctrl.EntitiesStateChanged, nil)
 	ctrl.AddNotificationHandler(rulermethods.ControllerAttacked{}, ctrl.ControllerAttacked, nil)
+	ctrl.AddNotificationHandler(rulermethods.ControllerMoved{}, ctrl.NoOp, nil)
+	ctrl.AddNotificationHandler(rulermethods.ControllerPassed{}, ctrl.NoOp, nil)
 
 	ctrl.AddReplyHandler(rulermethods.GetStateReply{}, ctrl.GetStateReply, nil)
 	ctrl.AddReplyHandler(rulermethods.GetGridStateReply{}, ctrl.GetGridStateReply, nil)
@@ -393,6 +395,8 @@ func (ctl *AggressiveController) preparePathToEntity(pos position.Position, grd 
 }
 
 func (ctl *AggressiveController) EndOfTurnReply(ctx actor.ReplyContext) {}
+
+func (ctl *AggressiveController) NoOp(ctx actor.NotificationContext) {}
 
 func (ctl *AggressiveController) isPathStepBlocked(pos position.Position, selfID uuid.UUID) bool {
 	// 1. Check if occupied by another entity in KnownEntities

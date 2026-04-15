@@ -17,7 +17,7 @@ type GameState struct {
 	Controllers map[uuid.UUID]actor.Communication
 	Logger      *logrus.Entry
 	// @spec-link [[rule_team_mechanics]]
-	WinnerID uuid.UUID
+	WinnerTeamID int
 	// @spec-link [[mech_game_state_versioning]]
 	// @spec-link [[mech_version_bit_packing]]
 	Version     int64

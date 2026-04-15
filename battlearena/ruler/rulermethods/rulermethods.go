@@ -134,8 +134,8 @@ type BattleStart struct {
 }
 
 type BattleEnd struct {
-	WinnerControllerID uuid.UUID
-	WinnerName         string
+	WinnerTeamID int
+	WinnerName   string
 	actor.NoReply
 }
 
@@ -155,6 +155,24 @@ type ControllerAttacked struct {
 	Entity               entity.Entity
 	Attacker             entity.Entity
 	SkillID              uuid.UUID
+	Damage               int
+	PrevHP               int
+	NewHP                int
+
+	actor.NoReply
+}
+
+type ControllerMoved struct {
+	ControllerID uuid.UUID
+	EntityID     uuid.UUID
+	Path         []position.Position
+
+	actor.NoReply
+}
+
+type ControllerPassed struct {
+	ControllerID uuid.UUID
+	EntityID     uuid.UUID
 
 	actor.NoReply
 }

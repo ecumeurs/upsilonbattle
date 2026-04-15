@@ -60,6 +60,15 @@ func (gs *GameState) Move(msg *message.Message, req rulermethods.ControllerMove)
 
 	ctx.IncVersion()
 
+	// notify all controllers of the movement.
+	for _, ctrl := range ctx.Controllers {
+		ctrl.NotifyActor(message.Create(nil, rulermethods.ControllerMoved{
+			EntityID:     req.EntityID,
+			Path:         req.Path,
+			ControllerID: req.ControllerID,
+		}, nil))
+	}
+
 	// reply with the new entities state (opaque to the client)
 	reply = msg.Reply()
 

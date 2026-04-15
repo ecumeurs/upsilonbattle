@@ -3,6 +3,8 @@ package ruler
 import (
 	"fmt"
 
+	"time"
+
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity/entitygenerator"
@@ -17,7 +19,6 @@ import (
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 type ArenaState int
@@ -187,7 +188,7 @@ func (r *Ruler) addController(ctx actor.CallContext) {
 				// Surgical Team Fallback: Seed a unique team if one isn't already assigned (for tests/mock)
 				if e.GetPropertyI(property.TeamID).I() == 0 {
 					// Use Join Order as Team ID (1-indexed)
-					e.RepsertPropertyValue(property.TeamID, len(r.GameState.Controllers))
+					e.RepsertPropertyValue(property.TeamID, len(r.GameState.Controllers)+1)
 				}
 
 				r.GameState.Entities[idx] = e
@@ -337,7 +338,7 @@ func (r *Ruler) controllerMove(ctx actor.CallContext) {
 
 	reply := r.GameState.Move(ctx.Msg, req)
 	ctx.Reply(reply)
-	
+
 	if !reply.HasError {
 		ent := make([]entity.Entity, 0, len(r.GameState.Entities))
 		for _, e := range r.GameState.Entities {
@@ -472,58 +473,47 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 		ent = append(ent, e)
 	}
 
-	remainingTeams := make(map[int]uuid.UUID)
-	remainingControllerID := uuid.Nil
-	for _, ent := range r.GameState.Entities {
-		r.RequestLogger.WithFields(logrus.Fields{
-			"entityID":     ent.ID.String()[0:8],
-			"controllerID": ent.ControllerID.String()[0:8],
-			"teamID":       ent.GetPropertyI(property.TeamID).I(),
-			"delay":        ent.CurrentDelay,
-			"position":     ent.Position}).Debug("Remaining entity")
-		remainingTeams[ent.GetPropertyI(property.TeamID).I()] = ent.ControllerID
-		remainingControllerID = ent.ControllerID
-	}
-
-	if len(remainingTeams) <= 1 || nextTurnEnt == uuid.Nil {
-		// @spec-link [[rule_team_mechanics]]
-		r.RequestLogger.Info("##### END OF BATTLE! #####")
-		r.CurrentState = Finished
-		r.GameState.WinnerID = remainingControllerID
-		for _, ctrl := range r.GameState.Controllers {
-			ctrl.NotifyActor(message.Create(nil, rulermethods.BattleEnd{
-				WinnerControllerID: remainingControllerID,
-			}, nil))
-		}
+	if nextTurnEnt == uuid.Nil {
+		r.evaluateVictory(nextTurnEnt)
 	} else {
-		// @spec-link [[rule_turn_clock]]
-		r.RequestLogger.Info("##### END OF TURN #####")
-		for _, ctrl := range r.GameState.Controllers {
-			ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
-				Entities: ent,
-				Turn:     r.GameState.Turner.GetTurnState(),
-			}, nil))
+		remainingTeams := make(map[int]bool)
+		for _, ent := range r.GameState.Entities {
+			remainingTeams[ent.GetPropertyI(property.TeamID).I()] = true
 		}
 
-		if nextTurnEnt != uuid.Nil {
-			ent := r.GameState.Entities[nextTurnEnt]
-			ent.CurrentDelay = 0
-			r.GameState.Entities[nextTurnEnt] = ent
-
-			ctrl, found := r.GameState.Controllers[ent.ControllerID]
-			if !found {
-				r.RequestLogger.WithFields(logrus.Fields{
-					"entityID":     nextTurnEnt.String()[0:8],
-					"controllerID": ent.ControllerID.String()[0:8]}).Error("Controller not found")
-			} else {
-				// @spec-link [[rule_turn_clock]]
-				r.startShotClock()
-				ctrl.NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
-					Entity: ent,
-					Turn:   r.GameState.Turner.GetTurnState(),
+		if len(remainingTeams) <= 1 {
+			r.evaluateVictory(nextTurnEnt)
+		} else {
+			// @spec-link [[rule_turn_clock]]
+			r.RequestLogger.Info("##### END OF TURN #####")
+			for _, ctrl := range r.GameState.Controllers {
+				ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
+					Entities: ent,
+					Turn:     r.GameState.Turner.GetTurnState(),
 				}, nil))
 			}
+
+			if nextTurnEnt != uuid.Nil {
+				ent := r.GameState.Entities[nextTurnEnt]
+				ent.CurrentDelay = 0
+				r.GameState.Entities[nextTurnEnt] = ent
+
+				ctrl, found := r.GameState.Controllers[ent.ControllerID]
+				if !found {
+					r.RequestLogger.WithFields(logrus.Fields{
+						"entityID":     nextTurnEnt.String()[0:8],
+						"controllerID": ent.ControllerID.String()[0:8]}).Error("Controller not found")
+				} else {
+					// @spec-link [[rule_turn_clock]]
+					r.startShotClock()
+					ctrl.NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
+						Entity: ent,
+						Turn:   r.GameState.Turner.GetTurnState(),
+					}, nil))
+				}
+			}
 		}
+
 	}
 
 	ctx.Reply(ctx.Msg.Reply())
@@ -543,16 +533,16 @@ func (r *Ruler) controllerForfeit(ctx actor.CallContext) {
 		return
 	}
 
-	winnerID, finished := r.GameState.Forfeit(req.ControllerID)
+	_, winnerTeamID, finished := r.GameState.Forfeit(req.ControllerID)
 
 	if finished {
 		r.CurrentState = Finished
-		r.GameState.WinnerID = winnerID
+		r.GameState.WinnerTeamID = winnerTeamID
 		r.RequestLogger.Info("##### END OF BATTLE! #####")
 
 		for _, ctrl := range r.GameState.Controllers {
 			ctrl.NotifyActor(message.Create(nil, rulermethods.BattleEnd{
-				WinnerControllerID: winnerID,
+				WinnerTeamID: winnerTeamID,
 			}, nil))
 		}
 	}
@@ -570,13 +560,41 @@ func (r *Ruler) controllerQuit(ctx actor.NotificationContext) {
 	_, found := r.GameState.Controllers[req.ControllerID]
 	if found {
 		delete(r.GameState.Controllers, req.ControllerID)
+		r.RequestLogger.Info("Controller removed from match")
 
-		for _, ent := range r.GameState.Entities {
+		for id, ent := range r.GameState.Entities {
 			if ent.ControllerID == req.ControllerID {
 				r.GameState.Grid.RemoveEntity(ent.Position)
-				delete(r.GameState.Entities, ent.ID)
-				r.GameState.Turner.RemoveEntity(ent.ID)
+				delete(r.GameState.Entities, id)
+				r.GameState.Turner.RemoveEntity(id)
 			}
+		}
+
+		// Re-evaluate victory if the match is still active
+		if r.CurrentState != Finished {
+			r.evaluateVictory(r.GameState.Turner.CurrentEntityTurn)
+		}
+	}
+}
+
+func (r *Ruler) evaluateVictory(nextTurnEnt uuid.UUID) {
+	remainingTeams := make(map[int]bool)
+	winningTeamID := 0
+	for _, ent := range r.GameState.Entities {
+		remainingTeams[ent.GetPropertyI(property.TeamID).I()] = true
+		winningTeamID = ent.GetPropertyI(property.TeamID).I()
+	}
+
+	if len(remainingTeams) <= 1 || nextTurnEnt == uuid.Nil {
+		// @spec-link [[rule_team_mechanics]]
+		// @spec-link [[spec_match_format_win_condition_rule]]
+		r.RequestLogger.Info("##### END OF BATTLE! #####")
+		r.CurrentState = Finished
+		r.GameState.WinnerTeamID = winningTeamID
+		for _, ctrl := range r.GameState.Controllers {
+			ctrl.NotifyActor(message.Create(nil, rulermethods.BattleEnd{
+				WinnerTeamID: winningTeamID,
+			}, nil))
 		}
 	}
 }

@@ -37,12 +37,12 @@ func TestRulerForfeitTriggersWinnerID(t *testing.T) {
 	endEvent1 := msg1.TargetMethod.(rulermethods.BattleEnd)
 	endEvent2 := msg2.TargetMethod.(rulermethods.BattleEnd)
 
-	assert.Equal(t, ctrl2.ID, endEvent1.WinnerControllerID, "P1 should see P2 as winner")
-	assert.Equal(t, ctrl2.ID, endEvent2.WinnerControllerID, "P2 should see themselves as winner")
+	assert.Equal(t, 2, endEvent1.WinnerTeamID, "P1 should see Team 2 as winner")
+	assert.Equal(t, 2, endEvent2.WinnerTeamID, "P2 should see Team 2 as winner")
 
 	// 5. Assert internal Ruler state
 	assert.Equal(t, Finished, ruler.CurrentState, "Ruler should be in Finished state")
-	assert.Equal(t, ctrl2.ID, ruler.GameState.WinnerID, "GameState should persist WinnerID")
+	assert.Equal(t, 2, ruler.GameState.WinnerTeamID, "GameState should persist WinnerTeamID")
 
 	ctrl1.Stop()
 	ctrl2.Stop()

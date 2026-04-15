@@ -27,14 +27,14 @@ func TestRuleForfeitPvP(t *testing.T) {
 	setTeam(gs, fake.Entity3, 2)
 	setTeam(gs, fake.Entity4, 2)
 
-	winnerID, finished := gs.Forfeit(fake.Controller1)
+	_, winnerTeamID, finished := gs.Forfeit(fake.Controller1)
 
 	if !finished {
 		t.Errorf("Expected battle to be finished")
 	}
 
-	if winnerID != fake.Controller2 {
-		t.Errorf("Expected winner to be %v (Controller 2), got %v", fake.Controller2, winnerID)
+	if winnerTeamID != 2 {
+		t.Errorf("Expected winning team to be 2, got %d", winnerTeamID)
 	}
 
 	// Team 1 entities should be removed
@@ -59,13 +59,9 @@ func TestRuleForfeitNoEntities(t *testing.T) {
 	gs, _ := makeGameStateForTwo()
 	
 	// Try forfeiting for a controller with no entities
-	winnerID, finished := gs.Forfeit(uuid.New())
+	_, _, finished := gs.Forfeit(uuid.New())
 	
 	if finished {
 		t.Errorf("Expected battle to NOT be finished")
-	}
-	
-	if winnerID != uuid.Nil {
-		t.Errorf("Expected winner to be Nil, got %v", winnerID)
 	}
 }

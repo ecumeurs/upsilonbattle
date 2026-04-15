@@ -87,21 +87,19 @@ func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAtt
 			"position": foe.Position}).Info("##### Entity removed #####")
 	}
 
-	// notify foe controller of the attack.
+	// notify all controllers of the attack.
+	notification := rulermethods.ControllerAttacked{
+		Entity:               foe,
+		Attacker:             ent,
+		ControllerID:         foe.ControllerID,
+		AttackerControllerID: ent.ControllerID,
+		Damage:               computedDamage,
+		PrevHP:               foeHP.I() + computedDamage,
+		NewHP:                foeHP.I(),
+	}
 
-	foectrl, found := gs.Controllers[foe.ControllerID]
-	if !found {
-		ctx.log.WithFields(logrus.Fields{
-			"foeID":           foe.ID.String()[0:8],
-			"foeControllerID": foe.ControllerID.String()[0:8]}).Error("Foe controller not found")
-
-	} else {
-		foectrl.NotifyActor(message.Create(nil, rulermethods.ControllerAttacked{
-			Entity:               foe,
-			Attacker:             ent,
-			ControllerID:         foe.ControllerID,
-			AttackerControllerID: ent.ControllerID,
-		}, nil))
+	for _, ctrl := range gs.Controllers {
+		ctrl.NotifyActor(message.Create(nil, notification, nil))
 	}
 
 	gs.IncVersion()

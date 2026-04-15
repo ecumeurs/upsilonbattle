@@ -11,8 +11,8 @@ import (
 
 // Forfeit handles the forfeiture of a controller.
 // It determines the team of the forfeiting controller and declares all team entities defeated.
-// It returns the winner controller ID (if any) and whether the battle is finished.
-func (gs *GameState) Forfeit(controllerID uuid.UUID) (uuid.UUID, bool) {
+// It returns the winner controller ID (if any), the winner team ID (if any) and whether the battle is finished.
+func (gs *GameState) Forfeit(controllerID uuid.UUID) (uuid.UUID, int, bool) {
 	gs.Logger.WithFields(logrus.Fields{
 		"controllerID": controllerID.String()[0:8]}).Info("GameState.Forfeit")
 
@@ -29,7 +29,7 @@ func (gs *GameState) Forfeit(controllerID uuid.UUID) (uuid.UUID, bool) {
 
 	if !found {
 		gs.Logger.Error("Forfeiting controller has no entities")
-		return uuid.Nil, false
+		return uuid.Nil, 0, false
 	}
 
 	// 2. Remove all entities belonging to that team
@@ -52,14 +52,16 @@ func (gs *GameState) Forfeit(controllerID uuid.UUID) (uuid.UUID, bool) {
 
 	if len(remainingTeams) <= 1 {
 		winnerControllerID := uuid.Nil
-		for _, ctrlID := range remainingTeams {
+		winnerTeamID := 0
+		for teamID, ctrlID := range remainingTeams {
 			winnerControllerID = ctrlID
+			winnerTeamID = teamID
 			break
 		}
-		return winnerControllerID, true
+		return winnerControllerID, winnerTeamID, true
 	}
 
 	gs.IncVersion()
 
-	return uuid.Nil, false
+	return uuid.Nil, 0, false
 }
