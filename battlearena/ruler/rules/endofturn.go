@@ -49,9 +49,13 @@ func (gs *GameState) EndOfTurn(msg *message.Message, req rulermethods.EndOfTurn,
 
 	loclog.WithFields(logrus.Fields{
 		"entityID": req.EntityID.String()[0:8],
-		"newDelay": gs.Entities[req.EntityID].CurrentDelay + 500}).Debug("Entity end of turn, reinserting entity in the turn")
+		"isTimeout": req.IsTimeout}).Debug("Entity end of turn")
 
-	ent.CurrentDelay = ent.CurrentDelay + 500 // base for every entity.
+	delay := 300 // Base Pass cost as per [[mech_action_economy]]
+	if req.IsTimeout {
+		delay += 100 // Penalty as per [[us_take_combat_turn]]
+	}
+	ent.CurrentDelay += delay
 
 	// check poisonned status!
 
@@ -80,8 +84,7 @@ func (gs *GameState) EndOfTurn(msg *message.Message, req rulermethods.EndOfTurn,
 	gs.Entities[req.EntityID] = ent
 
 	gs.Turner.AddEntity(req.EntityID, gs.Entities[req.EntityID].CurrentDelay) // well ...end of turn delay
-
-	gs.IncVersion()
+	gs.IncTurn()
 
 	return true, msg
 }

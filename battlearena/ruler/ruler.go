@@ -17,6 +17,7 @@ import (
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 type ArenaState int
@@ -52,6 +53,10 @@ type Ruler struct {
 	NbEntitiesPerController int
 
 	ControllerBattleReady map[uuid.UUID]bool
+
+	shotClock         *time.Timer
+	shotClockVersion  int64
+	ShotClockDuration time.Duration
 }
 
 func NewCompleteRuler() *Ruler {
@@ -62,6 +67,7 @@ func NewCompleteRuler() *Ruler {
 		Actor:                 actor.New("Ruler"),
 		CurrentState:          WaitingForControllers,
 		ControllerBattleReady: make(map[uuid.UUID]bool),
+		ShotClockDuration:     30 * time.Second,
 	}
 	r.GameState = rules.New(r.ID)
 	r.logger = logrus.WithFields(logrus.Fields{
@@ -104,6 +110,7 @@ func NewRuler(id uuid.UUID) *Ruler {
 		Actor:                 actor.New("Ruler"),
 		CurrentState:          WaitingForControllers,
 		ControllerBattleReady: make(map[uuid.UUID]bool),
+		ShotClockDuration:     30 * time.Second,
 	}
 	r.GameState = rules.New(r.ID)
 	r.logger = logrus.WithFields(logrus.Fields{
@@ -230,7 +237,9 @@ func (r *Ruler) controllerBattleReady(ctx actor.NotificationContext) {
 
 	r.ControllerBattleReady[req.ControllerID] = true
 	if len(r.ControllerBattleReady) == r.NbControllers {
-		r.GameState.IncVersion() // @spec-link [[mech_game_state_versioning]]
+		r.GameState.IncTurn() // @spec-link [[mech_game_state_versioning]]
+		// @spec-link [[rule_turn_clock]]
+		r.startShotClock()
 
 		entID := r.GameState.Turner.CurrentEntityTurn
 
@@ -259,7 +268,9 @@ func (r *Ruler) controllerTurnReady(ctx actor.NotificationContext) {
 func (r *Ruler) battleStart(ctx actor.NotificationContext) {
 	r.RequestLogger.Info("Game started")
 	r.CurrentState = InProgress
-	r.GameState.IncVersion() // @spec-link [[mech_game_state_versioning]]
+	r.GameState.IncTurn() // @spec-link [[mech_game_state_versioning]]
+	// @spec-link [[rule_turn_clock]]
+	r.startShotClock()
 	entID := r.GameState.Turner.NextTurn()
 	r.RequestLogger.WithFields(logrus.Fields{
 		"entityID": entID.String()[0:8]}).Info("First entity to play")
@@ -429,6 +440,18 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 		return
 	}
 
+	// @spec-link [[rule_turn_clock]]
+	// GUARD: If this is a timeout from an old turn, ignore it.
+	if req.IsTimeout && req.TurnIndex != 0 && req.TurnIndex != r.GameState.GetTurn() {
+		r.logger.WithFields(logrus.Fields{
+			"reqTurn":     req.TurnIndex,
+			"currentTurn": r.GameState.GetTurn()}).Debug("Ignoring late timeout message")
+		ctx.Reply(ctx.Msg.Reply())
+		return
+	}
+
+	r.stopShotClock()
+
 	ok, reply := r.GameState.EndOfTurn(ctx.Msg, req, r.GameState.Entities[req.EntityID])
 	if !ok {
 		ctx.Reply(reply)
@@ -449,19 +472,21 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 		ent = append(ent, e)
 	}
 
-	remainingController := make(map[uuid.UUID]bool)
+	remainingTeams := make(map[int]uuid.UUID)
 	remainingControllerID := uuid.Nil
 	for _, ent := range r.GameState.Entities {
 		r.RequestLogger.WithFields(logrus.Fields{
 			"entityID":     ent.ID.String()[0:8],
 			"controllerID": ent.ControllerID.String()[0:8],
+			"teamID":       ent.GetPropertyI(property.TeamID).I(),
 			"delay":        ent.CurrentDelay,
 			"position":     ent.Position}).Debug("Remaining entity")
-		remainingController[ent.ControllerID] = true
+		remainingTeams[ent.GetPropertyI(property.TeamID).I()] = ent.ControllerID
 		remainingControllerID = ent.ControllerID
 	}
 
-	if len(remainingController) <= 1 || nextTurnEnt == uuid.Nil {
+	if len(remainingTeams) <= 1 || nextTurnEnt == uuid.Nil {
+		// @spec-link [[rule_team_mechanics]]
 		r.RequestLogger.Info("##### END OF BATTLE! #####")
 		r.CurrentState = Finished
 		r.GameState.WinnerID = remainingControllerID
@@ -471,6 +496,7 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 			}, nil))
 		}
 	} else {
+		// @spec-link [[rule_turn_clock]]
 		r.RequestLogger.Info("##### END OF TURN #####")
 		for _, ctrl := range r.GameState.Controllers {
 			ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
@@ -490,6 +516,8 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 					"entityID":     nextTurnEnt.String()[0:8],
 					"controllerID": ent.ControllerID.String()[0:8]}).Error("Controller not found")
 			} else {
+				// @spec-link [[rule_turn_clock]]
+				r.startShotClock()
 				ctrl.NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
 					Entity: ent,
 					Turn:   r.GameState.Turner.GetTurnState(),
@@ -553,9 +581,56 @@ func (r *Ruler) controllerQuit(ctx actor.NotificationContext) {
 	}
 }
 
+// startShotClock initializes and starts the turn timer.
+// @spec-link [[rule_turn_clock]]
+func (r *Ruler) startShotClock() {
+	r.stopShotClock()
+
+	if r.ShotClockDuration <= 0 {
+		return
+	}
+
+	// Capture the turn index this shot clock is intended for
+	turn := r.GameState.GetTurn()
+
+	r.logger.WithFields(logrus.Fields{
+		"turn":    turn,
+		"version": fmt.Sprintf("%d.%d", turn, r.GameState.GetAction()),
+		"timeout": r.ShotClockDuration.String()}).Info("Starting turn shot clock")
+
+	r.shotClock = time.AfterFunc(r.ShotClockDuration, func() {
+		// Verify if the turn has changed since the timer was started
+		if r.GameState.GetTurn() != turn {
+			r.logger.WithFields(logrus.Fields{
+				"capturedTurn": turn,
+				"currentTurn":  r.GameState.GetTurn()}).Debug("Shot clock expired but turn already progressed, ignoring.")
+			return
+		}
+
+		r.logger.Warn("Turn timeout detected! Forcing EndOfTurn.")
+		// Use the actual controller ID to pass the CheckControllerForEntity validation
+		targetEnt := r.GameState.Entities[r.GameState.Turner.CurrentEntityTurn]
+		r.SendActor(message.Create(nil, rulermethods.EndOfTurn{
+			ControllerID: targetEnt.ControllerID,
+			EntityID:     targetEnt.ID,
+			IsTimeout:    true,
+			TurnIndex:    turn,
+		}, nil), nil)
+	})
+}
+
+// @spec-link [[rule_turn_clock]]
+func (r *Ruler) stopShotClock() {
+	if r.shotClock != nil {
+		r.shotClock.Stop()
+		r.shotClock = nil
+	}
+}
+
 // @spec-link [[mech_arena_lifecycle]]
 func (r *Ruler) actorAboutToStop(ctx actor.NotificationContext) {
-	r.logger.Info("Ruler is about to stop, stopping all controllers")
+	r.logger.Info("Ruler is about to stop, stopping all controllers and timers")
+	r.stopShotClock()
 	for id, ctrl := range r.GameState.Controllers {
 		r.logger.Infof("Stopping controller %s", id)
 		ctrl.NotifyActor(message.Create(nil, actor.ActorStop{}, nil))

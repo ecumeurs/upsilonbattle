@@ -64,6 +64,8 @@ type NotifyController struct {
 type EndOfTurn struct {
 	ControllerID uuid.UUID
 	EntityID     uuid.UUID
+	IsTimeout    bool
+	TurnIndex    uint32
 	actor.NoReply
 }
 
