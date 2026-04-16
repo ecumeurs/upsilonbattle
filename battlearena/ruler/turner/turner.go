@@ -81,6 +81,12 @@ func (t *Turner) AddEntity(EntityId uuid.UUID, Delay int) {
 }
 
 func (t *Turner) RemoveEntity(EntityId uuid.UUID) {
+	// Also clear CurrentEntityTurn if the removed entity is the current one
+	// This prevents the shot clock from referencing a dead entity
+	if t.CurrentEntityTurn == EntityId {
+		t.CurrentEntityTurn = uuid.Nil
+	}
+
 	for i := range t.Turns {
 		if t.Turns[i].EntityId == EntityId {
 			t.Turns = append(t.Turns[:i], t.Turns[i+1:]...)

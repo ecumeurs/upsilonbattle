@@ -468,6 +468,24 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 	}
 
 	nextTurnEnt := r.GameState.Turner.NextTurn()
+
+	// @spec-link [[mech_initiative_active_state]]
+	// GUARD: Skip any entities that were killed mid-turn and removed from
+	// gs.Entities before NextTurn() could be called (e.g., killed by an
+	// attack action right before the acting entity passed). Without this,
+	// the ruler hands ControllerNextTurn to a dead entity (zero-value
+	// ControllerID == uuid.Nil), no controller receives the notification,
+	// and the battle permanently hangs.
+	for nextTurnEnt != uuid.Nil {
+		if _, alive := r.GameState.Entities[nextTurnEnt]; alive {
+			break
+		}
+		r.RequestLogger.WithFields(logrus.Fields{
+			"skippedEntityID": nextTurnEnt.String()[0:8],
+		}).Warn("Next-turn entity was already dead; skipping to next in queue")
+		nextTurnEnt = r.GameState.Turner.NextTurn()
+	}
+
 	if nextTurnEnt == uuid.Nil {
 		r.RequestLogger.Info("##### END OF BATTLE! (WEIRD) #####")
 	} else {
@@ -635,8 +653,31 @@ func (r *Ruler) startShotClock() {
 		}
 
 		r.logger.Warn("Turn timeout detected! Forcing EndOfTurn.")
-		// Use the actual controller ID to pass the CheckControllerForEntity validation
-		targetEnt := r.GameState.Entities[r.GameState.Turner.CurrentEntityTurn]
+
+		// Validate that the current entity still exists before sending timeout
+		// This handles the case where an entity was killed after the shot clock was started
+		currentEntityID := r.GameState.Turner.CurrentEntityTurn
+		if currentEntityID == uuid.Nil {
+			r.logger.Error("Shot clock expired but CurrentEntityTurn is nil, cannot send timeout.")
+			return
+		}
+
+		targetEnt, found := r.GameState.Entities[currentEntityID]
+		if !found {
+			r.logger.WithFields(logrus.Fields{
+				"entityID": currentEntityID.String()[0:8],
+			}).Error("Shot clock expired but current entity was killed, cannot send timeout.")
+			return
+		}
+
+		// Validate that the entity has a controller
+		if targetEnt.ControllerID == uuid.Nil {
+			r.logger.WithFields(logrus.Fields{
+				"entityID": currentEntityID.String()[0:8],
+			}).Error("Shot clock expired but current entity has no controller, cannot send timeout.")
+			return
+		}
+
 		r.SendActor(message.Create(nil, rulermethods.EndOfTurn{
 			ControllerID: targetEnt.ControllerID,
 			EntityID:     targetEnt.ID,
