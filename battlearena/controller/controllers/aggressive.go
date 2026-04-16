@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+	"time"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
@@ -99,6 +100,7 @@ func (ctl *AggressiveController) ControllerNextTurn(ctx actor.NotificationContex
 	ctl.RequestLogger.WithFields(logrus.Fields{
 		"Turn":     controllerData.Turn.String(),
 		"EntityID": controllerData.Entity.String()}).Info("##### Turn BEGIN #####")
+	time.Sleep(100 * time.Millisecond)
 	target, err := ctl.selectNearestFoe(controllerData.Entity, ctl.KnownEntities)
 	if err != nil {
 		ctl.RequestLogger.Debug("Nothing to attack, ending turn")
@@ -288,6 +290,7 @@ func (ctl *AggressiveController) ControllerMoveReply(ctx actor.ReplyContext) {
 			"EntityID": ControllerData.Entity.ID.String()[0:8],
 			"Position": ControllerData.Entity.Position,
 			"Expected": target.Position}).Debug("Move Succesfull")
+		time.Sleep(100 * time.Millisecond)
 
 		attacker := ctl.KnownEntities[ctx.Msg.TargetMethod.(rulermethods.ControllerMoveReply).Entity.ID]
 
@@ -332,6 +335,7 @@ func (ctl *AggressiveController) ControllerAttackReply(ctx actor.ReplyContext) {
 		"Error":   ctx.Msg.HasError,
 		"Message": ctx.Msg.ErrorMessage,
 	}).Info("Attack done, ending turn")
+	time.Sleep(100 * time.Millisecond)
 	ctl.ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
 		EntityID:     ctx.Msg.TargetMethod.(rulermethods.ControllerAttackReply).Entity.ID,
 		ControllerID: ctl.ID,
