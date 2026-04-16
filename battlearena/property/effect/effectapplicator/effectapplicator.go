@@ -97,7 +97,7 @@ func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effe
 				multiplier = float64(critMultiplier) / 100.0
 			}
 
-			truedmg := tools.Max((attack*damage/100)-defense-armor, 1) + truepoison + truestun
+			truedmg := tools.Max((attack*damage/100)-defense-armor, 0) + truepoison + truestun
 			truedmg = tools.Max(int(math.Floor(float64(truedmg)*multiplier)), 0)
 
 			logger.WithFields(logrus.Fields{
