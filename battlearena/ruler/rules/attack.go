@@ -152,7 +152,6 @@ func (ctx *localAttackCtx) preAttackChecks(msg *message.Message, req rulermethod
 	}
 
 	// range check.
-
 	attackerRange := ent.GetPropertyI(property.AttackRange)
 	distance := ent.Position.Distance(target.Position)
 	if attackerRange.I() < distance {
@@ -162,6 +161,19 @@ func (ctx *localAttackCtx) preAttackChecks(msg *message.Message, req rulermethod
 			"attacker":    ent.Position,
 		}).Error("Target is out of range")
 		return false, msg.ReplyWithError("Invalid attack", "entity.attack.outofrange")
+	}
+
+	// @spec-link [[rule_friendly_fire_team_validation]]
+	attackerTeam := ent.GetPropertyI(property.TeamID)
+	targetEntity := ctx.Entities[target.EntityID]
+	targetTeam := targetEntity.GetPropertyI(property.TeamID)
+
+	if attackerTeam.I() == targetTeam.I() {
+		ctx.log.WithFields(logrus.Fields{
+			"attackerTeam": attackerTeam.I(),
+			"targetTeam":   targetTeam.I(),
+		}).Error("Friendly fire is not allowed")
+		return false, msg.ReplyWithError("Friendly fire is not allowed", "entity.attack.friendlyfire")
 	}
 
 	propHasActed := ent.GetProperty(property.HasActed).Get().(bool)

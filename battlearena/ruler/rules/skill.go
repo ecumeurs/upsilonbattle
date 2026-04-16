@@ -201,8 +201,9 @@ func (ctx *localSkillCtx) checkSkillTarget(msg *message.Message, user entity.Ent
 		for _, pos := range selectedZone {
 			c, _ := ctx.Grid.CellAt(pos) // should be ok because it has been veted before.
 			if c.EntityID != uuid.Nil {
-				if ctx.Entities[c.EntityID].ControllerID == user.ControllerID {
-					ctx.targetedEntities = append(ctx.targetedEntities, ctx.Entities[c.EntityID])
+				targetEnt := ctx.Entities[c.EntityID]
+				if targetEnt.GetPropertyI(property.TeamID).I() == user.GetPropertyI(property.TeamID).I() {
+					ctx.targetedEntities = append(ctx.targetedEntities, targetEnt)
 				}
 			}
 		}
@@ -211,8 +212,9 @@ func (ctx *localSkillCtx) checkSkillTarget(msg *message.Message, user entity.Ent
 		for _, pos := range selectedZone {
 			c, _ := ctx.Grid.CellAt(pos) // should be ok because it has been veted before.
 			if c.EntityID != uuid.Nil {
-				if ctx.Entities[c.EntityID].ControllerID != user.ControllerID {
-					ctx.targetedEntities = append(ctx.targetedEntities, ctx.Entities[c.EntityID])
+				targetEnt := ctx.Entities[c.EntityID]
+				if targetEnt.GetPropertyI(property.TeamID).I() != user.GetPropertyI(property.TeamID).I() {
+					ctx.targetedEntities = append(ctx.targetedEntities, targetEnt)
 				}
 			}
 		}

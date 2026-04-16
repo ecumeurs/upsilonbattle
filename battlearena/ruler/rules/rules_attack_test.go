@@ -284,8 +284,7 @@ func TestRuleAttackSucceed(t *testing.T) {
 	}
 
 	// attacker has been delayed
-
-	if attacker.CurrentDelay != 500 {
+	if attacker.CurrentDelay != 100 {
 		t.Errorf("Expected Attacker to be delayed(in GameState).")
 	}
 
@@ -304,8 +303,7 @@ func TestRuleAttackSucceed(t *testing.T) {
 	}
 
 	// attacker has been delayed
-
-	if attacker.CurrentDelay != 500 {
+	if attacker.CurrentDelay != 100 {
 		t.Errorf("Expected Attacker to be delayed.")
 	}
 
@@ -334,4 +332,41 @@ func TestRuleAttackSucceed(t *testing.T) {
 		}
 	}
 
+}
+
+func TestRuleAttackFailFriendlyFire(t *testing.T) {
+	gs, fake := makeGameStateForTwoAttack()
+
+	// Set both entities on the same team
+	ent1 := gs.Entities[fake.Attacker]
+	ent3 := gs.Entities[fake.Foe]
+
+	prop1 := ent1.GetProperty(property.TeamID)
+	prop1.Set(1)
+	ent1.UpdateProperty(prop1)
+
+	prop3 := ent3.GetProperty(property.TeamID)
+	prop3.Set(1)
+	ent3.UpdateProperty(prop3)
+
+	gs.Entities[fake.Attacker] = ent1
+	gs.Entities[fake.Foe] = ent3
+
+	// Attack Entity 3
+	msg := message.Create(nil,
+		rulermethods.ControllerAttack{
+			EntityID:     fake.Attacker,
+			ControllerID: fake.AttackerControllerID,
+			Target:       fake.FoePosition,
+		}, nil)
+
+	reply := gs.Attack(msg, msg.TargetMethod.(rulermethods.ControllerAttack))
+
+	if !reply.HasError {
+		t.Errorf("Expected error, got none.")
+	}
+
+	if reply.ErrorKey != "entity.attack.friendlyfire" {
+		t.Errorf("Expected error 'entity.attack.friendlyfire', got '%s'", reply.ErrorKey)
+	}
 }
