@@ -69,6 +69,8 @@ func NewFake(name string) *FakeController {
 	ctrl.AddNotificationHandler(rulermethods.BattleEnd{}, ctrl.BattleEnd, nil)
 	ctrl.AddNotificationHandler(rulermethods.EntitiesStateChanged{}, ctrl.EntitiesStateChanged, nil)
 	ctrl.AddNotificationHandler(rulermethods.ControllerAttacked{}, ctrl.ControllerAttacked, nil)
+	ctrl.AddNotificationHandler(rulermethods.ControllerPassed{}, ctrl.NoOp, nil)
+	ctrl.AddNotificationHandler(rulermethods.ControllerMoved{}, ctrl.NoOp, nil)
 
 	ctrl.AddReplyHandler(rulermethods.GetStateReply{}, ctrl.GetStateReply, nil)
 	ctrl.AddReplyHandler(rulermethods.GetGridStateReply{}, ctrl.GetGridStateReply, nil)
@@ -197,6 +199,8 @@ func (c *FakeController) ControllerAttackReply(ctx actor.ReplyContext) {
 func (c *FakeController) EndOfTurnReply(ctx actor.ReplyContext) {
 	c.triggerStopper(ctx.Msg)
 }
+
+func (c *FakeController) NoOp(ctx actor.NotificationContext) {}
 
 func TestRulerBattleBegin(t *testing.T) {
 	ruler := NewCompleteRuler()

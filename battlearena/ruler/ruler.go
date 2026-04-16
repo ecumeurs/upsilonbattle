@@ -152,6 +152,7 @@ func (r *Ruler) init() {
 	r.AddNotificationHandler(rulermethods.BattleStart{}, r.battleStart, nil)
 	r.AddNotificationHandler(rulermethods.ControllerBattleReady{}, r.controllerBattleReady, nil)
 	r.AddNotificationHandler(rulermethods.ControllerTurnReady{}, r.controllerTurnReady, nil)
+	r.AddNotificationHandler(rulermethods.ControllerPassed{}, r.controllerPassed, nil)
 	r.AddCallHandler(rulermethods.ControllerForfeit{}, r.controllerForfeit, nil)
 	r.AddNotificationHandler(actor.ActorAboutToStop{}, r.actorAboutToStop, nil)
 
@@ -429,6 +430,10 @@ func (r *Ruler) controllerUseSkill(ctx actor.CallContext) {
 }
 
 func (r *Ruler) notifyController(ctx actor.NotificationContext) {
+}
+
+func (r *Ruler) controllerPassed(ctx actor.NotificationContext) {
+	r.RequestLogger.Debug("Controller passed notification ignored by ruler")
 }
 
 // @spec-link [[mech_action_economy_action_cost_rules]]
