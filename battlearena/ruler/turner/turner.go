@@ -7,6 +7,8 @@ import (
 	"github.com/google/uuid"
 )
 
+// @spec-link [[mech_initiative]]
+// @spec-link [[mech_action_economy]]
 type EntityTurn struct {
 	EntityId uuid.UUID
 	Delay    int

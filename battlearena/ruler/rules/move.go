@@ -15,6 +15,7 @@ type localMoveCtx struct {
 	log *logrus.Entry
 }
 
+// @spec-link [[mech_action_economy_action_cost_rules]]
 func (gs *GameState) Move(msg *message.Message, req rulermethods.ControllerMove) (reply *message.Message) {
 	ctx := localMoveCtx{
 		GameState: gs,
@@ -47,7 +48,7 @@ func (gs *GameState) Move(msg *message.Message, req rulermethods.ControllerMove)
 	ent.Position = req.Path[len(req.Path)-1]
 
 	// Compute the new delay
-	ent.CurrentDelay = ent.CurrentDelay + len(req.Path)*200
+	ent.CurrentDelay = ent.CurrentDelay + len(req.Path)*20
 
 	// Pay the move cost ! (1/tile)
 	prop := ent.GetPropertyC(property.Movement)

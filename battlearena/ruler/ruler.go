@@ -328,6 +328,7 @@ func (r *Ruler) getEntitiesState(ctx actor.CallContext) {
 	ctx.Reply(reply)
 }
 
+// @spec-link [[mech_action_economy_action_cost_rules]]
 func (r *Ruler) controllerMove(ctx actor.CallContext) {
 	req := ctx.Msg.TargetMethod.(rulermethods.ControllerMove)
 	if r.CurrentState != InProgress {
@@ -353,6 +354,7 @@ func (r *Ruler) controllerMove(ctx actor.CallContext) {
 	}
 }
 
+// @spec-link [[mech_action_economy_action_cost_rules]]
 func (r *Ruler) controllerAttack(ctx actor.CallContext) {
 	req := ctx.Msg.TargetMethod.(rulermethods.ControllerAttack)
 	if r.CurrentState != InProgress {
@@ -429,6 +431,7 @@ func (r *Ruler) controllerUseSkill(ctx actor.CallContext) {
 func (r *Ruler) notifyController(ctx actor.NotificationContext) {
 }
 
+// @spec-link [[mech_action_economy_action_cost_rules]]
 func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 	req := ctx.Msg.TargetMethod.(rulermethods.EndOfTurn)
 	r.RequestLogger = r.RequestLogger.WithFields(logrus.Fields{
@@ -601,6 +604,7 @@ func (r *Ruler) evaluateVictory(nextTurnEnt uuid.UUID) {
 
 // startShotClock initializes and starts the turn timer.
 // @spec-link [[rule_turn_clock]]
+// @spec-link [[mech_action_economy_timeout_penalty_rules]]
 func (r *Ruler) startShotClock() {
 	r.stopShotClock()
 

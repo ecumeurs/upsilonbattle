@@ -15,6 +15,7 @@ type localAttackCtx struct {
 	log *logrus.Entry
 }
 
+// @spec-link [[mech_action_economy_action_cost_rules]]
 func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAttack) (reply *message.Message) {
 	ctx := localAttackCtx{
 		GameState: gs,
@@ -48,7 +49,7 @@ func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAtt
 	computedDamage := tools.Max(1,attackerAttack.I() - foeDefense.I())
 
 	// Compute the new delay
-	ent.CurrentDelay = ent.CurrentDelay + 500
+	ent.CurrentDelay = ent.CurrentDelay + 100
 
 	ctx.log.WithFields(logrus.Fields{
 		"entityID":    req.EntityID.String()[0:8],

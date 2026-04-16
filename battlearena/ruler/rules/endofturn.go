@@ -9,6 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// @spec-link [[mech_action_economy_action_cost_rules]]
 func (gs *GameState) EndOfTurn(msg *message.Message, req rulermethods.EndOfTurn, ent entity.Entity) (ok bool, reply *message.Message) {
 	loclog := gs.Logger.WithFields(logrus.Fields{
 		"RequestID":    msg.RequestId.String()[0:8],
