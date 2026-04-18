@@ -54,6 +54,7 @@ type Ruler struct {
 	NbEntitiesPerController int
 
 	ControllerBattleReady map[uuid.UUID]bool
+	SetQueueAcks          map[uuid.UUID]bool
 
 	shotClock         *time.Timer
 	shotClockVersion  int64
@@ -71,6 +72,7 @@ func NewCompleteRuler() *Ruler {
 		Actor:                 actor.New("Ruler"),
 		CurrentState:          WaitingForControllers,
 		ControllerBattleReady: make(map[uuid.UUID]bool),
+		SetQueueAcks:          make(map[uuid.UUID]bool),
 		ShotClockDuration:     30 * time.Second,
 	}
 	r.GameState = rules.New(r.ID)
@@ -118,6 +120,7 @@ func NewRuler(id uuid.UUID) *Ruler {
 		Actor:                 actor.New("Ruler"),
 		CurrentState:          WaitingForControllers,
 		ControllerBattleReady: make(map[uuid.UUID]bool),
+		SetQueueAcks:          make(map[uuid.UUID]bool),
 		ShotClockDuration:     30 * time.Second,
 	}
 	r.GameState = rules.New(r.ID)
@@ -171,6 +174,7 @@ func (r *Ruler) init() {
 	r.AddCallHandler(rulermethods.ControllerForfeit{}, r.controllerForfeit, nil)
 	r.AddNotificationHandler(rulermethods.Timeout{}, r.timeout, nil)
 	r.AddNotificationHandler(actor.ActorAboutToStop{}, r.actorAboutToStop, nil)
+	r.AddReplyHandler(controllermethods.SetQueueReply{}, r.handleSetQueueReply, nil)
 
 	// r.Start() REMOVED: Callers must start manually after setup.
 }
@@ -201,7 +205,10 @@ func (r *Ruler) addController(ctx actor.CallContext) {
 
 	// @spec-link [[mech_controller_handshake]]
 	// @spec-link [[mech_controller_communication_sequence]]
-	req.Controller.NotifyActor(message.Create(nil, controllermethods.SetQueue{Ruler: r}, nil))
+	req.Controller.SendActor(message.Create(nil, controllermethods.SetQueue{
+		ControllerID: req.ControllerID,
+		Ruler:        r,
+	}, nil), r.GetCallbackChan())
 
 	// Assign the controller to the designated number of entities
 	for i := 0; i < r.NbEntitiesPerController; i++ {
@@ -241,13 +248,61 @@ func (r *Ruler) addController(ctx actor.CallContext) {
 	ctx.Reply(reply)
 
 	// check if game is ready to begin.
+	// Transitioned: We now wait for SetQueue ACKs in handleSetQueueReply.
 	r.RequestLogger.WithFields(logrus.Fields{
 		"nbControllers": len(r.GameState.Controllers),
-		"expected":      r.NbControllers}).Debug("Controller added")
+		"expected":      r.NbControllers}).Debug("Controller added, awaiting handshake ACKs")
+}
 
-	if len(r.GameState.Controllers) == r.NbControllers {
-		r.NotifyActor(message.Create(nil, rulermethods.BattleStart{}, nil))
+func (r *Ruler) handleSetQueueReply(ctx actor.ReplyContext) {
+	msg := ctx.Msg.TargetMethod.(controllermethods.SetQueueReply)
+	r.RequestLogger.WithFields(logrus.Fields{
+		"ControllerID": msg.ControllerID.String()[0:8]}).Info("SetQueue Handshake ACK received")
+
+	r.SetQueueAcks[msg.ControllerID] = true
+
+	if r.allControllersAckedSetQueue() && r.isBattleReadyToStart() {
+		r.RequestLogger.Info("All handshakes complete, scheduling BattleStart")
+		r.SelfNotifyDelayed(rulermethods.BattleStart{}, 20*time.Millisecond)
 	}
+}
+
+// @spec-link [[rule_battle_readiness]]
+func (r *Ruler) isBattleReadyToStart() bool {
+	if r.GameState.Grid == nil {
+		return false
+	}
+	if len(r.GameState.Controllers) != r.NbControllers {
+		return false
+	}
+	return true
+}
+
+func (r *Ruler) allControllersAckedSetQueue() bool {
+	if len(r.SetQueueAcks) != r.NbControllers {
+		return false
+	}
+	// We check if every controller in GameState.Controllers is PRESENT in Acks
+	for id := range r.GameState.Controllers {
+		if !r.SetQueueAcks[id] {
+			return false
+		}
+	}
+	return true
+}
+
+// @spec-link [[rule_battle_readiness]]
+func (r *Ruler) isBattleReadyToExecute() bool {
+	if !r.isBattleReadyToStart() {
+		return false
+	}
+	if !r.allControllersAckedSetQueue() {
+		return false
+	}
+	if len(r.ControllerBattleReady) != r.NbControllers {
+		return false
+	}
+	return true
 }
 
 func (r *Ruler) controllerBattleReady(ctx actor.NotificationContext) {
@@ -261,7 +316,7 @@ func (r *Ruler) controllerBattleReady(ctx actor.NotificationContext) {
 	}
 
 	r.ControllerBattleReady[req.ControllerID] = true
-	if len(r.ControllerBattleReady) == r.NbControllers {
+	if r.isBattleReadyToExecute() {
 		r.GameState.IncTurn() // @spec-link [[mech_game_state_versioning]]
 		// @spec-link [[rule_turn_clock]]
 		r.startShotClock()

@@ -5,6 +5,7 @@ import (
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
 	"github.com/ecumeurs/upsilontools/tools/actor"
+	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
 )
 
@@ -26,7 +27,7 @@ func New() *Controller {
 		Assigned: false,
 	}
 
-	ctrl.AddNotificationHandler(controllermethods.SetQueue{}, ctrl.setQueue, nil)
+	ctrl.AddCallHandler(controllermethods.SetQueue{}, ctrl.setQueue, nil)
 	ctrl.AddNotificationHandler(controllermethods.Send{}, ctrl.send, nil)
 	ctrl.AddNotificationHandler(controllermethods.ReceiveAPIMessage{}, ctrl.receiveAPIMessage, nil)
 	ctrl.AddReplyHandler(controllermethods.Send{}, ctrl.sendReply, nil)
@@ -43,7 +44,7 @@ func NewController(id uuid.UUID) *Controller {
 		Assigned: false,
 	}
 
-	ctrl.AddNotificationHandler(controllermethods.SetQueue{}, ctrl.setQueue, nil)
+	ctrl.AddCallHandler(controllermethods.SetQueue{}, ctrl.setQueue, nil)
 	ctrl.AddNotificationHandler(controllermethods.Send{}, ctrl.send, nil)
 	ctrl.AddNotificationHandler(controllermethods.ReceiveAPIMessage{}, ctrl.receiveAPIMessage, nil)
 	ctrl.AddReplyHandler(controllermethods.Send{}, ctrl.sendReply, nil)
@@ -53,10 +54,11 @@ func NewController(id uuid.UUID) *Controller {
 }
 
 // @spec-link [[mech_controller_handshake]]
-func (c *Controller) setQueue(ctx actor.NotificationContext) {
+func (c *Controller) setQueue(ctx actor.CallContext) {
 	method := ctx.Msg.TargetMethod.(controllermethods.SetQueue)
 	c.Ruler = method.Ruler
 	fmt.Println("Controller: ", c.ID, " is now assigned to a player")
+	ctx.Reply(message.Create(nil, controllermethods.SetQueueReply{ControllerID: c.ID}, nil))
 }
 
 func (c *Controller) send(ctx actor.NotificationContext) {
