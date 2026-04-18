@@ -60,6 +60,9 @@ type Ruler struct {
 	ShotClockDuration time.Duration
 }
 
+// NewCompleteRuler creates a new Ruler with a complete GameState.
+// WARNING: Calling this DOES NOT start the actor. You MUST call Start() manually
+// after initial setup is complete. Failure to do so will result in an unresponsive arena.
 func NewCompleteRuler() *Ruler {
 	tools.Seed()
 	id := uuid.New()
@@ -104,6 +107,10 @@ func NewCompleteRuler() *Ruler {
 	return &r
 }
 
+// NewRuler creates a new Ruler with an empty GameState.
+// WARNING: Calling this DOES NOT start the actor. You MUST call Start() manually
+// after initial setup is complete (e.g., SetGrid, AddEntity).
+// Once Start() is called, you must never modify GameState directly again.
 func NewRuler(id uuid.UUID) *Ruler {
 	tools.Seed()
 	r := Ruler{
@@ -154,9 +161,10 @@ func (r *Ruler) init() {
 	r.AddNotificationHandler(rulermethods.ControllerTurnReady{}, r.controllerTurnReady, nil)
 	r.AddNotificationHandler(rulermethods.ControllerPassed{}, r.controllerPassed, nil)
 	r.AddCallHandler(rulermethods.ControllerForfeit{}, r.controllerForfeit, nil)
+	r.AddNotificationHandler(rulermethods.Timeout{}, r.timeout, nil)
 	r.AddNotificationHandler(actor.ActorAboutToStop{}, r.actorAboutToStop, nil)
 
-	r.Start()
+	// r.Start() REMOVED: Callers must start manually after setup.
 }
 
 func (r *Ruler) PrintStack() {
@@ -173,6 +181,13 @@ func (r *Ruler) addController(ctx actor.CallContext) {
 	if _, ok := r.GameState.Controllers[req.ControllerID]; ok {
 		r.RequestLogger.Warn("Controller already registered")
 		ctx.Reply(ctx.Msg.ReplyWithError(fmt.Sprintf("Controller %s already registered", req.ControllerID), "controller.already.registered"))
+		return
+	}
+
+	// ISS-010: Guard against starting without a grid
+	if r.GameState.Grid == nil {
+		r.RequestLogger.Error("Cannot add controller: Grid is not initialized")
+		ctx.Reply(ctx.Msg.ReplyWithError("Grid not initialized", "arena.not_ready.no_grid"))
 		return
 	}
 
@@ -636,7 +651,7 @@ func (r *Ruler) startShotClock() {
 	}
 
 	// Capture the turn index this shot clock is intended for
-	turn := r.GameState.GetTurn()
+	turn := uint32(r.GameState.GetTurn())
 
 	r.logger.WithFields(logrus.Fields{
 		"turn":    turn,
@@ -644,46 +659,41 @@ func (r *Ruler) startShotClock() {
 		"timeout": r.ShotClockDuration.String()}).Info("Starting turn shot clock")
 
 	r.shotClock = time.AfterFunc(r.ShotClockDuration, func() {
-		// Verify if the turn has changed since the timer was started
-		if r.GameState.GetTurn() != turn {
-			r.logger.WithFields(logrus.Fields{
-				"capturedTurn": turn,
-				"currentTurn":  r.GameState.GetTurn()}).Debug("Shot clock expired but turn already progressed, ignoring.")
-			return
-		}
+		// Send a notification to self to handle the timeout safely within the actor loop.
+		// @spec-link [[mech_game_state_versioning]]
+		// @spec-link [[mech_action_economy_time_constraint_rules]]
+		r.NotifyActor(message.Create(nil, rulermethods.Timeout{TurnIndex: turn}, nil))
+	})
+}
 
-		r.logger.Warn("Turn timeout detected! Forcing EndOfTurn.")
+// timeout handles the turn expiration safely within the actor loop.
+// @spec-link [[mech_game_state_versioning]]
+func (r *Ruler) timeout(ctx actor.NotificationContext) {
+	req := ctx.Msg.TargetMethod.(rulermethods.Timeout)
 
-		// Validate that the current entity still exists before sending timeout
-		// This handles the case where an entity was killed after the shot clock was started
-		currentEntityID := r.GameState.Turner.CurrentEntityTurn
-		if currentEntityID == uuid.Nil {
-			r.logger.Error("Shot clock expired but CurrentEntityTurn is nil, cannot send timeout.")
-			return
-		}
+	// Verify if the turn has changed since the timer was started (Race Prevention)
+	if uint32(r.GameState.GetTurn()) != req.TurnIndex {
+		r.logger.WithFields(logrus.Fields{
+			"capturedTurn": req.TurnIndex,
+			"currentTurn":  r.GameState.GetTurn()}).Debug("Shot clock expired but turn already progressed, ignoring.")
+		return
+	}
 
-		targetEnt, found := r.GameState.Entities[currentEntityID]
-		if !found {
-			r.logger.WithFields(logrus.Fields{
-				"entityID": currentEntityID.String()[0:8],
-			}).Error("Shot clock expired but current entity was killed, cannot send timeout.")
-			return
-		}
+	r.logger.Warn("Turn timeout detected! Forcing EndOfTurn.")
 
-		// Validate that the entity has a controller
-		if targetEnt.ControllerID == uuid.Nil {
-			r.logger.WithFields(logrus.Fields{
-				"entityID": currentEntityID.String()[0:8],
-			}).Error("Shot clock expired but current entity has no controller, cannot send timeout.")
-			return
-		}
+	// Validate that the current entity still exists
+	currentEntityID := r.GameState.Turner.CurrentEntityTurn
+	if currentEntityID == uuid.Nil {
+		return
+	}
 
-		r.SendActor(message.Create(nil, rulermethods.EndOfTurn{
-			ControllerID: targetEnt.ControllerID,
-			EntityID:     targetEnt.ID,
-			IsTimeout:    true,
-			TurnIndex:    turn,
-		}, nil), nil)
+	// Trigger end of turn as a timeout
+	r.endOfTurn(actor.CallContext{
+		Msg: message.Create(nil, rulermethods.EndOfTurn{
+			EntityID:  currentEntityID,
+			IsTimeout: true,
+			TurnIndex: uint32(r.GameState.GetTurn()),
+		}, nil),
 	})
 }
 

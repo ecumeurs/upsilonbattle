@@ -108,6 +108,9 @@ func TestRulerNextTurnSkipsDeadEntity(t *testing.T) {
 	victimID := entB.ID
 	survivorID := entC.ID
 
+	// Start the ruler actor now that initial configuration is complete.
+	r.Start()
+
 	// ── Register controllers ───────────────────────────────────────────────
 	{
 		dChan := make(chan *message.Message, 1)

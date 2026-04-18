@@ -204,6 +204,7 @@ func (c *FakeController) NoOp(ctx actor.NotificationContext) {}
 
 func TestRulerBattleBegin(t *testing.T) {
 	ruler := NewCompleteRuler()
+	ruler.Start()
 	defer ruler.Stop()
 	ctrl := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")
@@ -225,6 +226,7 @@ func TestRulerBattleBegin(t *testing.T) {
 
 func TestRulerBattleBeginNextTurn(t *testing.T) {
 	ruler := NewCompleteRuler()
+	ruler.Start()
 	defer ruler.Stop()
 	ctrl := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")
@@ -270,6 +272,7 @@ func TestRulerBattleBeginNextTurn(t *testing.T) {
 
 func TestRulerBattleBeginNextTurnFetchGridAndEntities(t *testing.T) {
 	ruler := NewCompleteRuler()
+	ruler.Start()
 	defer ruler.Stop()
 	ctrl := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")
@@ -336,6 +339,7 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 	logrus.SetOutput(os.Stdout)
 
 	ruler := NewCompleteRuler()
+	ruler.Start()
 	defer ruler.Stop()
 	ctrl := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")

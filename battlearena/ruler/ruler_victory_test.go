@@ -14,6 +14,7 @@ import (
 func TestVictoryStandardizationForfeit(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	ruler := NewCompleteRuler()
+	ruler.Start()
 	defer ruler.Stop()
 	ctrl1 := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")
@@ -44,6 +45,7 @@ func TestVictoryStandardizationForfeit(t *testing.T) {
 
 func TestVictoryStandardizationCasualties(t *testing.T) {
 	ruler := NewCompleteRuler()
+	ruler.Start()
 	defer ruler.Stop()
 	ctrl1 := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")

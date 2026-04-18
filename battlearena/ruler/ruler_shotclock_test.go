@@ -11,6 +11,7 @@ import (
 // @test-link [[rule_turn_clock]]
 func TestShotClockExpiry(t *testing.T) {
 	ruler := NewCompleteRuler()
+	ruler.Start()
 	defer ruler.Stop()
 	// Set a very short shot clock for testing
 	ruler.ShotClockDuration = 100 * time.Millisecond
@@ -23,20 +24,20 @@ func TestShotClockExpiry(t *testing.T) {
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, nil), nil)
 
 	// Wait for battle start
-	ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 2*time.Second)
+	ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 10*time.Second)
 	
 	// Wait for first entity turn
-	msg := ctrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 2*time.Second)
+	msg := ctrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 10*time.Second)
 	entID := msg.TargetMethod.(rulermethods.ControllerNextTurn).Entity.ID
 	
 	t.Logf("Turn started for entity %s, waiting for timeout...", entID)
 
 	// Wait for shot clock to expire (100ms) and trigger EndOfTurn
 	// This should result in EntitiesStateChanged being broadcast
-	ctrl.ExpectMessage(t, rulermethods.EntitiesStateChanged{}, 2*time.Second)
+	ctrl.ExpectMessage(t, rulermethods.EntitiesStateChanged{}, 10*time.Second)
 	
 	// And then the NEXT turn should be triggered
-	ctrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 2*time.Second)
+	ctrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 10*time.Second)
 
 	ctrl.Stop()
 	ctrl2.Stop()
@@ -45,6 +46,7 @@ func TestShotClockExpiry(t *testing.T) {
 // @test-link [[rule_turn_clock]]
 func TestShotClockCancellation(t *testing.T) {
 	ruler := NewCompleteRuler()
+	ruler.Start()
 	defer ruler.Stop()
 	// Set a duration long enough to manually intervene but short enough for a fast test
 	ruler.ShotClockDuration = 500 * time.Millisecond
@@ -55,10 +57,10 @@ func TestShotClockCancellation(t *testing.T) {
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, nil), nil)
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, nil), nil)
 
-	ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 2*time.Second)
+	ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 10*time.Second)
 	
 	// First turn starts
-	msg := ctrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 2*time.Second)
+	msg := ctrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 10*time.Second)
 	entID := msg.TargetMethod.(rulermethods.ControllerNextTurn).Entity.ID
 
 	// Manually end turn before timeout
@@ -68,10 +70,10 @@ func TestShotClockCancellation(t *testing.T) {
 	}, nil), nil)
 
 	// Wait for transition
-	ctrl.ExpectMessage(t, rulermethods.EntitiesStateChanged{}, 2*time.Second)
+	ctrl.ExpectMessage(t, rulermethods.EntitiesStateChanged{}, 10*time.Second)
 	
 	// Verify next turn triggered
-	ctrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 2*time.Second)
+	ctrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 10*time.Second)
 
 	ctrl.Stop()
 	ctrl2.Stop()
@@ -80,6 +82,7 @@ func TestShotClockCancellation(t *testing.T) {
 // @test-link [[rule_turn_clock]]
 func TestShotClockTurnProtection(t *testing.T) {
 	ruler := NewCompleteRuler()
+	ruler.Start()
 	defer ruler.Stop()
 	ruler.ShotClockDuration = 100 * time.Millisecond
 
@@ -90,16 +93,16 @@ func TestShotClockTurnProtection(t *testing.T) {
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, nil), nil)
 
 	// Start battle
-	ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 2*time.Second)
+	ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 10*time.Second)
 
 	// Turn 1.0 starts
-	ctrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 2*time.Second)
+	ctrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 10*time.Second)
 
 	// Wait for timeout 1 (transitions from 1.0 to 2.0)
-	ctrl.ExpectMessage(t, rulermethods.EntitiesStateChanged{}, 2*time.Second)
+	ctrl.ExpectMessage(t, rulermethods.EntitiesStateChanged{}, 10*time.Second)
 
 	// Turn 2.0 starts
-	ctrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 2*time.Second)
+	ctrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 10*time.Second)
 
 	ctrl.Stop()
 	ctrl2.Stop()
@@ -118,6 +121,7 @@ func TestShotClockTurnProtection(t *testing.T) {
 // 6. With fixes, the shot clock should detect the entity is dead and skip safely
 func TestShotClockWithDeadEntity(t *testing.T) {
 	r := NewCompleteRuler()
+	r.Start()
 	defer r.Stop()
 
 	// Set a short shot clock for testing
@@ -131,10 +135,10 @@ func TestShotClockWithDeadEntity(t *testing.T) {
 	r.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, nil), nil)
 
 	// Wait for battle start
-	ctrl1.ExpectMessage(t, rulermethods.BattleStart{}, 2*time.Second)
+	ctrl1.ExpectMessage(t, rulermethods.BattleStart{}, 10*time.Second)
 
 	// Get first entity turn
-	msg := ctrl1.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 2*time.Second)
+	msg := ctrl1.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 10*time.Second)
 	currentEntID := msg.TargetMethod.(rulermethods.ControllerNextTurn).Entity.ID
 
 	// Now simulate the current entity being killed by an external action

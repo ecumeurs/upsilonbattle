@@ -79,6 +79,13 @@ type ControllerForfeit struct {
 	EntityID     uuid.UUID
 }
 
+// Timeout is an internal notification triggered by the ShotClock.
+// @spec-link [[api_ruler_methods]]
+type Timeout struct {
+	TurnIndex uint32
+	actor.NoReply
+}
+
 // Output struct (often found in Content!)
 // need to standardize this ...
 

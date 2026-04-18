@@ -12,6 +12,7 @@ import (
 
 func TestRulerForfeitTriggersWinnerID(t *testing.T) {
 	ruler := NewCompleteRuler()
+	ruler.Start()
 	ctrl1 := NewFake("P1")
 	ctrl2 := NewFake("P2")
 

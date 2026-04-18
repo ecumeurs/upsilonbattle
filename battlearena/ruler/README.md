@@ -15,13 +15,18 @@ The game state contains a simple enum that can be one of the following:
 * `InProgress`: the game is still in progress, no one has won yet.
 * `Finished`: the game is finished, someone has won.
 
-The first state `WaitingForControllers` is the default state, and it's the one that the game starts with. The game will automatically transition to the `InProgress` state when all controllers have been added to the game. The game will automatically transition to the `Finished` state when the game is over.
-
-During the first state, the game will only accept new controller joining the game, and refuse any command received.
-During the second state, the game will accept command received from controllers, and will process them. Although it will only accept commands on the behalf of the current entity whose turn it is.
-During the third state, the game will refuse any further command received, except to retrieve the winner of the game and the endgame state.
-
 The Ruler also is in possession of the Grid data and Entities living within.
+
+## Lifecycle & Synchronization (Race Prevention)
+
+To prevent data races and ensure consistent state, the Ruler follows a strict **Delayed Start** lifecycle:
+
+1. **Setup Phase (Actor Stopped):** Creators (e.g., `ArenaBridge`) instantiate the Ruler via `NewRuler`. At this stage, the actor loop is **not running**. It is safe to directly configure the `GameState` (SetGrid, AddEntity, etc.) because no concurrent access exists.
+2. **Activation:** Once initial configuration is complete, the creator MUST call `.Start()`.
+3. **True Ownership Phase (Actor Running):** After `Start()`, the Ruler takes exclusive "True Ownership" of the `GameState`. **Direct pointer mutation of GameState is strictly prohibited** from this moment onwards. All interactions must occur via the `actor` message queue.
+4. **Readiness Guard:** The Ruler implements safety guards (ISS-010). For example, `AddController` will reject registration if the `Grid` is not fully initialized, preventing invalid battle states.
+
+[See ATD: domain_ruler_state] for architectural details.
 
 It will be the responsibility of the master controller to remove this module from the memory.
 

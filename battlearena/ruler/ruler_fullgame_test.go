@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllers"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
@@ -20,6 +19,7 @@ func TestRulerControllerFullGame(t *testing.T) {
 	logrus.SetOutput(os.Stdout)
 
 	ruler := NewCompleteRuler()
+	ruler.Start()
 	defer ruler.Stop()
 	ctrl := controllers.NewRdAggressiveController("Fake1")
 	ctrl2 := controllers.NewRdAggressiveController("Fake2")
@@ -33,14 +33,6 @@ func TestRulerControllerFullGame(t *testing.T) {
 			ControllerID: ctrl.ID,
 		}, nil), dChan)
 		<-dChan
-
-		// Set TeamID for all entities of ctrl
-		for id, ent := range ruler.GameState.Entities {
-			if ent.ControllerID == ctrl.ID {
-				ent.RepsertPropertyValue(property.TeamID, 1)
-				ruler.GameState.Entities[id] = ent
-			}
-		}
 	}
 	{
 		dChan := make(chan *message.Message, 1)
@@ -49,14 +41,6 @@ func TestRulerControllerFullGame(t *testing.T) {
 			ControllerID: ctrl2.ID,
 		}, nil), dChan)
 		<-dChan
-
-		// Set TeamID for all entities of ctrl2
-		for id, ent := range ruler.GameState.Entities {
-			if ent.ControllerID == ctrl2.ID {
-				ent.RepsertPropertyValue(property.TeamID, 2)
-				ruler.GameState.Entities[id] = ent
-			}
-		}
 	}
 
 	select {
