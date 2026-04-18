@@ -139,6 +139,14 @@ func (r *Ruler) SetGrid(g *grid.Grid) {
 
 func (r *Ruler) AddEntity(e entity.Entity) {
 	e.CurrentDelay = tools.NewIntRange(1000, 1500).Random()
+
+	// ISS-047: Guard against nil grid during initialization races or misconfiguration
+	if r.GameState.Grid == nil {
+		r.logger.WithFields(logrus.Fields{
+			"entityID": e.ID.String()[0:8]}).Error("Cannot add entity: Grid is not initialized. Ensure SetGrid is called before AddEntity.")
+		return
+	}
+
 	e.Position = r.GameState.Grid.RandomPosition()
 	r.GameState.Grid.MoveEntity(position.New(0, 0, 0), e.Position, e.ID)
 	r.GameState.Entities[e.ID] = e
@@ -687,12 +695,18 @@ func (r *Ruler) timeout(ctx actor.NotificationContext) {
 		return
 	}
 
+	ent, found := r.GameState.Entities[currentEntityID]
+	if !found {
+		return
+	}
+
 	// Trigger end of turn as a timeout
 	r.endOfTurn(actor.CallContext{
 		Msg: message.Create(nil, rulermethods.EndOfTurn{
-			EntityID:  currentEntityID,
-			IsTimeout: true,
-			TurnIndex: uint32(r.GameState.GetTurn()),
+			ControllerID: ent.ControllerID,
+			EntityID:     currentEntityID,
+			IsTimeout:    true,
+			TurnIndex:    uint32(r.GameState.GetTurn()),
 		}, nil),
 	})
 }

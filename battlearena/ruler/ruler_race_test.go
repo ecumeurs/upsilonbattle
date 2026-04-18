@@ -9,7 +9,6 @@ import (
 	"github.com/ecumeurs/upsilonmapmaker/gridgenerator"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 )
 
 // TestShotClockRace highlights the race condition in startShotClock (ISS-047)
@@ -40,12 +39,13 @@ func TestInitRace(t *testing.T) {
 		r := NewRuler(id)
 		// r.Start() // Uncomment this to see the race condition once setup is no longer sacrosanct
 		
-		// These calls happen while the Ruler actor loop is already running
-		// and potentially accessing the same fields.
-		go r.SetGrid(gridgenerator.GeneratePlainSquare(10, 10))
-		go r.SetNbControllers(2)
-		go r.AddEntity(entity.Entity{ID: uuid.New()})
+		// These calls happen before the Ruler actor loop is started.
+		// Following commit 488bca1, setup is done synchronously.
+		r.SetGrid(gridgenerator.GeneratePlainSquare(10, 10))
+		r.SetNbControllers(2)
+		r.AddEntity(entity.Entity{ID: uuid.New()})
 		
+		r.Start()
 		r.Stop()
 	}
 }
@@ -77,10 +77,13 @@ func TestStartArenaWithoutGrid(t *testing.T) {
 	
 	// 3. Wait for BattleStart.
 	// In a FIXED version, this should NOT be received because Grid is nil.
-	// In the CURRENT version, it might be received, leading to downstream panics.
-	msg := ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 5*time.Second)
-	assert.NotNil(t, msg, "Battle should NOT have started without a grid (ISS-010 failure)")
-	
-	// If we reach here, the battle started without a grid. 
-	// This confirms the readiness logic is too permissive.
+	timeout := time.After(2 * time.Second)
+	select {
+	case msg := <-ctrl.Inbox:
+		if _, ok := msg.TargetMethod.(rulermethods.BattleStart); ok {
+			t.Fatal("Battle should NOT have started without a grid (ISS-010 failure)")
+		}
+	case <-timeout:
+		// Success: No BattleStart message received
+	}
 }
