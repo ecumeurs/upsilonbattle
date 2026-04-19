@@ -9,6 +9,7 @@ import (
 
 // @spec-link [[mech_initiative]]
 // @spec-link [[mech_action_economy]]
+// @spec-link [[mech_initiative_delay_costs]]
 type EntityTurn struct {
 	EntityId uuid.UUID
 	Delay    int
@@ -96,6 +97,7 @@ func (t *Turner) RemoveEntity(EntityId uuid.UUID) {
 }
 
 func (t *Turner) NextTurn() uuid.UUID {
+	// @spec-link [[mech_initiative_requeue_calculation]]
 	if len(t.Turns) == 0 {
 		return uuid.Nil
 	}

@@ -263,6 +263,7 @@ func (bh *RangeProperty) Duplicate() property.Property {
 
 // Zone         TargetingProperties = "Zone"  // Area of Effect
 // ZoneProperty expects to be casted to be used.
+// @spec-link [[mech_actor_pattern]]
 type ZoneProperty struct {
 	property.Property
 	ZonePattern pattern.Pattern

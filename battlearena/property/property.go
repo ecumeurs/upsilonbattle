@@ -9,6 +9,7 @@ type PropertyType int
 const (
 	None      PropertyType = 0
 	Character PropertyType = 1
+	// @spec-link [[mech_entity_properties_skill_properties]]
 	Skill     PropertyType = 2
 	Item      PropertyType = 3
 )
