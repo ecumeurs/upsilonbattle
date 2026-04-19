@@ -20,6 +20,17 @@ func TestShotClockExpiry(t *testing.T) {
 
 	// Setup controllers
 	dChan := make(chan *message.Message, 1)
+	// Manually assign entities to controllers to ensure win conditions/timeouts work
+	i := 0
+	for id, e := range ruler.GameState.Entities {
+		if i == 0 {
+			e.ControllerID = ctrl.ID
+		} else {
+			e.ControllerID = ctrl2.ID
+		}
+		ruler.GameState.Entities[id] = e
+		i++
+	}
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan)
 	<-dChan
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan)
@@ -61,6 +72,17 @@ func TestShotClockCancellation(t *testing.T) {
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan)
 	<-dChan
 
+	// Manually assign entities to controllers
+	i := 0
+	for id, e := range ruler.GameState.Entities {
+		if i == 0 {
+			e.ControllerID = ctrl.ID
+		} else {
+			e.ControllerID = ctrl2.ID
+		}
+		ruler.GameState.Entities[id] = e
+		i++
+	}
 	ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 10*time.Second)
 	
 	// First turn starts
@@ -102,6 +124,17 @@ func TestShotClockTurnProtection(t *testing.T) {
 
 	// Start battle
 	ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 10*time.Second)
+	// Manually assign entities to controllers
+	i := 0
+	for id, e := range ruler.GameState.Entities {
+		if i == 0 {
+			e.ControllerID = ctrl.ID
+		} else {
+			e.ControllerID = ctrl2.ID
+		}
+		ruler.GameState.Entities[id] = e
+		i++
+	}
 
 	// Turn 1.0 starts
 	ctrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 10*time.Second)
@@ -147,6 +180,17 @@ func TestShotClockWithDeadEntity(t *testing.T) {
 
 	// Wait for battle start
 	ctrl1.ExpectMessage(t, rulermethods.BattleStart{}, 10*time.Second)
+	// Manually assign entities to controllers
+	i := 0
+	for id, e := range r.GameState.Entities {
+		if i == 0 {
+			e.ControllerID = ctrl1.ID
+		} else {
+			e.ControllerID = ctrl2.ID
+		}
+		r.GameState.Entities[id] = e
+		i++
+	}
 
 	// Get first entity turn
 	msg := ctrl1.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 10*time.Second)

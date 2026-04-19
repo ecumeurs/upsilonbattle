@@ -98,6 +98,13 @@ func NewCompleteRuler() *Ruler {
 		e := entitygenerator.GenerateRandomEntity()
 		e.Type = entity.Character
 		e.Name = fmt.Sprintf("Entity %d", i)
+		// Assign TeamID (1 for first half, 2 for second half)
+		teamID := 1
+		if i >= r.NbEntitiesPerController {
+			teamID = 2
+		}
+		e.RepsertPropertyValue(property.TeamID, teamID)
+		
 		e.CurrentDelay = tools.NewIntRange(1000, 2000).Random()
 		e.Position = r.GameState.Grid.RandomPosition()
 		r.GameState.Grid.MoveEntity(position.New(0, 0, 0), e.Position, e.ID)

@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/sirupsen/logrus"
@@ -20,6 +21,20 @@ func TestVictoryStandardizationForfeit(t *testing.T) {
 	ctrl2 := NewFake("Fake2")
 	defer ctrl1.Stop()
 	defer ctrl2.Stop()
+
+	// Manually assign entities to controllers to ensure win conditions work in 4x4 grid
+	i := 0
+	for id, e := range ruler.GameState.Entities {
+		if i == 0 {
+			e.ControllerID = ctrl1.ID
+			e.RepsertPropertyValue(property.TeamID, 1)
+		} else {
+			e.ControllerID = ctrl2.ID
+			e.RepsertPropertyValue(property.TeamID, 2)
+		}
+		ruler.GameState.Entities[id] = e
+		i++
+	}
 
 	dChan := make(chan *message.Message, 1)
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl1, ControllerID: ctrl1.ID}, rulermethods.AddControllerReply{}), dChan)

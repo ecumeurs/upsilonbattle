@@ -112,4 +112,4 @@ message the ruler expect to receive and struct he will respond with. It also can
 
 [Ruler Tests](battlearena/ruler/ruler_fullgame_test.go) This is the most appropriate test as of now. (valid v0.0.2)
 
-[Lesser Ruler Tests](battlearena/ruler/ruler_test.go) This is probably broken.
+[Lesser Ruler Tests](battlearena/ruler/ruler_test.go) Stabilized and verified (v0.0.4)
