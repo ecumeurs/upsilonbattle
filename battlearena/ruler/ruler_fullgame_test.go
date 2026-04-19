@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllers"
+	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
@@ -25,6 +26,20 @@ func TestRulerControllerFullGame(t *testing.T) {
 	ctrl2 := controllers.NewRdAggressiveController("Fake2")
 	ctrl.Start()
 	ctrl2.Start()
+
+	// Manually assign entities as per modern usage
+	i := 0
+	for id, e := range ruler.GameState.Entities {
+		if i == 0 {
+			e.ControllerID = ctrl.ID
+			e.RepsertPropertyValue(property.TeamID, 1)
+		} else {
+			e.ControllerID = ctrl2.ID
+			e.RepsertPropertyValue(property.TeamID, 2)
+		}
+		ruler.GameState.Entities[id] = e
+		i++
+	}
 
 	{
 		dChan := make(chan *message.Message, 1)

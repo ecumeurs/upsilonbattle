@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
@@ -15,6 +16,20 @@ func TestRulerForfeitTriggersWinnerID(t *testing.T) {
 	ruler.Start()
 	ctrl1 := NewFake("P1")
 	ctrl2 := NewFake("P2")
+
+	// Manually assign entities as per modern usage
+	i := 0
+	for id, e := range ruler.GameState.Entities {
+		if i == 0 {
+			e.ControllerID = ctrl1.ID
+			e.RepsertPropertyValue(property.TeamID, 1)
+		} else {
+			e.ControllerID = ctrl2.ID
+			e.RepsertPropertyValue(property.TeamID, 2)
+		}
+		ruler.GameState.Entities[id] = e
+		i++
+	}
 
 	// 1. Join controllers
 	dChan := make(chan *message.Message, 1)

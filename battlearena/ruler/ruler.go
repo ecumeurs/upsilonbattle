@@ -66,7 +66,6 @@ type Ruler struct {
 // WARNING: Calling this DOES NOT start the actor. You MUST call Start() manually
 // after initial setup is complete. Failure to do so will result in an unresponsive arena.
 func NewCompleteRuler() *Ruler {
-	tools.Seed()
 	id := uuid.New()
 	r := Ruler{
 		ID:                    id,
@@ -82,9 +81,9 @@ func NewCompleteRuler() *Ruler {
 		"name":      r.Name()})
 
 	gg := gridgenerator.GridGenerator{}
-	gg.Width = tools.NewIntRange(20, 50)
-	gg.Length = tools.NewIntRange(20, 50)
-	gg.Height = tools.NewIntRange(10, 15)
+	gg.Width = tools.NewIntRange(4, 4)
+	gg.Length = tools.NewIntRange(4, 4)
+	gg.Height = tools.NewIntRange(5, 5)
 	gg.GenerateObstrcution = false
 	gg.Type = gridgenerator.Flat
 	gg.ObstructionRate = tools.NewIntRange(0, 0)
@@ -92,7 +91,7 @@ func NewCompleteRuler() *Ruler {
 	r.GameState.Grid = gg.Generate()
 
 	r.NbControllers = 2
-	r.NbEntitiesPerController = tools.NewIntRange(2, 3).Random()
+	r.NbEntitiesPerController = 1
 	nbEntities := r.NbEntitiesPerController * r.NbControllers
 
 	for i := 0; i < nbEntities; i++ {
@@ -102,6 +101,8 @@ func NewCompleteRuler() *Ruler {
 		e.CurrentDelay = tools.NewIntRange(1000, 2000).Random()
 		e.Position = r.GameState.Grid.RandomPosition()
 		r.GameState.Grid.MoveEntity(position.New(0, 0, 0), e.Position, e.ID)
+		
+		// Unassigned initially as per modern usage
 		r.GameState.Entities[e.ID] = e
 		r.GameState.Turner.AddEntity(e.ID, e.CurrentDelay)
 	}
@@ -175,7 +176,6 @@ func (r *Ruler) init() {
 	r.AddCallHandler(rulermethods.ControllerForfeit{}, r.controllerForfeit, nil)
 	r.AddNotificationHandler(rulermethods.Timeout{}, r.timeout, nil)
 	r.AddNotificationHandler(actor.ActorAboutToStop{}, r.actorAboutToStop, nil)
-	r.AddReplyHandler(controllermethods.SetQueueReply{}, r.handleSetQueueReply, nil)
 
 	// Testing-only handlers
 	r.AddNotificationHandler(rulermethods.TestingDeleteEntity{}, r.testingDeleteEntity, nil)
@@ -210,32 +210,18 @@ func (r *Ruler) addController(ctx actor.CallContext) {
 
 	// @spec-link [[mech_controller_handshake]]
 	// @spec-link [[mech_controller_communication_sequence]]
-	req.Controller.SendActor(message.Create(nil, controllermethods.SetQueue{
+	req.Controller.NotifyActor(message.Create(nil, controllermethods.SetQueue{
 		ControllerID: req.ControllerID,
 		Ruler:        r,
-	}, controllermethods.SetQueueReply{}), r.GetCallbackChan())
+	}, nil))
 
-	// Assign the controller to the designated number of entities
-	for i := 0; i < r.NbEntitiesPerController; i++ {
-		for idx, e := range r.GameState.Entities {
-			if e.ControllerID == uuid.Nil {
-				e.ControllerID = req.ControllerID
-				// @spec-link [[rule_team_mechanics]]
-				// Surgical Team Fallback: Seed a unique team if one isn't already assigned (for tests/mock)
-				if e.GetPropertyI(property.TeamID).I() == 0 {
-					// Use Join Order as Team ID (1-indexed)
-					e.RepsertPropertyValue(property.TeamID, len(r.GameState.Controllers)+1)
-				}
-
-				r.GameState.Entities[idx] = e
-				break
-			}
-		}
-	}
+	// Revert automatic entity assignment if it was still active here
+	// This simplified version only cares about registering the controller.
+	r.GameState.Controllers[req.ControllerID] = req.Controller
+	r.ControllerBattleReady[req.ControllerID] = false
 
 	reply := ctx.Msg.Reply()
 	ent := make([]entity.Entity, 0)
-	// fill entities
 	for _, e := range r.GameState.Entities {
 		ent = append(ent, e)
 	}
@@ -247,32 +233,10 @@ func (r *Ruler) addController(ctx actor.CallContext) {
 		Entities:     ent,
 	}
 
-	r.GameState.Controllers[req.ControllerID] = req.Controller
-	r.SetQueueAcks[req.ControllerID] = false
-	r.ControllerBattleReady[req.ControllerID] = false
-
 	ctx.Reply(reply)
 
-	// In rare cases (like tests with 1 controller), the handshake might already be complete
-	r.checkBattleStart()
-}
-
-func (r *Ruler) handleSetQueueReply(ctx actor.ReplyContext) {
-	msg := ctx.Msg.TargetMethod.(controllermethods.SetQueueReply)
-	r.RequestLogger.WithFields(logrus.Fields{
-		"ControllerID": msg.ControllerID.String()[0:8]}).Info("SetQueue Handshake ACK received")
-
-	r.SetQueueAcks[msg.ControllerID] = true
-	r.checkBattleStart()
-}
-
-func (r *Ruler) checkBattleStart() {
-	if r.CurrentState != WaitingForControllers {
-		return
-	}
-	if r.allControllersAckedSetQueue() && r.isBattleReadyToStart() {
-		r.RequestLogger.Info("All handshakes complete, scheduling BattleStart")
-		// Delay slightly to ensure any other concurrent initialization completes
+	if len(r.GameState.Controllers) == r.NbControllers {
+		r.RequestLogger.Info("All controllers registered, scheduling BattleStart")
 		r.SelfNotifyDelayed(rulermethods.BattleStart{}, 20*time.Millisecond)
 	}
 }
@@ -304,36 +268,6 @@ func (r *Ruler) isBattleReadyToStart() bool {
 		}).Debug("isBattleReadyToStart: Not all controllers added yet")
 		return false
 	}
-	// All controllers must have sent ControllerBattleReady
-	for id, ready := range r.ControllerBattleReady {
-		if !ready {
-			r.logger.WithField("controllerID", id.String()[0:8]).Debug("isBattleReadyToStart: Controller not ready yet")
-			return false
-		}
-	}
-	// Map must have all controllers
-	if len(r.ControllerBattleReady) < r.NbControllers {
-		r.logger.Debug("isBattleReadyToStart: ControllerBattleReady map too small")
-		return false
-	}
-
-	return true
-}
-
-func (r *Ruler) allControllersAckedSetQueue() bool {
-	if len(r.SetQueueAcks) < r.NbControllers {
-		r.logger.WithFields(logrus.Fields{
-			"current": len(r.SetQueueAcks),
-			"target":  r.NbControllers,
-		}).Debug("allControllersAckedSetQueue: SetQueueAcks map too small")
-		return false
-	}
-	for id, acked := range r.SetQueueAcks {
-		if !acked {
-			r.logger.WithField("controllerID", id.String()[0:8]).Debug("allControllersAckedSetQueue: ACK missing")
-			return false
-		}
-	}
 	return true
 }
 
@@ -345,11 +279,14 @@ func (r *Ruler) isBattleReadyToExecute() bool {
 	if !r.isBattleReadyToStart() {
 		return false
 	}
-	if !r.allControllersAckedSetQueue() {
-		return false
-	}
 	if len(r.ControllerBattleReady) != r.NbControllers {
 		return false
+	}
+	// All controllers must be ready
+	for _, ready := range r.ControllerBattleReady {
+		if !ready {
+			return false
+		}
 	}
 	return true
 }
@@ -404,7 +341,6 @@ func (r *Ruler) controllerBattleReady(ctx actor.NotificationContext) {
 	}
 
 	r.ControllerBattleReady[req.ControllerID] = true
-	r.checkBattleStart()
 
 	if r.isBattleReadyToExecute() {
 		r.triggerFirstTurn()

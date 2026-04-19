@@ -35,6 +35,7 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
+	"github.com/ecumeurs/upsilontools/tools"
 	"github.com/ecumeurs/upsilontools/tools/actor"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
@@ -46,6 +47,7 @@ func init() {
 		FullTimestamp: true,
 	})
 	logrus.SetLevel(logrus.InfoLevel)
+	tools.SeedWith(42)
 }
 
 type FakeController struct {
@@ -69,7 +71,7 @@ func NewFake(name string) *FakeController {
 		battleready:   false,
 	}
 
-	ctrl.AddCallHandler(controllermethods.SetQueue{}, ctrl.SetQueue, nil)
+	ctrl.AddNotificationHandler(controllermethods.SetQueue{}, ctrl.SetQueue, nil)
 	ctrl.AddNotificationHandler(controllermethods.Send{}, ctrl.Send, nil)
 	ctrl.AddNotificationHandler(controllermethods.ReceiveAPIMessage{}, ctrl.ReceiveAPIMessage, nil)
 	ctrl.AddNotificationHandler(rulermethods.ControllerNextTurn{}, ctrl.ControllerNextTurn, nil)
@@ -140,14 +142,13 @@ func (c *FakeController) triggerStopper(msg *message.Message) {
 	c.Inbox <- msg
 }
 
-func (c *FakeController) SetQueue(ctx actor.CallContext) {
+func (c *FakeController) SetQueue(ctx actor.NotificationContext) {
 	c.triggerStopper(ctx.Msg)
 	m := ctx.Msg.TargetMethod.(controllermethods.SetQueue)
 	c.ID = m.ControllerID
 	c.ruler = m.Ruler
 	c.ruler.SendActor(message.Create(nil, rulermethods.GetGridState{}, rulermethods.GetGridStateReply{}), c.GetCallbackChan())
 	c.ruler.SendActor(message.Create(nil, rulermethods.GetEntitiesState{}, rulermethods.GetEntitiesStateReply{}), c.GetCallbackChan())
-	ctx.Reply(message.Create(nil, controllermethods.SetQueueReply{ControllerID: c.ID}, nil))
 }
 
 func (c *FakeController) Send(ctx actor.NotificationContext) {
@@ -230,6 +231,18 @@ func TestRulerBattleBegin(t *testing.T) {
 	ctrl := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")
 
+	// Manually assign entities as per modern usage
+	i := 0
+	for id, e := range ruler.GameState.Entities {
+		if i == 0 {
+			e.ControllerID = ctrl.ID
+		} else {
+			e.ControllerID = ctrl2.ID
+		}
+		ruler.GameState.Entities[id] = e
+		i++
+	}
+
 	dChan1 := make(chan *message.Message, 1)
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan1)
 	<-dChan1
@@ -251,6 +264,18 @@ func TestRulerBattleBeginNextTurn(t *testing.T) {
 	defer ruler.Stop()
 	ctrl := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")
+
+	// Manually assign entities
+	i := 0
+	for id, e := range ruler.GameState.Entities {
+		if i == 0 {
+			e.ControllerID = ctrl.ID
+		} else {
+			e.ControllerID = ctrl2.ID
+		}
+		ruler.GameState.Entities[id] = e
+		i++
+	}
 
 	dChan1 := make(chan *message.Message, 1)
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan1)
@@ -297,6 +322,18 @@ func TestRulerBattleBeginNextTurnFetchGridAndEntities(t *testing.T) {
 	defer ruler.Stop()
 	ctrl := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")
+
+	// Manually assign entities
+	i := 0
+	for id, e := range ruler.GameState.Entities {
+		if i == 0 {
+			e.ControllerID = ctrl.ID
+		} else {
+			e.ControllerID = ctrl2.ID
+		}
+		ruler.GameState.Entities[id] = e
+		i++
+	}
 
 	dChan1 := make(chan *message.Message, 1)
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan1)
@@ -360,6 +397,18 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 	defer ruler.Stop()
 	ctrl := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")
+
+	// Manually assign entities
+	i := 0
+	for id, e := range ruler.GameState.Entities {
+		if i == 0 {
+			e.ControllerID = ctrl.ID
+		} else {
+			e.ControllerID = ctrl2.ID
+		}
+		ruler.GameState.Entities[id] = e
+		i++
+	}
 
 	dChan := make(chan *message.Message, 1)
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan)
