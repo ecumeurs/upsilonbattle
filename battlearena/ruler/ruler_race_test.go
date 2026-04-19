@@ -70,10 +70,12 @@ func TestStartArenaWithoutGrid(t *testing.T) {
 	defer ctrl.Stop()
 	
 	// 2. Add the controller. This should trigger BattleStart if NbControllers is reached.
+	dChan := make(chan *message.Message, 1)
 	r.SendActor(message.Create(nil, rulermethods.AddController{
 		Controller:   ctrl,
 		ControllerID: pID,
-	}, nil), nil)
+	}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
 	
 	// 3. Wait for BattleStart.
 	// In a FIXED version, this should NOT be received because Grid is nil.

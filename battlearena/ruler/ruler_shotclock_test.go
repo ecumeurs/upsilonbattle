@@ -11,17 +11,19 @@ import (
 // @test-link [[rule_turn_clock]]
 func TestShotClockExpiry(t *testing.T) {
 	ruler := NewCompleteRuler()
+	ruler.ShotClockDuration = 100 * time.Millisecond
 	ruler.Start()
 	defer ruler.Stop()
-	// Set a very short shot clock for testing
-	ruler.ShotClockDuration = 100 * time.Millisecond
 	
 	ctrl := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")
 
 	// Setup controllers
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, nil), nil)
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, nil), nil)
+	dChan := make(chan *message.Message, 1)
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
 
 	// Wait for battle start
 	ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 10*time.Second)
@@ -46,16 +48,18 @@ func TestShotClockExpiry(t *testing.T) {
 // @test-link [[rule_turn_clock]]
 func TestShotClockCancellation(t *testing.T) {
 	ruler := NewCompleteRuler()
+	ruler.ShotClockDuration = 500 * time.Millisecond
 	ruler.Start()
 	defer ruler.Stop()
-	// Set a duration long enough to manually intervene but short enough for a fast test
-	ruler.ShotClockDuration = 500 * time.Millisecond
 	
 	ctrl := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")
 
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, nil), nil)
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, nil), nil)
+	dChan := make(chan *message.Message, 1)
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
 
 	ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 10*time.Second)
 	
@@ -67,7 +71,8 @@ func TestShotClockCancellation(t *testing.T) {
 	ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
 		ControllerID: ctrl.ID,
 		EntityID:     entID,
-	}, nil), nil)
+	}, rulermethods.EndOfTurn{}), dChan)
+	<-dChan
 
 	// Wait for transition
 	ctrl.ExpectMessage(t, rulermethods.EntitiesStateChanged{}, 10*time.Second)
@@ -82,15 +87,18 @@ func TestShotClockCancellation(t *testing.T) {
 // @test-link [[rule_turn_clock]]
 func TestShotClockTurnProtection(t *testing.T) {
 	ruler := NewCompleteRuler()
+	ruler.ShotClockDuration = 100 * time.Millisecond
 	ruler.Start()
 	defer ruler.Stop()
-	ruler.ShotClockDuration = 100 * time.Millisecond
 
 	ctrl := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")
 
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, nil), nil)
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, nil), nil)
+	dChan := make(chan *message.Message, 1)
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
 
 	// Start battle
 	ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 10*time.Second)
@@ -131,8 +139,11 @@ func TestShotClockWithDeadEntity(t *testing.T) {
 	ctrl2 := NewFake("Controller2")
 
 	// Setup controllers
-	r.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl1, ControllerID: ctrl1.ID}, nil), nil)
-	r.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, nil), nil)
+	dChan := make(chan *message.Message, 1)
+	r.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl1, ControllerID: ctrl1.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
+	r.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
 
 	// Wait for battle start
 	ctrl1.ExpectMessage(t, rulermethods.BattleStart{}, 10*time.Second)
@@ -144,11 +155,18 @@ func TestShotClockWithDeadEntity(t *testing.T) {
 	// Now simulate the current entity being killed by an external action
 	// This tests the scenario where an entity dies after the shot clock has started
 	// but before it fires
-	delete(r.GameState.Entities, currentEntID)
-	r.GameState.Turner.RemoveEntity(currentEntID)
+	r.NotifyActor(message.Create(nil, rulermethods.TestingDeleteEntity{EntityID: currentEntID}, nil))
+
+	// Allow some time for the removal notification to be processed on the actor thread
+	time.Sleep(50 * time.Millisecond)
 
 	// Verify CurrentEntityTurn was cleared when the entity was removed
-	if r.GameState.Turner.CurrentEntityTurn == currentEntID {
+	// We use TestingGetState to avoid data races
+	replyChan := make(chan *message.Message, 1)
+	r.SendActor(message.Create(nil, rulermethods.TestingGetState{}, rulermethods.TestingGetStateReply{}), replyChan)
+	replyMsg := <-replyChan
+	
+	if replyMsg.TargetMethod.(rulermethods.TestingGetStateReply).CurrentEntityTurn == currentEntID {
 		t.Fatal("CurrentEntityTurn should have been cleared when the entity was removed")
 	}
 

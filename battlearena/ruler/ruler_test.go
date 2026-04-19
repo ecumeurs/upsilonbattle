@@ -27,7 +27,6 @@ race conditions or sleep timers.
 package ruler
 
 import (
-	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -42,14 +41,23 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func init() {
+	logrus.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp: true,
+	})
+	logrus.SetLevel(logrus.InfoLevel)
+}
+
 type FakeController struct {
 	*actor.Actor
-	ID            uuid.UUID
-	Inbox         chan *message.Message
-	History       []*message.Message
-	KnownEntities map[uuid.UUID]entity.Entity
-	ruler         actor.Communication
-	battleready   bool
+	ID               uuid.UUID
+	Inbox            chan *message.Message
+	History          []*message.Message
+	KnownEntities    map[uuid.UUID]entity.Entity
+	ruler            actor.Communication
+	battleready      bool
+	receivedGrid     bool
+	receivedEntities bool
 }
 
 func NewFake(name string) *FakeController {
@@ -61,7 +69,7 @@ func NewFake(name string) *FakeController {
 		battleready:   false,
 	}
 
-	ctrl.AddNotificationHandler(controllermethods.SetQueue{}, ctrl.SetQueue, nil)
+	ctrl.AddCallHandler(controllermethods.SetQueue{}, ctrl.SetQueue, nil)
 	ctrl.AddNotificationHandler(controllermethods.Send{}, ctrl.Send, nil)
 	ctrl.AddNotificationHandler(controllermethods.ReceiveAPIMessage{}, ctrl.ReceiveAPIMessage, nil)
 	ctrl.AddNotificationHandler(rulermethods.ControllerNextTurn{}, ctrl.ControllerNextTurn, nil)
@@ -125,15 +133,21 @@ func (c *FakeController) Close() {
 }
 
 func (c *FakeController) triggerStopper(msg *message.Message) {
+	logrus.WithFields(logrus.Fields{
+		"controller": c.Name(),
+		"msgType":    getMessageTypeName(msg),
+	}).Info("FakeController received message")
 	c.Inbox <- msg
 }
 
-func (c *FakeController) SetQueue(ctx actor.NotificationContext) {
+func (c *FakeController) SetQueue(ctx actor.CallContext) {
 	c.triggerStopper(ctx.Msg)
 	m := ctx.Msg.TargetMethod.(controllermethods.SetQueue)
+	c.ID = m.ControllerID
 	c.ruler = m.Ruler
 	c.ruler.SendActor(message.Create(nil, rulermethods.GetGridState{}, rulermethods.GetGridStateReply{}), c.GetCallbackChan())
 	c.ruler.SendActor(message.Create(nil, rulermethods.GetEntitiesState{}, rulermethods.GetEntitiesStateReply{}), c.GetCallbackChan())
+	ctx.Reply(message.Create(nil, controllermethods.SetQueueReply{ControllerID: c.ID}, nil))
 }
 
 func (c *FakeController) Send(ctx actor.NotificationContext) {
@@ -174,9 +188,8 @@ func (c *FakeController) GetStateReply(ctx actor.ReplyContext) {
 	c.triggerStopper(ctx.Msg)
 }
 
-func (c *FakeController) GetGridStateReply(ctx actor.ReplyContext) {
-	c.triggerStopper(ctx.Msg)
-	if !c.battleready && c.ruler != nil {
+func (c *FakeController) checkReadiness() {
+	if c.receivedGrid && c.receivedEntities && !c.battleready && c.ruler != nil {
 		c.battleready = true
 		c.ruler.NotifyActor(message.Create(nil, rulermethods.ControllerBattleReady{
 			ControllerID: c.ID,
@@ -184,8 +197,16 @@ func (c *FakeController) GetGridStateReply(ctx actor.ReplyContext) {
 	}
 }
 
+func (c *FakeController) GetGridStateReply(ctx actor.ReplyContext) {
+	c.triggerStopper(ctx.Msg)
+	c.receivedGrid = true
+	c.checkReadiness()
+}
+
 func (c *FakeController) GetEntitiesStateReply(ctx actor.ReplyContext) {
 	c.triggerStopper(ctx.Msg)
+	c.receivedEntities = true
+	c.checkReadiness()
 }
 
 func (c *FakeController) ControllerMoveReply(ctx actor.ReplyContext) {
@@ -210,11 +231,11 @@ func TestRulerBattleBegin(t *testing.T) {
 	ctrl2 := NewFake("Fake2")
 
 	dChan1 := make(chan *message.Message, 1)
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, nil), dChan1)
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan1)
 	<-dChan1
 
 	dChan2 := make(chan *message.Message, 1)
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, nil), dChan2)
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan2)
 	<-dChan2
 
 	ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 5*time.Second)
@@ -232,11 +253,11 @@ func TestRulerBattleBeginNextTurn(t *testing.T) {
 	ctrl2 := NewFake("Fake2")
 
 	dChan1 := make(chan *message.Message, 1)
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, nil), dChan1)
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan1)
 	<-dChan1
 
 	dChan2 := make(chan *message.Message, 1)
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, nil), dChan2)
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan2)
 	<-dChan2
 
 	timeout := time.After(5 * time.Second)
@@ -278,11 +299,11 @@ func TestRulerBattleBeginNextTurnFetchGridAndEntities(t *testing.T) {
 	ctrl2 := NewFake("Fake2")
 
 	dChan1 := make(chan *message.Message, 1)
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, nil), dChan1)
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan1)
 	<-dChan1
 
 	dChan2 := make(chan *message.Message, 1)
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, nil), dChan2)
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan2)
 	<-dChan2
 
 	ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 5*time.Second)
@@ -290,14 +311,14 @@ func TestRulerBattleBeginNextTurnFetchGridAndEntities(t *testing.T) {
 
 	replyChan := make(chan *message.Message)
 
-	ruler.SendActor(message.Create(nil, rulermethods.GetGridState{}, replyChan), replyChan)
+	ruler.SendActor(message.Create(nil, rulermethods.GetGridState{}, rulermethods.GetGridStateReply{}), replyChan)
 	msg := <-replyChan
 	grd := msg.Content.(rulermethods.GetGridStateReply).Grid
 	if grd == nil {
 		t.Error("Grid should not be nil")
 	}
 
-	ruler.SendActor(message.Create(nil, rulermethods.GetEntitiesState{}, replyChan), replyChan)
+	ruler.SendActor(message.Create(nil, rulermethods.GetEntitiesState{}, rulermethods.GetEntitiesStateReply{}), replyChan)
 	msg = <-replyChan
 	entities := msg.Content.(rulermethods.GetEntitiesStateReply).Entities
 	if len(entities) < 2 {
@@ -334,29 +355,28 @@ func TestRulerBattleBeginNextTurnFetchGridAndEntities(t *testing.T) {
 }
 
 func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
-	logrus.SetFormatter(&logrus.TextFormatter{})
-	logrus.SetLevel(logrus.DebugLevel)
-	logrus.SetOutput(os.Stdout)
-
 	ruler := NewCompleteRuler()
 	ruler.Start()
 	defer ruler.Stop()
 	ctrl := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")
 
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, nil), nil)
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, nil), nil)
+	dChan := make(chan *message.Message, 1)
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
 
 	ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 5*time.Second)
 	ctrl2.ExpectMessage(t, rulermethods.BattleStart{}, 5*time.Second)
 
 	replyChan := make(chan *message.Message)
 
-	ruler.SendActor(message.Create(nil, rulermethods.GetGridState{}, replyChan), replyChan)
+	ruler.SendActor(message.Create(nil, rulermethods.GetGridState{}, rulermethods.GetGridStateReply{}), replyChan)
 	msg := <-replyChan
 	grd := msg.Content.(rulermethods.GetGridStateReply).Grid
 
-	ruler.SendActor(message.Create(nil, rulermethods.GetEntitiesState{}, replyChan), replyChan)
+	ruler.SendActor(message.Create(nil, rulermethods.GetEntitiesState{}, rulermethods.GetEntitiesStateReply{}), replyChan)
 	msg = <-replyChan
 
 	var entities []entity.Entity

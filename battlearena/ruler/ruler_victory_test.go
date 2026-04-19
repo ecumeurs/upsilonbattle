@@ -12,7 +12,7 @@ import (
 // @test-link [[spec_match_format_win_condition_rule]]
 
 func TestVictoryStandardizationForfeit(t *testing.T) {
-	logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetLevel(logrus.WarnLevel)
 	ruler := NewCompleteRuler()
 	ruler.Start()
 	defer ruler.Stop()
@@ -21,8 +21,11 @@ func TestVictoryStandardizationForfeit(t *testing.T) {
 	defer ctrl1.Stop()
 	defer ctrl2.Stop()
 
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl1, ControllerID: ctrl1.ID}, nil), nil)
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, nil), nil)
+	dChan := make(chan *message.Message, 1)
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl1, ControllerID: ctrl1.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
 
 	ctrl1.ExpectMessage(t, rulermethods.BattleStart{}, 5*time.Second)
 	ctrl2.ExpectMessage(t, rulermethods.BattleStart{}, 5*time.Second)
@@ -52,8 +55,11 @@ func TestVictoryStandardizationCasualties(t *testing.T) {
 	defer ctrl1.Stop()
 	defer ctrl2.Stop()
 
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl1, ControllerID: ctrl1.ID}, nil), nil)
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, nil), nil)
+	dChan := make(chan *message.Message, 1)
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl1, ControllerID: ctrl1.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
 
 	ctrl1.ExpectMessage(t, rulermethods.BattleStart{}, 5*time.Second)
 	ctrl2.ExpectMessage(t, rulermethods.BattleStart{}, 5*time.Second)

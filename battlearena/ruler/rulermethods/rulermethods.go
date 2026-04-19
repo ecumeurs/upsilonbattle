@@ -189,3 +189,19 @@ type EntitiesStateChanged struct {
 	Turn     turner.TurnState
 	actor.NoReply
 }
+
+// Testing-only messages to avoid direct access to actor state from tests
+// which causes data races.
+
+type TestingDeleteEntity struct {
+	EntityID uuid.UUID
+}
+
+type TestingGetState struct {
+}
+
+type TestingGetStateReply struct {
+	CurrentEntityTurn uuid.UUID
+	CurrentState      string // Use string to avoid circular dependency if needed, or just let it be.
+	WinnerTeamID      int
+}

@@ -120,9 +120,11 @@ func (t Turner) String() string {
 }
 
 func (t Turner) GetTurnState() TurnState {
+	turns := make([]EntityTurn, len(t.Turns))
+	copy(turns, t.Turns)
 	return TurnState{
 		CurrentEntityTurn: t.CurrentEntityTurn,
-		RemainingTurns:    t.Turns,
+		RemainingTurns:    turns,
 	}
 }
 

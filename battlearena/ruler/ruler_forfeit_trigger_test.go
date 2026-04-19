@@ -17,8 +17,11 @@ func TestRulerForfeitTriggersWinnerID(t *testing.T) {
 	ctrl2 := NewFake("P2")
 
 	// 1. Join controllers
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl1, ControllerID: ctrl1.ID}, nil), nil)
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, nil), nil)
+	dChan := make(chan *message.Message, 1)
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl1, ControllerID: ctrl1.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
 
 	// 2. Wait for battle start
 	ctrl1.ExpectMessage(t, rulermethods.BattleStart{}, 5*time.Second)
@@ -29,7 +32,8 @@ func TestRulerForfeitTriggersWinnerID(t *testing.T) {
 	ruler.SendActor(message.Create(nil, rulermethods.ControllerForfeit{
 		ControllerID: ctrl1.ID,
 		EntityID:     uuid.Nil,
-	}, nil), nil)
+	}, rulermethods.ControllerForfeit{}), dChan)
+	<-dChan
 
 	// 4. Assert BattleEnd is received with P2 as winner
 	msg1 := ctrl1.ExpectMessage(t, rulermethods.BattleEnd{}, 5*time.Second)
@@ -42,8 +46,14 @@ func TestRulerForfeitTriggersWinnerID(t *testing.T) {
 	assert.Equal(t, 2, endEvent2.WinnerTeamID, "P2 should see Team 2 as winner")
 
 	// 5. Assert internal Ruler state
-	assert.Equal(t, Finished, ruler.CurrentState, "Ruler should be in Finished state")
-	assert.Equal(t, 2, ruler.GameState.WinnerTeamID, "GameState should persist WinnerTeamID")
+	// Use TestingGetState to avoid race
+	replyChan := make(chan *message.Message, 1)
+	ruler.SendActor(message.Create(nil, rulermethods.TestingGetState{}, rulermethods.TestingGetStateReply{}), replyChan)
+	replyMsg := <-replyChan
+	st := replyMsg.TargetMethod.(rulermethods.TestingGetStateReply)
+
+	assert.Equal(t, Finished.String(), st.CurrentState, "Ruler should be in Finished state")
+	assert.Equal(t, 2, st.WinnerTeamID, "GameState should persist WinnerTeamID")
 
 	ctrl1.Stop()
 	ctrl2.Stop()

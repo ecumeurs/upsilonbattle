@@ -15,7 +15,7 @@ import (
 func TestRulerControllerFullGame(t *testing.T) {
 
 	logrus.SetFormatter(&logrus.TextFormatter{})
-	logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetLevel(logrus.WarnLevel)
 	logrus.SetOutput(os.Stdout)
 
 	ruler := NewCompleteRuler()
@@ -31,7 +31,7 @@ func TestRulerControllerFullGame(t *testing.T) {
 		ruler.SendActor(message.Create(nil, rulermethods.AddController{
 			Controller:   ctrl,
 			ControllerID: ctrl.ID,
-		}, nil), dChan)
+		}, rulermethods.AddControllerReply{}), dChan)
 		<-dChan
 	}
 	{
@@ -39,7 +39,7 @@ func TestRulerControllerFullGame(t *testing.T) {
 		ruler.SendActor(message.Create(nil, rulermethods.AddController{
 			Controller:   ctrl2,
 			ControllerID: ctrl2.ID,
-		}, nil), dChan)
+		}, rulermethods.AddControllerReply{}), dChan)
 		<-dChan
 	}
 
@@ -54,10 +54,10 @@ func TestRulerControllerFullGame(t *testing.T) {
 	logrus.Info("Battle Finished, doing end of game Checks")
 
 	replyChan := make(chan *message.Message)
-	ruler.SendActor(message.Create(nil, rulermethods.GetGridState{}, nil), replyChan)
+	ruler.SendActor(message.Create(nil, rulermethods.GetGridState{}, rulermethods.GetGridStateReply{}), replyChan)
 	<-replyChan
 
-	ruler.SendActor(message.Create(nil, rulermethods.GetEntitiesState{}, nil), replyChan)
+	ruler.SendActor(message.Create(nil, rulermethods.GetEntitiesState{}, rulermethods.GetEntitiesStateReply{}), replyChan)
 	msg := <-replyChan
 
 	entities := msg.Content.(rulermethods.GetEntitiesStateReply).Entities

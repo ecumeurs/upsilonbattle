@@ -14,7 +14,6 @@ import (
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 // TestRulerNextTurnSkipsDeadEntity is a regression test for ISS-046.
@@ -30,7 +29,7 @@ import (
 // ControllerID of the deleted entity), no controller receives it, and the
 // shot clock reissues the EndOfTurn against the same dead entity again.
 func TestRulerNextTurnSkipsDeadEntity(t *testing.T) {
-	logrus.SetLevel(logrus.WarnLevel) // suppress noise; flip to DebugLevel to diagnose failures
+	// logrus.SetLevel(logrus.InfoLevel) // suppress noise; flip to DebugLevel to diagnose failures
 
 	// ── Ruler setup ────────────────────────────────────────────────────────
 
@@ -117,7 +116,7 @@ func TestRulerNextTurnSkipsDeadEntity(t *testing.T) {
 		r.SendActor(message.Create(nil, rulermethods.AddController{
 			Controller:   ctrl1,
 			ControllerID: ctrl1.ID,
-		}, nil), dChan)
+		}, rulermethods.AddControllerReply{}), dChan)
 		<-dChan
 	}
 	{
@@ -125,7 +124,7 @@ func TestRulerNextTurnSkipsDeadEntity(t *testing.T) {
 		r.SendActor(message.Create(nil, rulermethods.AddController{
 			Controller:   ctrl2,
 			ControllerID: ctrl2.ID,
-		}, nil), dChan)
+		}, rulermethods.AddControllerReply{}), dChan)
 		<-dChan
 	}
 

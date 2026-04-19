@@ -59,6 +59,7 @@ type Ruler struct {
 	shotClock         *time.Timer
 	shotClockVersion  int64
 	ShotClockDuration time.Duration
+	firstTurnSent     bool
 }
 
 // NewCompleteRuler creates a new Ruler with a complete GameState.
@@ -176,6 +177,10 @@ func (r *Ruler) init() {
 	r.AddNotificationHandler(actor.ActorAboutToStop{}, r.actorAboutToStop, nil)
 	r.AddReplyHandler(controllermethods.SetQueueReply{}, r.handleSetQueueReply, nil)
 
+	// Testing-only handlers
+	r.AddNotificationHandler(rulermethods.TestingDeleteEntity{}, r.testingDeleteEntity, nil)
+	r.AddCallHandler(rulermethods.TestingGetState{}, r.testingGetState, nil)
+
 	// r.Start() REMOVED: Callers must start manually after setup.
 }
 
@@ -208,7 +213,7 @@ func (r *Ruler) addController(ctx actor.CallContext) {
 	req.Controller.SendActor(message.Create(nil, controllermethods.SetQueue{
 		ControllerID: req.ControllerID,
 		Ruler:        r,
-	}, nil), r.GetCallbackChan())
+	}, controllermethods.SetQueueReply{}), r.GetCallbackChan())
 
 	// Assign the controller to the designated number of entities
 	for i := 0; i < r.NbEntitiesPerController; i++ {
@@ -243,15 +248,13 @@ func (r *Ruler) addController(ctx actor.CallContext) {
 	}
 
 	r.GameState.Controllers[req.ControllerID] = req.Controller
+	r.SetQueueAcks[req.ControllerID] = false
+	r.ControllerBattleReady[req.ControllerID] = false
 
-	// Controller added
 	ctx.Reply(reply)
 
-	// check if game is ready to begin.
-	// Transitioned: We now wait for SetQueue ACKs in handleSetQueueReply.
-	r.RequestLogger.WithFields(logrus.Fields{
-		"nbControllers": len(r.GameState.Controllers),
-		"expected":      r.NbControllers}).Debug("Controller added, awaiting handshake ACKs")
+	// In rare cases (like tests with 1 controller), the handshake might already be complete
+	r.checkBattleStart()
 }
 
 func (r *Ruler) handleSetQueueReply(ctx actor.ReplyContext) {
@@ -260,31 +263,74 @@ func (r *Ruler) handleSetQueueReply(ctx actor.ReplyContext) {
 		"ControllerID": msg.ControllerID.String()[0:8]}).Info("SetQueue Handshake ACK received")
 
 	r.SetQueueAcks[msg.ControllerID] = true
+	r.checkBattleStart()
+}
 
+func (r *Ruler) checkBattleStart() {
+	if r.CurrentState != WaitingForControllers {
+		return
+	}
 	if r.allControllersAckedSetQueue() && r.isBattleReadyToStart() {
 		r.RequestLogger.Info("All handshakes complete, scheduling BattleStart")
+		// Delay slightly to ensure any other concurrent initialization completes
 		r.SelfNotifyDelayed(rulermethods.BattleStart{}, 20*time.Millisecond)
 	}
 }
 
-// @spec-link [[rule_battle_readiness]]
+func (r *Ruler) testingDeleteEntity(ctx actor.NotificationContext) {
+	msg := ctx.Msg.TargetMethod.(rulermethods.TestingDeleteEntity)
+	r.logger.WithField("entityID", msg.EntityID.String()[0:8]).Info("Testing-only removal of entity")
+	delete(r.GameState.Entities, msg.EntityID)
+	r.GameState.Turner.RemoveEntity(msg.EntityID)
+}
+
+func (r *Ruler) testingGetState(ctx actor.CallContext) {
+	ctx.Reply(message.Create(nil, rulermethods.TestingGetStateReply{
+		CurrentEntityTurn: r.GameState.Turner.CurrentEntityTurn,
+		CurrentState:      r.CurrentState.String(),
+		WinnerTeamID:      r.GameState.WinnerTeamID,
+	}, nil))
+}
+
 func (r *Ruler) isBattleReadyToStart() bool {
 	if r.GameState.Grid == nil {
+		r.logger.Debug("isBattleReadyToStart: Grid is nil")
 		return false
 	}
 	if len(r.GameState.Controllers) != r.NbControllers {
+		r.logger.WithFields(logrus.Fields{
+			"current": len(r.GameState.Controllers),
+			"target":  r.NbControllers,
+		}).Debug("isBattleReadyToStart: Not all controllers added yet")
 		return false
 	}
+	// All controllers must have sent ControllerBattleReady
+	for id, ready := range r.ControllerBattleReady {
+		if !ready {
+			r.logger.WithField("controllerID", id.String()[0:8]).Debug("isBattleReadyToStart: Controller not ready yet")
+			return false
+		}
+	}
+	// Map must have all controllers
+	if len(r.ControllerBattleReady) < r.NbControllers {
+		r.logger.Debug("isBattleReadyToStart: ControllerBattleReady map too small")
+		return false
+	}
+
 	return true
 }
 
 func (r *Ruler) allControllersAckedSetQueue() bool {
-	if len(r.SetQueueAcks) != r.NbControllers {
+	if len(r.SetQueueAcks) < r.NbControllers {
+		r.logger.WithFields(logrus.Fields{
+			"current": len(r.SetQueueAcks),
+			"target":  r.NbControllers,
+		}).Debug("allControllersAckedSetQueue: SetQueueAcks map too small")
 		return false
 	}
-	// We check if every controller in GameState.Controllers is PRESENT in Acks
-	for id := range r.GameState.Controllers {
-		if !r.SetQueueAcks[id] {
+	for id, acked := range r.SetQueueAcks {
+		if !acked {
+			r.logger.WithField("controllerID", id.String()[0:8]).Debug("allControllersAckedSetQueue: ACK missing")
 			return false
 		}
 	}
@@ -293,6 +339,9 @@ func (r *Ruler) allControllersAckedSetQueue() bool {
 
 // @spec-link [[rule_battle_readiness]]
 func (r *Ruler) isBattleReadyToExecute() bool {
+	if r.CurrentState != InProgress {
+		return false
+	}
 	if !r.isBattleReadyToStart() {
 		return false
 	}
@@ -303,6 +352,45 @@ func (r *Ruler) isBattleReadyToExecute() bool {
 		return false
 	}
 	return true
+}
+
+func (r *Ruler) triggerFirstTurn() {
+	if r.firstTurnSent {
+		return
+	}
+
+	entID := r.GameState.Turner.CurrentEntityTurn
+	if entID == uuid.Nil {
+		r.RequestLogger.Info("Picking first entity to play")
+		entID = r.GameState.Turner.NextTurn()
+	}
+
+	// GUARD: Ensure the entity still exists and is controlled
+	ent, ok := r.GameState.Entities[entID]
+	if !ok || ent.ControllerID == uuid.Nil {
+		r.RequestLogger.WithFields(logrus.Fields{
+			"entityID": entID.String()}).Debug("Current entity turn is missing or uncontrolled during ready check (waiting for full assignment)")
+		return
+	}
+
+	r.RequestLogger.WithFields(logrus.Fields{
+		"entityID": entID.String()[0:8]}).Info("Handing turn to first entity")
+
+	r.firstTurnSent = true
+	r.GameState.IncTurn() // @spec-link [[mech_game_state_versioning]]
+	// @spec-link [[rule_turn_clock]]
+	r.startShotClock()
+
+	r.RequestLogger.WithFields(logrus.Fields{
+		"entityID": entID.String()[0:8]}).Info("First entity to play")
+
+	ent.CurrentDelay = 0
+	r.GameState.Entities[entID] = ent
+
+	r.GameState.Controllers[ent.ControllerID].NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
+		Entity: ent,
+		Turn:   r.GameState.Turner.GetTurnState(),
+	}, nil))
 }
 
 func (r *Ruler) controllerBattleReady(ctx actor.NotificationContext) {
@@ -316,28 +404,10 @@ func (r *Ruler) controllerBattleReady(ctx actor.NotificationContext) {
 	}
 
 	r.ControllerBattleReady[req.ControllerID] = true
+	r.checkBattleStart()
+
 	if r.isBattleReadyToExecute() {
-		r.GameState.IncTurn() // @spec-link [[mech_game_state_versioning]]
-		// @spec-link [[rule_turn_clock]]
-		r.startShotClock()
-
-		entID := r.GameState.Turner.CurrentEntityTurn
-
-		// GUARD: Ensure the entity still exists and is controlled
-		ent, ok := r.GameState.Entities[entID]
-		if !ok || ent.ControllerID == uuid.Nil {
-			r.RequestLogger.Error("Current entity turn is missing or uncontrolled during ready check")
-			return
-		}
-
-		r.RequestLogger.WithFields(logrus.Fields{
-			"entityID": entID.String()[0:8]}).Info("First entity to play")
-
-		ent.CurrentDelay = 0
-		r.GameState.Controllers[ent.ControllerID].NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
-			Entity: ent,
-			Turn:   r.GameState.Turner.GetTurnState(),
-		}, nil))
+		r.triggerFirstTurn()
 	}
 }
 
@@ -346,23 +416,25 @@ func (r *Ruler) controllerTurnReady(ctx actor.NotificationContext) {
 }
 
 func (r *Ruler) battleStart(ctx actor.NotificationContext) {
-	r.RequestLogger.Info("Game started")
+	r.RequestLogger.Info("Processing BattleStart internal notification")
 	r.CurrentState = InProgress
-	r.GameState.IncTurn() // @spec-link [[mech_game_state_versioning]]
+
 	// @spec-link [[rule_turn_clock]]
 	r.startShotClock()
-	entID := r.GameState.Turner.NextTurn()
-	r.RequestLogger.WithFields(logrus.Fields{
-		"entityID": entID.String()[0:8]}).Info("First entity to play")
 
-	ent := r.GameState.Entities[entID]
-	ent.CurrentDelay = 0
-	r.GameState.Entities[entID] = ent
-
-	for _, c := range r.GameState.Controllers {
+	r.RequestLogger.Info("Broadcasting BattleStart to all controllers")
+	for id, c := range r.GameState.Controllers {
+		r.RequestLogger.WithFields(logrus.Fields{"target": id}).Debug("Sending BattleStart")
 		c.NotifyActor(message.Create(nil, rulermethods.BattleStart{
 			Turn: r.GameState.Turner.GetTurnState(),
 		}, nil))
+	}
+
+	if r.isBattleReadyToExecute() {
+		r.RequestLogger.Info("All controllers already ready, triggering first turn immediately")
+		r.triggerFirstTurn()
+	} else {
+		r.RequestLogger.Info("Waiting for controllers to signal readiness before first turn")
 	}
 }
 

@@ -50,7 +50,7 @@ func NewAggressiveController(id uuid.UUID, name string) *AggressiveController {
 		"Component":    "controller",
 	})
 
-	ctrl.AddNotificationHandler(controllermethods.SetQueue{}, ctrl.SetQueue, nil)
+	ctrl.AddCallHandler(controllermethods.SetQueue{}, ctrl.SetQueue, nil)
 	ctrl.AddNotificationHandler(controllermethods.Send{}, ctrl.Send, nil)
 	ctrl.AddNotificationHandler(controllermethods.ReceiveAPIMessage{}, ctrl.ReceiveAPIMessage, nil)
 	ctrl.AddNotificationHandler(rulermethods.ControllerNextTurn{}, ctrl.ControllerNextTurn, nil)
@@ -80,11 +80,12 @@ func (ctl *AggressiveController) PrintStack() {
 // implement all AggressiveController methods handlers.
 
 // @spec-link [[mech_controller_handshake]]
-func (ctl *AggressiveController) SetQueue(ctx actor.NotificationContext) {
+func (ctl *AggressiveController) SetQueue(ctx actor.CallContext) {
 	m := ctx.Msg.TargetMethod.(controllermethods.SetQueue)
 	ctl.ruler = m.Ruler
 	ctl.ruler.SendActor(message.Create(nil, rulermethods.GetGridState{}, rulermethods.GetGridStateReply{}), ctl.GetCallbackChan())
 	ctl.ruler.SendActor(message.Create(nil, rulermethods.GetEntitiesState{}, rulermethods.GetEntitiesStateReply{}), ctl.GetCallbackChan())
+	ctx.Reply(message.Create(nil, controllermethods.SetQueueReply{ControllerID: ctl.ID}, nil))
 }
 
 func (ctl *AggressiveController) Send(ctx actor.NotificationContext) {
