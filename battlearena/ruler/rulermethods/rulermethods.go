@@ -79,6 +79,10 @@ type ControllerForfeit struct {
 	EntityID     uuid.UUID
 }
 
+type InternalTriggerFirstTurn struct {
+	actor.NoReply
+}
+
 // Timeout is an internal notification triggered by the ShotClock.
 // @spec-link [[api_ruler_methods]]
 type Timeout struct {

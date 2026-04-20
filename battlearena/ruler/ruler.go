@@ -179,6 +179,7 @@ func (r *Ruler) init() {
 	r.AddNotificationHandler(rulermethods.ControllerQuit{}, r.controllerQuit, nil)
 	r.AddNotificationHandler(rulermethods.BattleStart{}, r.battleStart, nil)
 	r.AddNotificationHandler(rulermethods.ControllerBattleReady{}, r.controllerBattleReady, nil)
+	r.AddNotificationHandler(rulermethods.InternalTriggerFirstTurn{}, r.processTriggerFirstTurn, nil)
 	r.AddNotificationHandler(rulermethods.ControllerTurnReady{}, r.controllerTurnReady, nil)
 	r.AddNotificationHandler(rulermethods.ControllerPassed{}, r.controllerPassed, nil)
 	r.AddCallHandler(rulermethods.ControllerForfeit{}, r.controllerForfeit, nil)
@@ -299,6 +300,10 @@ func (r *Ruler) isBattleReadyToExecute() bool {
 	return true
 }
 
+func (r *Ruler) processTriggerFirstTurn(ctx actor.NotificationContext) {
+	r.triggerFirstTurn()
+}
+
 func (r *Ruler) triggerFirstTurn() {
 	if r.firstTurnSent {
 		return
@@ -306,20 +311,39 @@ func (r *Ruler) triggerFirstTurn() {
 
 	entID := r.GameState.Turner.CurrentEntityTurn
 	if entID == uuid.Nil {
+		// PEAK: Check if we have entities in the queue
+		if len(r.GameState.Turner.Turns) == 0 {
+			r.RequestLogger.Warn("Turner is empty, cannot trigger first turn")
+			return
+		}
+
+		// Look at the first entity in the queue
+		candidateID := r.GameState.Turner.Turns[0].EntityId
+		ent, ok := r.GameState.Entities[candidateID]
+		
+		// GUARD: Ensure the entity exists and is controlled
+		if !ok || ent.ControllerID == uuid.Nil {
+			r.RequestLogger.WithFields(logrus.Fields{
+				"entityID": candidateID.String()}).Debug("First entity in queue is uncontrolled, waiting for readiness")
+			return
+		}
+
+		// OK: Pop it from the Turner only now that we are sure it can act
 		r.RequestLogger.Info("Picking first entity to play")
 		entID = r.GameState.Turner.NextTurn()
 	}
 
-	// GUARD: Ensure the entity still exists and is controlled
+	// Re-verify the picked entity (in case CurrentEntityTurn was already set)
 	ent, ok := r.GameState.Entities[entID]
 	if !ok || ent.ControllerID == uuid.Nil {
 		r.RequestLogger.WithFields(logrus.Fields{
-			"entityID": entID.String()}).Debug("Current entity turn is missing or uncontrolled during ready check (waiting for full assignment)")
+			"entityID": entID.String()}).Warn("Current entity turn is invalid/uncontrolled, skipping (waiting for recovery)")
 		return
 	}
 
 	r.RequestLogger.WithFields(logrus.Fields{
 		"entityID": entID.String()[0:8]}).Info("Handing turn to first entity")
+
 
 	r.firstTurnSent = true
 	r.GameState.IncTurn() // @spec-link [[mech_game_state_versioning]]
@@ -354,7 +378,7 @@ func (r *Ruler) controllerBattleReady(ctx actor.NotificationContext) {
 	r.ControllerBattleReady[req.ControllerID] = true
 
 	if r.isBattleReadyToExecute() {
-		r.triggerFirstTurn()
+		r.SelfNotifyDelayed(rulermethods.InternalTriggerFirstTurn{}, 100*time.Millisecond)
 	}
 }
 
@@ -380,7 +404,7 @@ func (r *Ruler) battleStart(ctx actor.NotificationContext) {
 
 	if r.isBattleReadyToExecute() {
 		r.RequestLogger.Info("All controllers already ready, triggering first turn immediately")
-		r.triggerFirstTurn()
+		r.SelfNotifyDelayed(rulermethods.InternalTriggerFirstTurn{}, 100*time.Millisecond)
 	} else {
 		r.RequestLogger.Info("Waiting for controllers to signal readiness before first turn")
 	}
