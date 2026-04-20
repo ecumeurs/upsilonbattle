@@ -240,11 +240,18 @@ func (ctl *AggressiveController) BattleEnd(ctx actor.NotificationContext) {
 }
 
 func (ctl *AggressiveController) ControllerAttacked(ctx actor.NotificationContext) {
+	attacked := ctx.Msg.TargetMethod.(rulermethods.ControllerAttacked)
+
 	ctl.RequestLogger.WithFields(logrus.Fields{
-		"EntityID":   ctx.Msg.TargetMethod.(rulermethods.ControllerAttacked).Entity.ID.String()[0:8],
-		"AttackerID": ctx.Msg.TargetMethod.(rulermethods.ControllerAttacked).Attacker.ID.String()[0:8],
-		"Position":   ctx.Msg.TargetMethod.(rulermethods.ControllerAttacked).Entity.Position}).Debug("ControllerAttacked")
+		"EntityID":   attacked.Entity.ID.String()[0:8],
+		"AttackerID": attacked.Attacker.ID.String()[0:8],
+		"Position":   attacked.Entity.Position}).Debug("ControllerAttacked")
 	// nothing to do post attack
+
+	if attacked.Dead {
+		// remove it from the known entities.
+		delete(ctl.KnownEntities, attacked.Entity.ID)
+	}
 
 }
 
@@ -421,7 +428,7 @@ func (ctl *AggressiveController) isPathStepBlocked(pos position.Position, selfID
 		}
 	}
 
-	// 2. Check Grid for obstacles or occupancy (fallback if KnownEntities is stale)
+	// 2. Check Grid for obstacles or occupancy 
 	if ctl.Grid != nil {
 		cells := ctl.Grid.CellsForPositions([]position.Position{pos})
 		if len(cells) > 0 {
@@ -429,8 +436,13 @@ func (ctl *AggressiveController) isPathStepBlocked(pos position.Position, selfID
 			if c.Type != cell.Ground {
 				return true
 			}
+
+			
 			if c.EntityID != uuid.Nil && c.EntityID != selfID {
-				return true
+				// check if entity is in KnownEntities; if not present, then it's a dead or ghost entity on a stale grid.
+				if _, present := ctl.KnownEntities[c.EntityID]; present {
+					return true
+				}
 			}
 		}
 	}

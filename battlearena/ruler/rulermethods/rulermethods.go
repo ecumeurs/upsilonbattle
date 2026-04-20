@@ -182,6 +182,7 @@ type ControllerAttacked struct {
 	Damage               int
 	PrevHP               int
 	NewHP                int
+	Dead				 bool // is set to true, mark this entity as dead. 
 	Version              int64
 
 	actor.NoReply
