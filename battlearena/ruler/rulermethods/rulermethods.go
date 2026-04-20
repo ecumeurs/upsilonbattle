@@ -113,6 +113,19 @@ type GetEntitiesStateReply struct {
 	Turn     turner.TurnState
 }
 
+type GetBoardState struct {
+	ActionContext interface{} // Parrotted back in reply to keep context
+}
+
+type GetBoardStateReply struct {
+	Grid          *grid.Grid
+	Entities      []entity.Entity
+	TurnState     turner.TurnState
+	WinnerTeamID  int
+	Version       int64
+	ActionContext interface{}
+}
+
 // especially for those ... Are they in the CallbackTarget field or content ? or both ? :'(
 
 type ControllerMoveReply struct {
@@ -130,19 +143,22 @@ type ControllerUseSkillReply struct {
 // Broadcasted messages
 
 type ControllerNextTurn struct {
-	Entity entity.Entity
-	Turn   turner.TurnState
+	Entity  entity.Entity
+	Turn    turner.TurnState
+	Version int64
 	actor.NoReply
 }
 
 type BattleStart struct {
-	Turn turner.TurnState
+	Turn    turner.TurnState
+	Version int64
 	actor.NoReply
 }
 
 type BattleEnd struct {
 	WinnerTeamID int
 	WinnerName   string
+	Version      int64
 	actor.NoReply
 }
 
@@ -152,6 +168,7 @@ type ControllerSkillUsed struct {
 	Entity              entity.Entity
 	Emitter             entity.Entity
 	SkillID             uuid.UUID
+	Version             int64
 
 	actor.NoReply
 }
@@ -165,6 +182,7 @@ type ControllerAttacked struct {
 	Damage               int
 	PrevHP               int
 	NewHP                int
+	Version              int64
 
 	actor.NoReply
 }
@@ -173,6 +191,7 @@ type ControllerMoved struct {
 	ControllerID uuid.UUID
 	EntityID     uuid.UUID
 	Path         []position.Position
+	Version      int64
 
 	actor.NoReply
 }
@@ -180,6 +199,7 @@ type ControllerMoved struct {
 type ControllerPassed struct {
 	ControllerID uuid.UUID
 	EntityID     uuid.UUID
+	Version      int64
 
 	actor.NoReply
 }
@@ -187,6 +207,7 @@ type ControllerPassed struct {
 type EntitiesStateChanged struct {
 	Entities []entity.Entity
 	Turn     turner.TurnState
+	Version  int64
 	actor.NoReply
 }
 

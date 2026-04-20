@@ -170,6 +170,7 @@ func (r *Ruler) init() {
 	r.AddCallHandler(rulermethods.GetState{}, r.getState, nil)
 	r.AddCallHandler(rulermethods.GetGridState{}, r.getGridState, nil)
 	r.AddCallHandler(rulermethods.GetEntitiesState{}, r.getEntitiesState, nil)
+	r.AddCallHandler(rulermethods.GetBoardState{}, r.getBoardState, nil)
 	r.AddCallHandler(rulermethods.ControllerMove{}, r.controllerMove, nil)
 	r.AddCallHandler(rulermethods.ControllerAttack{}, r.controllerAttack, nil)
 	r.AddCallHandler(rulermethods.ControllerUseSkill{}, r.controllerUseSkill, nil)
@@ -331,10 +332,13 @@ func (r *Ruler) triggerFirstTurn() {
 	ent.CurrentDelay = 0
 	r.GameState.Entities[entID] = ent
 
-	r.GameState.Controllers[ent.ControllerID].NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
-		Entity: ent,
-		Turn:   r.GameState.Turner.GetTurnState(),
-	}, nil))
+	for _, ctrl := range r.GameState.Controllers {
+		ctrl.NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
+			Entity:  ent,
+			Turn:    r.GameState.Turner.GetTurnState(),
+			Version: r.GameState.Version,
+		}, nil))
+	}
 }
 
 func (r *Ruler) controllerBattleReady(ctx actor.NotificationContext) {
@@ -369,7 +373,8 @@ func (r *Ruler) battleStart(ctx actor.NotificationContext) {
 	for id, c := range r.GameState.Controllers {
 		r.RequestLogger.WithFields(logrus.Fields{"target": id}).Debug("Sending BattleStart")
 		c.NotifyActor(message.Create(nil, rulermethods.BattleStart{
-			Turn: r.GameState.Turner.GetTurnState(),
+			Turn:    r.GameState.Turner.GetTurnState(),
+			Version: r.GameState.Version,
 		}, nil))
 	}
 
@@ -390,6 +395,28 @@ func (r *Ruler) getState(ctx actor.CallContext) {
 		NbControllersExpected:   r.NbControllers,
 		NbEntitiesPerController: r.NbEntitiesPerController,
 		CurrentEntityTurn:       r.GameState.Turner.CurrentEntityTurn,
+	}
+
+	ctx.Reply(reply)
+}
+
+func (r *Ruler) getBoardState(ctx actor.CallContext) {
+	r.RequestLogger.Debug("GetBoardState")
+	req := ctx.Msg.TargetMethod.(rulermethods.GetBoardState)
+
+	entities := make([]entity.Entity, 0, len(r.GameState.Entities))
+	for _, e := range r.GameState.Entities {
+		entities = append(entities, e)
+	}
+
+	reply := ctx.Msg.Reply()
+	reply.Content = rulermethods.GetBoardStateReply{
+		Grid:          r.GameState.Grid,
+		Entities:      entities,
+		TurnState:     r.GameState.Turner.GetTurnState(),
+		WinnerTeamID:  r.GameState.WinnerTeamID,
+		Version:       r.GameState.Version,
+		ActionContext: req.ActionContext,
 	}
 
 	ctx.Reply(reply)
@@ -443,6 +470,7 @@ func (r *Ruler) controllerMove(ctx actor.CallContext) {
 			ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
 				Entities: ent,
 				Turn:     r.GameState.Turner.GetTurnState(),
+				Version:  r.GameState.Version,
 			}, nil))
 		}
 	}
@@ -469,6 +497,7 @@ func (r *Ruler) controllerAttack(ctx actor.CallContext) {
 			ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
 				Entities: ent,
 				Turn:     r.GameState.Turner.GetTurnState(),
+				Version:  r.GameState.Version,
 			}, nil))
 		}
 	}
@@ -517,6 +546,7 @@ func (r *Ruler) controllerUseSkill(ctx actor.CallContext) {
 			ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
 				Entities: ent,
 				Turn:     r.GameState.Turner.GetTurnState(),
+				Version:  r.GameState.Version,
 			}, nil))
 		}
 	}
@@ -609,6 +639,7 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 				ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
 					Entities: ent,
 					Turn:     r.GameState.Turner.GetTurnState(),
+					Version:  r.GameState.Version,
 				}, nil))
 			}
 
@@ -617,7 +648,7 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 				ent.CurrentDelay = 0
 				r.GameState.Entities[nextTurnEnt] = ent
 
-				ctrl, found := r.GameState.Controllers[ent.ControllerID]
+				_, found := r.GameState.Controllers[ent.ControllerID]
 				if !found {
 					r.RequestLogger.WithFields(logrus.Fields{
 						"entityID":     nextTurnEnt.String()[0:8],
@@ -625,10 +656,13 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 				} else {
 					// @spec-link [[rule_turn_clock]]
 					r.startShotClock()
-					ctrl.NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
-						Entity: ent,
-						Turn:   r.GameState.Turner.GetTurnState(),
-					}, nil))
+					for _, c := range r.GameState.Controllers {
+						c.NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
+							Entity:  ent,
+							Turn:    r.GameState.Turner.GetTurnState(),
+							Version: r.GameState.Version,
+						}, nil))
+					}
 				}
 			}
 		}
@@ -662,6 +696,7 @@ func (r *Ruler) controllerForfeit(ctx actor.CallContext) {
 		for _, ctrl := range r.GameState.Controllers {
 			ctrl.NotifyActor(message.Create(nil, rulermethods.BattleEnd{
 				WinnerTeamID: winnerTeamID,
+				Version:      r.GameState.Version,
 			}, nil))
 		}
 	}

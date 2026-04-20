@@ -97,6 +97,13 @@ func (ctl *AggressiveController) ReceiveAPIMessage(ctx actor.NotificationContext
 
 func (ctl *AggressiveController) ControllerNextTurn(ctx actor.NotificationContext) {
 	controllerData := ctx.Msg.TargetMethod.(rulermethods.ControllerNextTurn)
+
+	// GUARD: Since ControllerNextTurn is now broadcasted to all controllers, 
+	// we must only take action if the entity belongs to US.
+	if controllerData.Entity.ControllerID != ctl.ID {
+		return
+	}
+
 	ctl.RequestLogger.WithFields(logrus.Fields{
 		"Turn":     controllerData.Turn.String(),
 		"EntityID": controllerData.Entity.String()}).Info("##### Turn BEGIN #####")
@@ -116,9 +123,9 @@ func (ctl *AggressiveController) ControllerNextTurn(ctx actor.NotificationContex
 	ctl.RequestLogger.Debug("Moving To Attack")
 	jumpHeight := ctl.KnownEntities[controllerData.Entity.ID].GetPropertyI(property.JumpHeight).I()
 
-	path := ctl.preparePathToEntity(controllerData.Entity.Position, ctl.Grid, target, jumpHeight)
+	path, found := ctl.preparePathToEntity(controllerData.Entity.Position, ctl.Grid, target, jumpHeight, controllerData.Entity.ID)
 	// can't be on the same cell as target.
-	if len(path) > 1 {
+	if found && len(path) > 1 {
 		movement := ctl.KnownEntities[controllerData.Entity.ID].GetProperty(property.Movement)
 		mvt := movement.(*defaultproperty.DefaultIntCounterProperty).Value
 		atkrng := ctl.KnownEntities[controllerData.Entity.ID].GetPropertyI(property.AttackRange).I()
@@ -139,59 +146,57 @@ func (ctl *AggressiveController) ControllerNextTurn(ctx actor.NotificationContex
 		// We must stop before the first blocked cell in the path.
 		actualLimit := 0
 		for i := 0; i < limit; i++ {
+			// AStarPath now avoids entities, but we check again for extra safety or intermediate changes
 			if ctl.isPathStepBlocked(path[i], controllerData.Entity.ID) {
 				ctl.RequestLogger.WithFields(logrus.Fields{
-					"blocked_pos": path[i],
-					"index":       i,
-				}).Debug("Path step is blocked")
+					"blockedAt": path[i].String(),
+					"step":      i,
+				}).Debug("Path step blocked by entity, truncating movement")
 				break
 			}
 			actualLimit = i + 1
 		}
 
-		// The path from AStar includes the starting position at path[0].
-		// The Ruler expects a path starting from the first movement step (path[1]).
 		if actualLimit > 1 {
+			// Path includes start position at path[0]. actualLimit=1 means only start is reached.
+			// actualLimit=2 means [start, next]. We move to next (path[1]).
 			movePath := path[1:actualLimit]
-
 			ctl.RequestLogger.WithFields(logrus.Fields{
-				"EntityID":       controllerData.Entity.ID.String()[0:8],
-				"Position":       controllerData.Entity.Position,
-				"Expected":       movePath[len(movePath)-1],
-				"Movement":       mvt,
-				"AttackRange":    atkrng,
-				"TargetPosition": target.Position,
-				"TargetEntity":   target.ID.String()[0:8],
-			}).Info("Moving attacker")
+				"actualLimit": actualLimit,
+				"pathLen":     len(path),
+				"movingTo":    movePath[len(movePath)-1].String(),
+			}).Info("Moving toward target")
 
 			ctl.ruler.SendActor(message.Create(nil, rulermethods.ControllerMove{
+				ControllerID: ctl.ID,
 				EntityID:     controllerData.Entity.ID,
 				Path:         movePath,
-				ControllerID: ctl.ID,
-			}, rulermethods.ControllerMoveReply{
-				Entity: controllerData.Entity,
-			}), ctl.GetCallbackChan())
+			}, rulermethods.ControllerMoveReply{}), ctl.GetCallbackChan())
 		} else {
-			// it is already in place. Send attack
-			ctl.RequestLogger.WithFields(logrus.Fields{
-				"EntityID":       controllerData.Entity.ID.String()[0:8],
-				"Position":       controllerData.Entity.Position,
-				"TargetPosition": target.Position,
-				"Movement":       mvt,
-				"AttackRange":    atkrng,
-				"TargetEntity":   target.ID.String()[0:8]}).Info("Attacking")
-			ctl.ruler.SendActor(message.Create(nil, rulermethods.ControllerAttack{
-				EntityID:     controllerData.Entity.ID,
-				Target:       target.Position,
-				ControllerID: ctl.ID,
-			}, rulermethods.ControllerAttackReply{
-				Entity: controllerData.Entity,
-			}), ctl.GetCallbackChan())
+			// Cannot move closer or already at range. 
+			// If we are precisely at reach (len(path) <= atkrng + 1), attempt attack.
+			if len(path) > 0 && len(path) <= atkrng+1 {
+				ctl.RequestLogger.Info("Target in range, initiating attack")
+				ctl.ruler.SendActor(message.Create(nil, rulermethods.ControllerAttack{
+					ControllerID: ctl.ID,
+					EntityID:     controllerData.Entity.ID,
+					Target:       target.Position,
+				}, rulermethods.ControllerAttackReply{}), ctl.GetCallbackChan())
+			} else {
+				ctl.RequestLogger.WithFields(logrus.Fields{
+					"atRange": len(path) <= atkrng+1,
+					"path":    len(path),
+				}).Warn("Target unreachable or blocked, passing turn")
+				ctl.ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
+					EntityID:     controllerData.Entity.ID,
+					ControllerID: ctl.ID,
+				}, rulermethods.EndOfTurn{}), ctl.GetCallbackChan())
+			}
 		}
 	} else {
 		// it is already in place. Send attack
 
-		if len(path) == 0 {
+		if !found || len(path) == 0 {
 			// Unable to find a path to target ...
 			ctl.RequestLogger.WithFields(logrus.Fields{
 				"EntityID": controllerData.Entity.ID.String()[0:8],
@@ -279,7 +284,7 @@ func (ctl *AggressiveController) GetEntitiesStateReply(ctx actor.ReplyContext) {
 func (ctl *AggressiveController) ControllerMoveReply(ctx actor.ReplyContext) {
 	if ctx.Msg.HasError {
 		ctl.ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
-			EntityID:     ctx.Msg.TargetMethod.(rulermethods.ControllerMoveReply).Entity.ID,
+			EntityID:     ctx.Msg.Content.(rulermethods.ControllerMoveReply).Entity.ID,
 			ControllerID: ctl.ID,
 		}, rulermethods.EndOfTurn{}), ctl.GetCallbackChan())
 	} else {
@@ -292,12 +297,12 @@ func (ctl *AggressiveController) ControllerMoveReply(ctx actor.ReplyContext) {
 			"Expected": target.Position}).Debug("Move Succesfull")
 		time.Sleep(100 * time.Millisecond)
 
-		attacker := ctl.KnownEntities[ctx.Msg.TargetMethod.(rulermethods.ControllerMoveReply).Entity.ID]
+		attacker := ctl.KnownEntities[ControllerData.Entity.ID]
 
 		ctl.RequestLogger.Info(" Attacker: ", attacker.PrettyString())
 
 		atkrng := attacker.GetPropertyI(property.AttackRange).I()
-		if ctx.Msg.TargetMethod.(rulermethods.ControllerMoveReply).Entity.Position.Distance(target.Position) <= atkrng {
+		if ControllerData.Entity.Position.Distance(target.Position) <= atkrng {
 
 			// it is already in place. Send attack
 			ctl.RequestLogger.WithFields(logrus.Fields{
@@ -322,7 +327,7 @@ func (ctl *AggressiveController) ControllerMoveReply(ctx actor.ReplyContext) {
 				"Expected": target.Position}).Debug("Too far away from target, ending turn")
 
 			ctl.ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
-				EntityID:     ctx.Msg.TargetMethod.(rulermethods.ControllerMoveReply).Entity.ID,
+				EntityID:     ControllerData.Entity.ID,
 				ControllerID: ctl.ID,
 			}, rulermethods.EndOfTurn{}), ctl.GetCallbackChan())
 		}
@@ -337,13 +342,15 @@ func (ctl *AggressiveController) ControllerAttackReply(ctx actor.ReplyContext) {
 	}).Info("Attack done, ending turn")
 	time.Sleep(100 * time.Millisecond)
 	ctl.ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
-		EntityID:     ctx.Msg.TargetMethod.(rulermethods.ControllerAttackReply).Entity.ID,
+		EntityID:     ctx.Msg.Content.(rulermethods.ControllerAttackReply).Entity.ID,
 		ControllerID: ctl.ID,
 	}, rulermethods.EndOfTurn{}), ctl.GetCallbackChan())
 }
 
 // @spec-link [[rule_team_mechanics]]
 // selectNearestFoe find nearest foe, based on team id.
+// We rely on ctl.KnownEntities for dynamic status (life/death) and positions, 
+// as ctl.Grid is a static snapshot of the map layout.
 func (ctl *AggressiveController) selectNearestFoe(currentEntity entity.Entity, entities map[uuid.UUID]entity.Entity) (entity.Entity, error) {
 	nearestid := uuid.Nil
 	minDist := 10000
@@ -357,7 +364,8 @@ func (ctl *AggressiveController) selectNearestFoe(currentEntity entity.Entity, e
 	}).Info("selectNearestFoe")
 
 	for id, ent := range entities {
-		if ent.GetPropertyI(property.TeamID).I() != currentTeam {
+		hp := ent.GetPropertyI(property.HP).I()
+		if ent.GetPropertyI(property.TeamID).I() != currentTeam && hp > 0 {
 			if currentEntity.ID != ent.ID {
 				ctl.RequestLogger.WithFields(logrus.Fields{
 					"candidate_pos":    ent.Position,
@@ -389,13 +397,14 @@ func (ctl *AggressiveController) selectNearestFoe(currentEntity entity.Entity, e
 	}
 }
 
-func (ctl *AggressiveController) preparePathToEntity(pos position.Position, grd *grid.Grid, ent entity.Entity, jumpHeight int) []position.Position {
-	path, found := grd.AStarPath(pos, ent.Position, jumpHeight)
-	if !found {
-		return nil
-	}
-
-	return path
+// preparePathToEntity calculates a path using A* that avoids blocked cells.
+// NOTE: ctl.Grid provides static map geometry, while the exclusion callback 
+// utilizes ctl.KnownEntities to identify dynamic obstacles (other players).
+func (ctl *AggressiveController) preparePathToEntity(pos position.Position, grd *grid.Grid, ent entity.Entity, jumpHeight int, selfID uuid.UUID) ([]position.Position, bool) {
+	path, found := grd.AStarPath(pos, ent.Position, jumpHeight, func(p position.Position) bool {
+		return ctl.isPathStepBlocked(p, selfID)
+	})
+	return path, found
 }
 
 func (ctl *AggressiveController) EndOfTurnReply(ctx actor.ReplyContext) {}
@@ -403,9 +412,11 @@ func (ctl *AggressiveController) EndOfTurnReply(ctx actor.ReplyContext) {}
 func (ctl *AggressiveController) NoOp(ctx actor.NotificationContext) {}
 
 func (ctl *AggressiveController) isPathStepBlocked(pos position.Position, selfID uuid.UUID) bool {
-	// 1. Check if occupied by another entity in KnownEntities
+	// 1. Check if occupied by another ALIVE entity in KnownEntities.
+	// This is the primary source for dynamic occupancy since ctl.Grid is static.
 	for _, ent := range ctl.KnownEntities {
-		if ent.ID != selfID && ent.Position.X == pos.X && ent.Position.Y == pos.Y {
+		hp := ent.GetPropertyI(property.HP).I()
+		if ent.ID != selfID && ent.Position.X == pos.X && ent.Position.Y == pos.Y && hp > 0 {
 			return true
 		}
 	}
