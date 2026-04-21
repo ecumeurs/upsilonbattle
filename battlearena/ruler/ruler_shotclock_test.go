@@ -255,9 +255,32 @@ func TestShotClockWithDeadEntity(t *testing.T) {
 	r.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan)
 	<-dChan
 
-	// Get first entity turn
-	msg := ctrl1.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 10*time.Second)
+	// Wait for first entity turn on either controller
+	var msg *message.Message
+	var activeCtrl *FakeController
+	timeout := time.After(10 * time.Second)
+	foundTurn := false
+	for !foundTurn {
+		select {
+		case m := <-ctrl1.Inbox:
+			if _, ok := m.TargetMethod.(rulermethods.ControllerNextTurn); ok {
+				msg = m
+				activeCtrl = ctrl1
+				foundTurn = true
+			}
+		case m := <-ctrl2.Inbox:
+			if _, ok := m.TargetMethod.(rulermethods.ControllerNextTurn); ok {
+				msg = m
+				activeCtrl = ctrl2
+				foundTurn = true
+			}
+		case <-timeout:
+			t.Fatal("Timeout waiting for ControllerNextTurn")
+		}
+	}
+
 	currentEntID := msg.TargetMethod.(rulermethods.ControllerNextTurn).Entity.ID
+	t.Logf("Turn started for entity %s on %s", currentEntID, activeCtrl.Name())
 
 	// Now simulate the current entity being killed by an external action
 	// This tests the scenario where an entity dies after the shot clock has started

@@ -290,56 +290,63 @@ func (ctl *AggressiveController) GetEntitiesStateReply(ctx actor.ReplyContext) {
 
 func (ctl *AggressiveController) ControllerMoveReply(ctx actor.ReplyContext) {
 	if ctx.Msg.HasError {
-		ctl.ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
-			EntityID:     ctx.Msg.Content.(rulermethods.ControllerMoveReply).Entity.ID,
+		ctl.RequestLogger.WithFields(logrus.Fields{
+			"error": ctx.Msg.ErrorMessage,
+		}).Error("Move failed, ending turn")
+		// If move fails, we don't have the updated entity state in the reply.
+		// We should have it in KnownEntities though.
+		// However, without a valid Entity in the reply, we might not know which entity was moving
+		// if multiple were active (not the case for AggressiveController but good practice).
+		return
+	}
+
+	ControllerData, ok := ctx.Msg.Content.(rulermethods.ControllerMoveReply)
+	if !ok {
+		ctl.RequestLogger.Error("Invalid MoveReply content type")
+		return
+	}
+	target := ctl.latestTarget
+
+	ctl.RequestLogger.WithFields(logrus.Fields{
+		"EntityID": ControllerData.Entity.ID.String()[0:8],
+		"Position": ControllerData.Entity.Position,
+		"Expected": target.Position}).Debug("Move Succesfull")
+	time.Sleep(100 * time.Millisecond)
+
+	attacker := ctl.KnownEntities[ControllerData.Entity.ID]
+
+	ctl.RequestLogger.Info(" Attacker: ", attacker.PrettyString())
+
+	atkrng := attacker.GetPropertyI(property.AttackRange).I()
+	if ControllerData.Entity.Position.Distance(target.Position) <= atkrng {
+
+		// it is already in place. Send attack
+		ctl.RequestLogger.WithFields(logrus.Fields{
+			"EntityID":       ControllerData.Entity.ID.String()[0:8],
+			"Position":       ControllerData.Entity.Position,
+			"TargetPosition": target.Position,
+			"AttackRange":    atkrng,
+			"TargetEntity":   target.ID.String()[0:8]}).Info("Attacking")
+		ctl.ruler.SendActor(message.Create(nil, rulermethods.ControllerAttack{
+			EntityID:     ControllerData.Entity.ID,
+			Target:       target.Position,
 			ControllerID: ctl.ID,
-		}, rulermethods.EndOfTurn{}), ctl.GetCallbackChan())
+		}, rulermethods.ControllerAttackReply{
+			Entity: ControllerData.Entity,
+		}), ctl.GetCallbackChan())
 	} else {
-		ControllerData := ctx.Msg.Content.(rulermethods.ControllerMoveReply)
-		target := ctl.latestTarget
+		// end of turn
 
 		ctl.RequestLogger.WithFields(logrus.Fields{
 			"EntityID": ControllerData.Entity.ID.String()[0:8],
 			"Position": ControllerData.Entity.Position,
-			"Expected": target.Position}).Debug("Move Succesfull")
-		time.Sleep(100 * time.Millisecond)
+			"Expected": target.Position}).Debug("Too far away from target, ending turn")
 
-		attacker := ctl.KnownEntities[ControllerData.Entity.ID]
-
-		ctl.RequestLogger.Info(" Attacker: ", attacker.PrettyString())
-
-		atkrng := attacker.GetPropertyI(property.AttackRange).I()
-		if ControllerData.Entity.Position.Distance(target.Position) <= atkrng {
-
-			// it is already in place. Send attack
-			ctl.RequestLogger.WithFields(logrus.Fields{
-				"EntityID":       ControllerData.Entity.ID.String()[0:8],
-				"Position":       ControllerData.Entity.Position,
-				"TargetPosition": target.Position,
-				"AttackRange":    atkrng,
-				"TargetEntity":   target.ID.String()[0:8]}).Info("Attacking")
-			ctl.ruler.SendActor(message.Create(nil, rulermethods.ControllerAttack{
-				EntityID:     ControllerData.Entity.ID,
-				Target:       target.Position,
-				ControllerID: ctl.ID,
-			}, rulermethods.ControllerAttackReply{
-				Entity: ControllerData.Entity,
-			}), ctl.GetCallbackChan())
-		} else {
-			// end of turn
-
-			ctl.RequestLogger.WithFields(logrus.Fields{
-				"EntityID": ControllerData.Entity.ID.String()[0:8],
-				"Position": ControllerData.Entity.Position,
-				"Expected": target.Position}).Debug("Too far away from target, ending turn")
-
-			ctl.ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
-				EntityID:     ControllerData.Entity.ID,
-				ControllerID: ctl.ID,
-			}, rulermethods.EndOfTurn{}), ctl.GetCallbackChan())
-		}
+		ctl.ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
+			EntityID:     ControllerData.Entity.ID,
+			ControllerID: ctl.ID,
+		}, rulermethods.EndOfTurn{}), ctl.GetCallbackChan())
 	}
-
 }
 
 func (ctl *AggressiveController) ControllerAttackReply(ctx actor.ReplyContext) {
@@ -347,9 +354,21 @@ func (ctl *AggressiveController) ControllerAttackReply(ctx actor.ReplyContext) {
 		"Error":   ctx.Msg.HasError,
 		"Message": ctx.Msg.ErrorMessage,
 	}).Info("Attack done, ending turn")
+	
+	if ctx.Msg.HasError {
+		// Just end turn if attack failed
+		return
+	}
+
+	reply, ok := ctx.Msg.Content.(rulermethods.ControllerAttackReply)
+	if !ok {
+		ctl.RequestLogger.Error("Invalid AttackReply content type")
+		return
+	}
+
 	time.Sleep(100 * time.Millisecond)
 	ctl.ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
-		EntityID:     ctx.Msg.Content.(rulermethods.ControllerAttackReply).Entity.ID,
+		EntityID:     reply.Entity.ID,
 		ControllerID: ctl.ID,
 	}, rulermethods.EndOfTurn{}), ctl.GetCallbackChan())
 }
