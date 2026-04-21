@@ -13,7 +13,6 @@ import (
 
 func TestRulerForfeitTriggersWinnerID(t *testing.T) {
 	ruler := NewCompleteRuler()
-	ruler.Start()
 	ctrl1 := NewFake("P1")
 	ctrl2 := NewFake("P2")
 
@@ -30,6 +29,9 @@ func TestRulerForfeitTriggersWinnerID(t *testing.T) {
 		ruler.GameState.Entities[id] = e
 		i++
 	}
+
+	ruler.Start()
+	defer ruler.Stop()
 
 	// 1. Join controllers
 	dChan := make(chan *message.Message, 1)

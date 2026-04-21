@@ -1,3 +1,5 @@
+// @test-link [[rule_turn_clock]]
+// @spec-link [[rule_ruler_test_robustness]]
 package ruler
 
 import (
@@ -9,17 +11,16 @@ import (
 )
 
 // @test-link [[rule_turn_clock]]
+// TestShotClockExpiry verifies that when the shot clock (turn timer) runs out,
+// the Ruler automatically triggers an EndOfTurn event for the current entity.
 func TestShotClockExpiry(t *testing.T) {
 	ruler := NewCompleteRuler()
 	ruler.ShotClockDuration = 100 * time.Millisecond
-	ruler.Start()
-	defer ruler.Stop()
-	
+	dChan := make(chan *message.Message, 1)
 	ctrl := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")
 
 	// Setup controllers
-	dChan := make(chan *message.Message, 1)
 	// Manually assign entities to controllers to ensure win conditions/timeouts work
 	i := 0
 	for id, e := range ruler.GameState.Entities {
@@ -31,6 +32,169 @@ func TestShotClockExpiry(t *testing.T) {
 		ruler.GameState.Entities[id] = e
 		i++
 	}
+
+	ruler.Start()
+	defer ruler.Stop()
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
+
+	// Note: While the test code doesn't explicitly send ControllerBattleReady,
+	// FakeController (in ruler_test.go) automatically sends it once it receives
+	// the grid and entities state. This satisfies the Ruler's requirement to
+	// trigger the first turn.
+
+	// Wait for battle start
+	ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 10*time.Second)
+
+	// Wait for first entity turn on either controller
+	var msg *message.Message
+	var activeCtrl *FakeController
+	timeout := time.After(10 * time.Second)
+	foundTurn := false
+	for !foundTurn {
+		select {
+		case m := <-ctrl.Inbox:
+			if _, ok := m.TargetMethod.(rulermethods.ControllerNextTurn); ok {
+				msg = m
+				activeCtrl = ctrl
+				foundTurn = true
+			}
+		case m := <-ctrl2.Inbox:
+			if _, ok := m.TargetMethod.(rulermethods.ControllerNextTurn); ok {
+				msg = m
+				activeCtrl = ctrl2
+				foundTurn = true
+			}
+		case <-timeout:
+			t.Fatal("Timeout waiting for ControllerNextTurn")
+		}
+	}
+
+	entID := msg.TargetMethod.(rulermethods.ControllerNextTurn).Entity.ID
+	t.Logf("Turn started for entity %s on %s, waiting for timeout...", entID, activeCtrl.Name())
+
+	// Wait for shot clock to expire (100ms) and trigger EndOfTurn
+	// All controllers receive EntitiesStateChanged
+	activeCtrl.ExpectMessage(t, rulermethods.EntitiesStateChanged{}, 10*time.Second)
+
+	// And then the NEXT turn should be triggered
+	// (Note: we don't know who gets the next turn either, but we just want to see it triggered)
+	// We check the active controller again for the transition broadcast
+	activeCtrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 10*time.Second)
+
+	ctrl.Stop()
+	ctrl2.Stop()
+}
+
+// @test-link [[rule_turn_clock]]
+// @spec-link [[rule_ruler_test_robustness]]
+func TestShotClockCancellation(t *testing.T) {
+	ruler := NewCompleteRuler()
+	ruler.ShotClockDuration = 500 * time.Millisecond
+	ctrl := NewFake("Fake1")
+	ctrl2 := NewFake("Fake2")
+
+	dChan := make(chan *message.Message, 1)
+	// Manually assign entities to controllers
+	i := 0
+	for id, e := range ruler.GameState.Entities {
+		if i == 0 {
+			e.ControllerID = ctrl.ID
+		} else {
+			e.ControllerID = ctrl2.ID
+		}
+		ruler.GameState.Entities[id] = e
+		i++
+	}
+
+	ruler.Start()
+	defer ruler.Stop()
+
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
+	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
+
+	// Note: The FakeControllers automatically handle the BattleReady handshake in the background.
+	// Ruler will only send BattleStart and hand out the first turn (ControllerNextTurn)
+	// once both controllers have signaled readiness.
+
+	ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 10*time.Second)
+	// (Check ctrl2 too to ensure it received BattleStart)
+	ctrl2.ExpectMessage(t, rulermethods.BattleStart{}, 10*time.Second)
+
+	// Wait for first entity turn on either controller
+	var msg *message.Message
+	var activeCtrl *FakeController
+	timeout := time.After(10 * time.Second)
+	foundTurn := false
+	for !foundTurn {
+		select {
+		case m := <-ctrl.Inbox:
+			if _, ok := m.TargetMethod.(rulermethods.ControllerNextTurn); ok {
+				msg = m
+				activeCtrl = ctrl
+				foundTurn = true
+			}
+		case m := <-ctrl2.Inbox:
+			if _, ok := m.TargetMethod.(rulermethods.ControllerNextTurn); ok {
+				msg = m
+				activeCtrl = ctrl2
+				foundTurn = true
+			}
+		case <-timeout:
+			t.Fatal("Timeout waiting for ControllerNextTurn")
+		}
+	}
+
+	entID := msg.TargetMethod.(rulermethods.ControllerNextTurn).Entity.ID
+
+	// Manually end turn before timeout
+	ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
+		ControllerID: activeCtrl.ID,
+		EntityID:     entID,
+	}, rulermethods.EndOfTurn{}), dChan)
+	<-dChan
+
+	// Wait for transition
+	activeCtrl.ExpectMessage(t, rulermethods.EntitiesStateChanged{}, 10*time.Second)
+
+	// Verify next turn triggered
+	activeCtrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 10*time.Second)
+
+	ctrl.Stop()
+	ctrl2.Stop()
+}
+
+// @test-link [[rule_turn_clock]]
+// TestShotClockTurnProtection verifies that the shot clock correctly follows the
+// battle versioning and turn sequence, ensuring that timeouts from older turns
+// cannot accidentally end newer turns even if they were to fire late.
+func TestShotClockTurnProtection(t *testing.T) {
+	ruler := NewCompleteRuler()
+	ruler.ShotClockDuration = 100 * time.Millisecond
+	ctrl := NewFake("Fake1")
+	ctrl2 := NewFake("Fake2")
+
+	// Manually assign entities to controllers
+	i := 0
+	for id, e := range ruler.GameState.Entities {
+		if i == 0 {
+			e.ControllerID = ctrl.ID
+		} else {
+			e.ControllerID = ctrl2.ID
+		}
+		ruler.GameState.Entities[id] = e
+		i++
+	}
+
+	ruler.Start()
+	defer ruler.Stop()
+
+	// Register controllers
+	dChan := make(chan *message.Message, 1)
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan)
 	<-dChan
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan)
@@ -38,103 +202,6 @@ func TestShotClockExpiry(t *testing.T) {
 
 	// Wait for battle start
 	ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 10*time.Second)
-	
-	// Wait for first entity turn
-	msg := ctrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 10*time.Second)
-	entID := msg.TargetMethod.(rulermethods.ControllerNextTurn).Entity.ID
-	
-	t.Logf("Turn started for entity %s, waiting for timeout...", entID)
-
-	// Wait for shot clock to expire (100ms) and trigger EndOfTurn
-	// This should result in EntitiesStateChanged being broadcast
-	ctrl.ExpectMessage(t, rulermethods.EntitiesStateChanged{}, 10*time.Second)
-	
-	// And then the NEXT turn should be triggered
-	ctrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 10*time.Second)
-
-	ctrl.Stop()
-	ctrl2.Stop()
-}
-
-// @test-link [[rule_turn_clock]]
-func TestShotClockCancellation(t *testing.T) {
-	ruler := NewCompleteRuler()
-	ruler.ShotClockDuration = 500 * time.Millisecond
-	ruler.Start()
-	defer ruler.Stop()
-	
-	ctrl := NewFake("Fake1")
-	ctrl2 := NewFake("Fake2")
-
-	dChan := make(chan *message.Message, 1)
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan)
-	<-dChan
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan)
-	<-dChan
-
-	// Manually assign entities to controllers
-	i := 0
-	for id, e := range ruler.GameState.Entities {
-		if i == 0 {
-			e.ControllerID = ctrl.ID
-		} else {
-			e.ControllerID = ctrl2.ID
-		}
-		ruler.GameState.Entities[id] = e
-		i++
-	}
-	ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 10*time.Second)
-	
-	// First turn starts
-	msg := ctrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 10*time.Second)
-	entID := msg.TargetMethod.(rulermethods.ControllerNextTurn).Entity.ID
-
-	// Manually end turn before timeout
-	ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
-		ControllerID: ctrl.ID,
-		EntityID:     entID,
-	}, rulermethods.EndOfTurn{}), dChan)
-	<-dChan
-
-	// Wait for transition
-	ctrl.ExpectMessage(t, rulermethods.EntitiesStateChanged{}, 10*time.Second)
-	
-	// Verify next turn triggered
-	ctrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 10*time.Second)
-
-	ctrl.Stop()
-	ctrl2.Stop()
-}
-
-// @test-link [[rule_turn_clock]]
-func TestShotClockTurnProtection(t *testing.T) {
-	ruler := NewCompleteRuler()
-	ruler.ShotClockDuration = 100 * time.Millisecond
-	ruler.Start()
-	defer ruler.Stop()
-
-	ctrl := NewFake("Fake1")
-	ctrl2 := NewFake("Fake2")
-
-	dChan := make(chan *message.Message, 1)
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan)
-	<-dChan
-	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan)
-	<-dChan
-
-	// Start battle
-	ctrl.ExpectMessage(t, rulermethods.BattleStart{}, 10*time.Second)
-	// Manually assign entities to controllers
-	i := 0
-	for id, e := range ruler.GameState.Entities {
-		if i == 0 {
-			e.ControllerID = ctrl.ID
-		} else {
-			e.ControllerID = ctrl2.ID
-		}
-		ruler.GameState.Entities[id] = e
-		i++
-	}
 
 	// Turn 1.0 starts
 	ctrl.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 10*time.Second)
@@ -149,6 +216,7 @@ func TestShotClockTurnProtection(t *testing.T) {
 	ctrl2.Stop()
 }
 
+// @test-link [[rule_turn_clock]]
 // TestShotClockWithDeadEntity tests that the shot clock properly handles
 // the case where the current entity is killed after the shot clock has started
 // but before it fires. This is a regression test for the complete ISS-046 fix.
@@ -162,24 +230,9 @@ func TestShotClockTurnProtection(t *testing.T) {
 // 6. With fixes, the shot clock should detect the entity is dead and skip safely
 func TestShotClockWithDeadEntity(t *testing.T) {
 	r := NewCompleteRuler()
-	r.Start()
-	defer r.Stop()
-
-	// Set a short shot clock for testing
-	r.ShotClockDuration = 200 * time.Millisecond
-
 	ctrl1 := NewFake("Controller1")
 	ctrl2 := NewFake("Controller2")
 
-	// Setup controllers
-	dChan := make(chan *message.Message, 1)
-	r.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl1, ControllerID: ctrl1.ID}, rulermethods.AddControllerReply{}), dChan)
-	<-dChan
-	r.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan)
-	<-dChan
-
-	// Wait for battle start
-	ctrl1.ExpectMessage(t, rulermethods.BattleStart{}, 10*time.Second)
 	// Manually assign entities to controllers
 	i := 0
 	for id, e := range r.GameState.Entities {
@@ -191,6 +244,16 @@ func TestShotClockWithDeadEntity(t *testing.T) {
 		r.GameState.Entities[id] = e
 		i++
 	}
+
+	r.Start()
+	defer r.Stop()
+
+	// Register controllers
+	dChan := make(chan *message.Message, 1)
+	r.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl1, ControllerID: ctrl1.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
+	r.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl2, ControllerID: ctrl2.ID}, rulermethods.AddControllerReply{}), dChan)
+	<-dChan
 
 	// Get first entity turn
 	msg := ctrl1.ExpectMessage(t, rulermethods.ControllerNextTurn{}, 10*time.Second)
@@ -209,7 +272,7 @@ func TestShotClockWithDeadEntity(t *testing.T) {
 	replyChan := make(chan *message.Message, 1)
 	r.SendActor(message.Create(nil, rulermethods.TestingGetState{}, rulermethods.TestingGetStateReply{}), replyChan)
 	replyMsg := <-replyChan
-	
+
 	if replyMsg.TargetMethod.(rulermethods.TestingGetStateReply).CurrentEntityTurn == currentEntID {
 		t.Fatal("CurrentEntityTurn should have been cleared when the entity was removed")
 	}

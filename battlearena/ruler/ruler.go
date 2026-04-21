@@ -365,6 +365,7 @@ func (r *Ruler) triggerFirstTurn() {
 	}
 }
 
+// @spec-link [[rule_battle_readiness]]
 func (r *Ruler) controllerBattleReady(ctx actor.NotificationContext) {
 	req := ctx.Msg.TargetMethod.(rulermethods.ControllerBattleReady)
 	r.RequestLogger.Info("ControllerBattleReady")

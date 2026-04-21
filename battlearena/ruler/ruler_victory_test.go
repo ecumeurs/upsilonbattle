@@ -15,8 +15,6 @@ import (
 func TestVictoryStandardizationForfeit(t *testing.T) {
 	logrus.SetLevel(logrus.WarnLevel)
 	ruler := NewCompleteRuler()
-	ruler.Start()
-	defer ruler.Stop()
 	ctrl1 := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")
 	defer ctrl1.Stop()
@@ -35,6 +33,9 @@ func TestVictoryStandardizationForfeit(t *testing.T) {
 		ruler.GameState.Entities[id] = e
 		i++
 	}
+
+	ruler.Start()
+	defer ruler.Stop()
 
 	dChan := make(chan *message.Message, 1)
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl1, ControllerID: ctrl1.ID}, rulermethods.AddControllerReply{}), dChan)
@@ -63,12 +64,13 @@ func TestVictoryStandardizationForfeit(t *testing.T) {
 
 func TestVictoryStandardizationCasualties(t *testing.T) {
 	ruler := NewCompleteRuler()
-	ruler.Start()
-	defer ruler.Stop()
 	ctrl1 := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")
 	defer ctrl1.Stop()
 	defer ctrl2.Stop()
+
+	ruler.Start()
+	defer ruler.Stop()
 
 	dChan := make(chan *message.Message, 1)
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl1, ControllerID: ctrl1.ID}, rulermethods.AddControllerReply{}), dChan)

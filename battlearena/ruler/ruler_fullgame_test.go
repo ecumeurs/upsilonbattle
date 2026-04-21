@@ -20,8 +20,6 @@ func TestRulerControllerFullGame(t *testing.T) {
 	logrus.SetOutput(os.Stdout)
 
 	ruler := NewCompleteRuler()
-	ruler.Start()
-	defer ruler.Stop()
 	ctrl := controllers.NewRdAggressiveController("Fake1")
 	ctrl2 := controllers.NewRdAggressiveController("Fake2")
 	ctrl.Start()
@@ -40,6 +38,9 @@ func TestRulerControllerFullGame(t *testing.T) {
 		ruler.GameState.Entities[id] = e
 		i++
 	}
+
+	ruler.Start()
+	defer ruler.Stop()
 
 	{
 		dChan := make(chan *message.Message, 1)

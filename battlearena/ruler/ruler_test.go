@@ -160,7 +160,10 @@ func (c *FakeController) ReceiveAPIMessage(ctx actor.NotificationContext) {
 }
 
 func (c *FakeController) ControllerNextTurn(ctx actor.NotificationContext) {
-	c.triggerStopper(ctx.Msg)
+	m := ctx.Msg.TargetMethod.(rulermethods.ControllerNextTurn)
+	if m.Entity.ControllerID == c.ID {
+		c.triggerStopper(ctx.Msg)
+	}
 }
 
 func (c *FakeController) BattleStart(ctx actor.NotificationContext) {
@@ -226,8 +229,6 @@ func (c *FakeController) NoOp(ctx actor.NotificationContext) {}
 
 func TestRulerBattleBegin(t *testing.T) {
 	ruler := NewCompleteRuler()
-	ruler.Start()
-	defer ruler.Stop()
 	ctrl := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")
 
@@ -242,6 +243,9 @@ func TestRulerBattleBegin(t *testing.T) {
 		ruler.GameState.Entities[id] = e
 		i++
 	}
+
+	ruler.Start()
+	defer ruler.Stop()
 
 	dChan1 := make(chan *message.Message, 1)
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan1)
@@ -260,11 +264,8 @@ func TestRulerBattleBegin(t *testing.T) {
 
 func TestRulerBattleBeginNextTurn(t *testing.T) {
 	ruler := NewCompleteRuler()
-	ruler.Start()
-	defer ruler.Stop()
 	ctrl := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")
-
 	// Manually assign entities
 	i := 0
 	for id, e := range ruler.GameState.Entities {
@@ -276,6 +277,9 @@ func TestRulerBattleBeginNextTurn(t *testing.T) {
 		ruler.GameState.Entities[id] = e
 		i++
 	}
+
+	ruler.Start()
+	defer ruler.Stop()
 
 	dChan1 := make(chan *message.Message, 1)
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan1)
@@ -318,11 +322,8 @@ func TestRulerBattleBeginNextTurn(t *testing.T) {
 
 func TestRulerBattleBeginNextTurnFetchGridAndEntities(t *testing.T) {
 	ruler := NewCompleteRuler()
-	ruler.Start()
-	defer ruler.Stop()
 	ctrl := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")
-
 	// Manually assign entities
 	i := 0
 	for id, e := range ruler.GameState.Entities {
@@ -334,6 +335,9 @@ func TestRulerBattleBeginNextTurnFetchGridAndEntities(t *testing.T) {
 		ruler.GameState.Entities[id] = e
 		i++
 	}
+
+	ruler.Start()
+	defer ruler.Stop()
 
 	dChan1 := make(chan *message.Message, 1)
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan1)
@@ -393,11 +397,8 @@ func TestRulerBattleBeginNextTurnFetchGridAndEntities(t *testing.T) {
 
 func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 	ruler := NewCompleteRuler()
-	ruler.Start()
-	defer ruler.Stop()
 	ctrl := NewFake("Fake1")
 	ctrl2 := NewFake("Fake2")
-
 	// Manually assign entities
 	i := 0
 	for id, e := range ruler.GameState.Entities {
@@ -428,7 +429,8 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 		ruler.GameState.Entities[id] = e
 	}
 
-
+	ruler.Start()
+	defer ruler.Stop()
 	dChan := make(chan *message.Message, 1)
 	ruler.SendActor(message.Create(nil, rulermethods.AddController{Controller: ctrl, ControllerID: ctrl.ID}, rulermethods.AddControllerReply{}), dChan)
 	<-dChan
