@@ -70,6 +70,10 @@ func Delay() *defaultproperty.DefaultIntCounterProperty {
 	return defaultproperty.MakeIntCounterProperty(property.Delay, 0, 500, property.FriendlyController, property.Skill)
 }
 
+func Channeling() *defaultproperty.DefaultIntCounterProperty {
+	return defaultproperty.MakeIntCounterProperty(property.Channeling, 0, 0, property.FriendlyController, property.Skill)
+}
+
 func HPLeech() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.HPLeech, 0, property.FriendlyController, property.Skill)
 }
@@ -507,6 +511,8 @@ func SkillProperty(ps property.SkillProperties) property.Property {
 		return PoisonChance()
 	case property.Delay:
 		return Delay()
+	case property.Channeling:
+		return Channeling()
 	case property.Cooldown:
 		return Cooldown()
 	case property.HPLeech:

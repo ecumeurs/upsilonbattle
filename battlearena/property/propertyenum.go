@@ -61,7 +61,8 @@ const (
 	PoisonPower        SkillProperties = "Poison"             // Absence means 0 , can be negative or positive.
 	PoisonChance       SkillProperties = "PoisonChance"       // Absence means 0%
 
-	Delay   SkillProperties = "Delay"   // Absence means 500
+	Delay      SkillProperties = "Delay"      // Absence means 500
+	Channeling SkillProperties = "Channeling" // Absence means 0
 	HPLeech SkillProperties = "HPLeech" // Absence means 0
 	MPLeech SkillProperties = "MPLeech" // Absence means 0
 	SPLeech SkillProperties = "SPLeech" // Absence means 0
@@ -101,7 +102,8 @@ var SkillEffectProperties = map[SkillProperties]bool{
 }
 
 var SkillCostProperties = map[SkillProperties]bool{
-	Delay:    true,
+	Delay:      true,
+	Channeling: true,
 	HPLeech:  true,
 	MPLeech:  true,
 	SPLeech:  true,
