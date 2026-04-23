@@ -3,6 +3,7 @@ package rules
 import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity/skill"
+	"github.com/ecumeurs/upsilonbattle/battlearena/entity/skill/skillweight"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/def"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/effect/effectapplicator"
@@ -45,13 +46,25 @@ func (gs *GameState) UseSkill(msg *message.Message, req rulermethods.ControllerU
 	sk := ent.Skills[req.SkillID]
 
 	// now we have a target identifed! yata! For now only work on direct effect ... later :)
-	dds, aff, err, errkey := effectapplicator.ApplyDirectEffect(ctx.log, &ent, sk.Effect, req.Target, ctx.targetedTiles, ctx.Grid, ctx.targetedEntities)
+	dds, aff, credits, err, errkey := effectapplicator.ApplyDirectEffect(ctx.log, &ent, sk.Effect, req.Target, ctx.targetedTiles, ctx.Grid, ctx.targetedEntities)
 	if err != "" {
 		ctx.log.Error(err)
 		return msg.ReplyWithError(err, errkey), damaged, affected
 	}
 
-	// for the moment ignore buffs and dots.
+	// Status Effect Credits (Flat Rate)
+	// rule: SkillWeight / 10 credits per application
+	if len(aff) > 0 && sk.Effect.IsOverTime() {
+		pos, _, _ := skillweight.Calculate(sk)
+		statusCredits := pos / 10
+		if statusCredits > 0 {
+			credits = append(credits, rulermethods.CreditAward{
+				PlayerID: ent.ControllerID,
+				Amount:   statusCredits * len(aff), // reward per target affected
+				Source:   "status",
+			})
+		}
+	}
 
 	// update entities in global context.
 	for _, tar := range dds {
@@ -62,6 +75,7 @@ func (gs *GameState) UseSkill(msg *message.Message, req rulermethods.ControllerU
 			SkillID:              sk.ID,
 			AttackerControllerID: ent.ControllerID,
 			Attacker:             ent,
+			CreditAwards:         credits, // Attach all credits from this action
 		})
 	}
 
@@ -73,6 +87,7 @@ func (gs *GameState) UseSkill(msg *message.Message, req rulermethods.ControllerU
 			SkillID:             sk.ID,
 			EmitterControllerID: ent.ControllerID,
 			Emitter:             ent,
+			CreditAwards:        credits, // Attach all credits from this action
 		})
 	}
 

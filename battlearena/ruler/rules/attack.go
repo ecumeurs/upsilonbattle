@@ -46,7 +46,33 @@ func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAtt
 	foeHP := foe.GetPropertyI(property.HP)
 
 	// @spec-link [[mech_combat_standard_attack_computation]]
-	computedDamage := tools.Max(1,attackerAttack.I() - foeDefense.I())
+	// @spec-link [[mec_backstabbing_mechanic]]
+	multiplier := 1.0
+	effectiveDefense := foeDefense.I()
+
+	if ent.IsBackstabbing(foe) {
+		multiplier = 1.5
+		// 50% armor penetration
+		effectiveDefense = int(float64(effectiveDefense) * 0.5)
+		ctx.log.Debug("Backstab detected! 150% damage and 50% armor penetration applied.")
+	}
+
+	computedDamage := tools.Max(1, int(float64(attackerAttack.I())*multiplier)-effectiveDefense)
+
+	// Apply shield (not penetrated)
+	foeShield := foe.GetPropertyC(property.Shield)
+	if foeShield.GetValue() > 0 {
+		if foeShield.GetValue() >= computedDamage {
+			ctx.log.Debugf("Shield absorbed all %d damage", computedDamage)
+			foeShield.SetValue(foeShield.GetValue() - computedDamage)
+			computedDamage = 0
+		} else {
+			ctx.log.Debugf("Shield absorbed %d of %d damage", foeShield.GetValue(), computedDamage)
+			computedDamage -= foeShield.GetValue()
+			foeShield.SetValue(0)
+		}
+		foe.UpdateProperty(foeShield)
+	}
 
 	// Compute the new delay
 	ent.CurrentDelay = ent.CurrentDelay + 100
@@ -59,6 +85,7 @@ func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAtt
 		"Defense":     foeDefense.I(),
 		"HP":          foeHP.I(),
 		"ResultingHP": foeHP.I() - computedDamage,
+		"Shield":      foeShield.GetValue(),
 	}).Debug("Entity attack")
 
 	// Update the entity
@@ -77,15 +104,17 @@ func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAtt
 	foe.UpdateProperty(foeHP)
 	gs.Entities[foe.ID] = foe
 
+	credits := []rulermethods.CreditAward{}
+	if computedDamage > 0 {
+		credits = append(credits, rulermethods.CreditAward{
+			PlayerID: ent.ControllerID,
+			Amount:   computedDamage,
+			Source:   "damage",
+		})
+	}
+
 	if foeHP.I() <= 0 {
-
-		gs.Grid.RemoveEntity(foe.Position)
-		delete(gs.Entities, foe.ID)
-		gs.Turner.RemoveEntity(foe.ID)
-
-		ctx.log.WithFields(logrus.Fields{
-			"entityID": foe.ID.String()[0:8],
-			"position": foe.Position}).Info("##### Entity removed #####")
+// ... (lines 109-117)
 	}
 
 	// notify all controllers of the attack.
@@ -97,6 +126,7 @@ func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAtt
 		Damage:               computedDamage,
 		PrevHP:               foeHP.I() + computedDamage,
 		NewHP:                foeHP.I(),
+		CreditAwards:         credits,
 	}
 
 	for _, ctrl := range gs.Controllers {

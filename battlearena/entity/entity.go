@@ -92,6 +92,40 @@ func (e *Entity) FaceToward(p position.Position) {
 	}
 }
 
+// IsBackstabbing returns true if the current entity is attacking the target from behind.
+// Uses the same orientation mapping as FaceToward for consistency.
+// @spec-link [[mechanic_backstab_detection_algorithm]]
+func (e Entity) IsBackstabbing(target Entity) bool {
+	// Calculate the angle from the target to the attacker to see if it's in the target's "back" sector.
+	backAngle := target.Position.AngleTo(e.Position)
+
+	var backAngleMin, backAngleMax int
+
+	// Mapping based on FaceToward's thresholds (where 0 is East/Right):
+	// Up (0): Faces 0, Back 180 -> Range [135, 225]
+	// Right (1): Faces 90, Back 270 -> Range [225, 315]
+	// Down (2): Faces 180, Back 0 -> Range [315, 45]
+	// Left (3): Faces 270, Back 90 -> Range [45, 135]
+	switch target.Orientation {
+	case Up:
+		backAngleMin, backAngleMax = 135, 225
+	case Right:
+		backAngleMin, backAngleMax = 225, 315
+	case Down:
+		backAngleMin, backAngleMax = 315, 45
+	case Left:
+		backAngleMin, backAngleMax = 45, 135
+	}
+
+	if backAngleMin > backAngleMax { // Wrap around case (Down)
+		return backAngle >= backAngleMin || backAngle <= backAngleMax
+	}
+
+	return backAngle >= backAngleMin && backAngle <= backAngleMax
+}
+
+
+
 // getBasePropertyOrDefault
 func (e Entity) getBasePropertyOrDefault(name interface{}) property.Property {
 	nname := property.PropertyToString(name)

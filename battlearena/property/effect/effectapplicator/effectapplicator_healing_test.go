@@ -22,7 +22,7 @@ func TestEffectApplicatorHeal(t *testing.T) {
 	fake.Target.UpdatePropertyValue(property.HP, 5)
 
 	// Apply the effect
-	_, affected, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
+	_, affected, _, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
 
 	if err != "" {
 		t.Errorf("Error applying effect: %s (%s)", err, errkey)
@@ -56,7 +56,7 @@ func TestEffectApplicatorOverheal(t *testing.T) {
 	fake.Target.UpdatePropertyValue(property.HP, 5)
 
 	// Apply the effect
-	_, affected, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
+	_, affected, _, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
 
 	if err != "" {
 		t.Errorf("Error applying effect: %s (%s)", err, errkey)
@@ -90,7 +90,7 @@ func TestEffectApplicatorCurePoison(t *testing.T) {
 	fake.Target.RepsertPropertyValue(property.Poison, 5)
 
 	// Apply the effect
-	_, affected, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
+	_, affected, _, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
 
 	if err != "" {
 		t.Errorf("Error applying effect: %s (%s)", err, errkey)
@@ -124,7 +124,7 @@ func TestEffectApplicatorCureStun(t *testing.T) {
 	fake.Target.RepsertPropertyValue(property.Stun, 5)
 
 	// Apply the effect
-	_, affected, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
+	_, affected, _, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
 
 	if err != "" {
 		t.Errorf("Error applying effect: %s (%s)", err, errkey)
@@ -155,7 +155,7 @@ func TestEffectApplicatorShielding(t *testing.T) {
 	log := logrus.WithField("test", "TestEffectApplicatorShielding")
 
 	// Apply the effect
-	_, affected, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
+	_, affected, _, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
 
 	if err != "" {
 		t.Errorf("Error applying effect: %s (%s)", err, errkey)

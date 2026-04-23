@@ -12,6 +12,12 @@ import (
 // Input struct
 
 // @spec-link [[api_ruler_methods]]
+type CreditAward struct {
+	PlayerID uuid.UUID `json:"player_id"`
+	Amount   int       `json:"amount"`
+	Source   string    `json:"source"`
+}
+
 type AddController struct {
 	Controller   actor.Communication
 	ControllerID uuid.UUID
@@ -173,6 +179,7 @@ type ControllerSkillUsed struct {
 	Emitter             entity.Entity
 	SkillID             uuid.UUID
 	Version             int64
+	CreditAwards        []CreditAward `json:"credits,omitempty"`
 
 	actor.NoReply
 }
@@ -188,6 +195,7 @@ type ControllerAttacked struct {
 	NewHP                int
 	Dead				 bool // is set to true, mark this entity as dead. 
 	Version              int64
+	CreditAwards         []CreditAward `json:"credits,omitempty"`
 
 	actor.NoReply
 }

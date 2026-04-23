@@ -2,11 +2,13 @@ package effect
 
 import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/property"
+	"github.com/google/uuid"
 )
 
 type Effect struct {
 	Properties []property.Property
 	Name       string
+	CasterID   uuid.UUID
 }
 
 // New
@@ -14,6 +16,7 @@ func New() *Effect {
 	return &Effect{
 		Properties: []property.Property{},
 		Name:       "New Effect",
+		CasterID:   uuid.Nil,
 	}
 }
 

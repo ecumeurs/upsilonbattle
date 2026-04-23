@@ -47,10 +47,14 @@ func TestEffectApplicatorDamage1Target(t *testing.T) {
 	log := logrus.WithField("test", "TestEffectApplicatorDamage1Target")
 
 	// Apply the effect
-	damaged, _, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
+	damaged, _, credits, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
 
 	if err != "" {
 		t.Errorf("Error applying effect: %s (%s)", err, errkey)
+	}
+
+	if len(credits) != 1 || credits[0].Amount != 6 {
+		t.Errorf("Expected 6 credits, got %v", credits)
 	}
 
 	if len(damaged) != 1 {
@@ -85,10 +89,14 @@ func TestEffectApplicatorDamage1TargetShield(t *testing.T) {
 	log := logrus.WithField("test", "TestEffectApplicatorDamage1TargetShield")
 
 	// Apply the effect
-	damaged, _, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
+	damaged, _, credits, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
 
 	if err != "" {
 		t.Errorf("Error applying effect: %s (%s)", err, errkey)
+	}
+
+	if len(credits) != 1 || credits[0].Amount !=  1 {
+		t.Errorf("Expected  1 credits, got %v", credits)
 	}
 
 	if len(damaged) != 1 {
@@ -127,10 +135,14 @@ func TestEffectApplicatorDamage1Defense(t *testing.T) {
 	log := logrus.WithField("test", "TestEffectApplicatorDamage1Defense")
 
 	// Apply the effect
-	damaged, _, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
+	damaged, _, credits, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
 
 	if err != "" {
 		t.Errorf("Error applying effect: %s (%s)", err, errkey)
+	}
+
+	if len(credits) != 1 || credits[0].Amount !=  1 {
+		t.Errorf("Expected  1 credits, got %v", credits)
 	}
 
 	if len(damaged) != 1 {
@@ -163,10 +175,14 @@ func TestEffectApplicatorPoison1Defense(t *testing.T) {
 	log := logrus.WithField("test", "TestEffectApplicatorPoison1Defense")
 
 	// Apply the effect
-	damaged, _, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
+	damaged, _, credits, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
 
 	if err != "" {
 		t.Errorf("Error applying effect: %s (%s)", err, errkey)
+	}
+
+	if len(credits) != 1 || credits[0].Amount !=  2 {
+		t.Errorf("Expected  2 credits, got %v", credits)
 	}
 
 	if len(damaged) != 1 {
@@ -199,10 +215,14 @@ func TestEffectApplicatorStun1Armor(t *testing.T) {
 	log := logrus.WithField("test", "TestEffectApplicatorStun1Armor")
 
 	// Apply the effect
-	damaged, _, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
+	damaged, _, credits, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
 
 	if err != "" {
 		t.Errorf("Error applying effect: %s (%s)", err, errkey)
+	}
+
+	if len(credits) != 1 || credits[0].Amount !=  2 {
+		t.Errorf("Expected  2 credits, got %v", credits)
 	}
 
 	if len(damaged) != 1 {
@@ -238,10 +258,14 @@ func TestEffectApplicatorPoisoned(t *testing.T) {
 	log := logrus.WithField("test", "TestEffectApplicatorPoisoned")
 
 	// Apply the effect
-	damaged, _, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
+	damaged, _, credits, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
 
 	if err != "" {
 		t.Errorf("Error applying effect: %s (%s)", err, errkey)
+	}
+
+	if len(credits) != 1 || credits[0].Amount !=  5 {
+		t.Errorf("Expected 6 credits, got %v", credits)
 	}
 
 	if len(damaged) != 1 {
@@ -285,7 +309,7 @@ func TestEffectApplicatorPoisonedTwice(t *testing.T) {
 
 	// Apply the effect
 	ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
-	damaged, _, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
+	damaged, _, _, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
 
 	if err != "" {
 		t.Errorf("Error applying effect: %s (%s)", err, errkey)
@@ -331,10 +355,14 @@ func TestEffectApplicatorStuned(t *testing.T) {
 	log := logrus.WithField("test", "TestEffectApplicatorStuned")
 
 	// Apply the effect
-	damaged, _, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
+	damaged, _, credits, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
 
 	if err != "" {
 		t.Errorf("Error applying effect: %s (%s)", err, errkey)
+	}
+
+	if len(credits) != 1 || credits[0].Amount !=  5 {
+		t.Errorf("Expected 6 credits, got %v", credits)
 	}
 
 	if len(damaged) != 1 {
@@ -379,10 +407,14 @@ func TestEffectApplicatorCrit(t *testing.T) {
 	log := logrus.WithField("test", "TestEffectApplicatorCrit")
 
 	// Apply the effect
-	damaged, _, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
+	damaged, _, credits, err, errkey := ApplyDirectEffect(log, &fake.Caster, *eff, fake.TargetPos, fake.Pos, fake.Grid, fake.Entities)
 
 	if err != "" {
 		t.Errorf("Error applying effect: %s (%s)", err, errkey)
+	}
+
+	if len(credits) != 1 || credits[0].Amount != 6 {
+		t.Errorf("Expected 6 credits, got %v", credits)
 	}
 
 	if len(damaged) != 1 {

@@ -7,6 +7,7 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/def"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/effect"
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonmapdata/grid"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/ecumeurs/upsilontools/tools"
@@ -35,8 +36,10 @@ func getPropertyOrDefaultC(eff effect.Effect, p interface{}) property.IntCounter
 }
 
 // Machine that apply effects
-func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effect, target position.Position, cells []position.Position, grd *grid.Grid, targetedEntities []entity.Entity) (damaged []entity.Entity, affected []entity.Entity, err string, errkey string) {
+func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effect, target position.Position, cells []position.Position, grd *grid.Grid, targetedEntities []entity.Entity) (damaged []entity.Entity, affected []entity.Entity, credits []rulermethods.CreditAward, err string, errkey string) {
 	logger.WithFields(logrus.Fields{}).Info("ApplyDirectEffect")
+	credits = []rulermethods.CreditAward{}
+
 	// Hit test!
 	if eff.IsDamaging() {
 		// @spec-link [[mech_combat_attack_computation]]
@@ -82,6 +85,7 @@ func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effe
 			"critMultiplier": critMultiplier,
 		}).Info("Attacker")
 
+		totalDamageCredits := 0
 		for _, target := range damageTargets {
 			hp := target.GetPropertyC(property.HP).GetValue()
 			defense := target.GetPropertyI(property.Defense).I()
@@ -130,6 +134,11 @@ func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effe
 					// Don't expect poison property to be preset ... this isn't something that sticks between game
 					target.RepsertPropertyValue(property.Poison, truepoison+poison)
 					logger.WithFields(logrus.Fields{"oldpoison": poison, "newpoison": (poison + truepoison)}).Info("Poisoned")
+					
+					// Flat rate credit for status effect application
+					// Since we don't have the skill weight here easily without the full skill,
+					// we'll rely on the caller (UseSkill) to calculate status credits if it's a skill.
+					// For direct damage, we only count HP loss.
 				}
 			}
 			if truestun > 0 {
@@ -142,6 +151,8 @@ func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effe
 					logger.WithFields(logrus.Fields{"oldstun": stun, "newstun": (stun + truestun)}).Info("Stunned")
 				}
 			}
+			
+			actionDamage := 0
 			if truedmg > 0 {
 				// first killoff shield.
 				if shield > 0 {
@@ -159,9 +170,11 @@ func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effe
 				// then kill off hp.
 				if hp > 0 {
 					if hp > truedmg {
+						actionDamage = truedmg
 						hp -= truedmg
 						truedmg = 0
 					} else {
+						actionDamage = hp
 						truedmg -= hp
 						hp = 0
 					}
@@ -170,9 +183,17 @@ func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effe
 					logger.WithFields(logrus.Fields{"hp": hp}).Info("HP")
 				}
 			}
+			totalDamageCredits += actionDamage
 			damaged = append(damaged, target)
 		}
 
+		if totalDamageCredits > 0 {
+			credits = append(credits, rulermethods.CreditAward{
+				PlayerID: ent.ControllerID,
+				Amount:   totalDamageCredits,
+				Source:   "damage",
+			})
+		}
 	}
 
 	if eff.IsHealing() {
@@ -181,15 +202,20 @@ func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effe
 		poisonPower := getPropertyOrDefaultI(eff, property.PoisonPower).I()
 		stunPower := getPropertyOrDefaultI(eff, property.StunPower).I()
 
+		totalHealCredits := 0
 		for _, target := range targetedEntities {
 			hp := target.GetPropertyC(property.HP).GetValue()
 			maxhp := target.GetPropertyC(property.HP).GetMaxValue()
 			if hp < maxhp {
+				actualHeal := 0
 				if hp+heal > maxhp {
+					actualHeal = maxhp - hp
 					hp = maxhp
 				} else {
+					actualHeal = heal
 					hp += heal
 				}
+				totalHealCredits += actualHeal
 				logger.WithFields(logrus.Fields{"hp": hp}).Info("HP")
 				target.UpdatePropertyValue(property.HP, hp)
 			}
@@ -214,7 +240,14 @@ func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effe
 			affected = append(affected, target)
 		}
 
+		if totalHealCredits > 0 {
+			credits = append(credits, rulermethods.CreditAward{
+				PlayerID: ent.ControllerID,
+				Amount:   totalHealCredits,
+				Source:   "healing",
+			})
+		}
 	}
 
-	return damaged, affected, "", ""
+	return damaged, affected, credits, "", ""
 }

@@ -370,3 +370,51 @@ func TestRuleAttackFailFriendlyFire(t *testing.T) {
 		t.Errorf("Expected error 'entity.attack.friendlyfire', got '%s'", reply.ErrorKey)
 	}
 }
+
+func TestRuleAttackCredits(t *testing.T) {
+	gs, fake := makeGameStateForTwoAttack()
+	gs.Turner.ForceTurn(fake.Attacker)
+
+	// Attack Entity 3
+	msg := message.Create(nil,
+		rulermethods.ControllerAttack{
+			EntityID:     fake.Attacker,
+			ControllerID: fake.AttackerControllerID,
+			Target:       fake.FoePosition,
+		}, nil)
+
+	reply := gs.Attack(msg, msg.TargetMethod.(rulermethods.ControllerAttack))
+
+	if reply.HasError {
+		t.Errorf("Expected no error, got '%s'", reply.ErrorKey)
+	}
+
+	attacker := gs.Entities[fake.Attacker]
+	foe := gs.Entities[fake.Foe]
+
+	attackerattack := attacker.GetPropertyI(property.Attack).I()
+	foedefense := foe.GetPropertyI(property.Defense).I()
+	expectedDamage := attackerattack - foedefense
+
+	// expect foe's inbox to have been filled with a notification of the attack.
+	if len(fake.FakeController2.NotifyMessages) != 1 {
+		t.Errorf("Expected Foe to have received a notification of the attack.")
+	} else {
+		notif := fake.FakeController2.NotifyMessages[0].TargetMethod.(rulermethods.ControllerAttacked)
+
+		if len(notif.CreditAwards) != 1 {
+			t.Errorf("Expected 1 credit award, got %d", len(notif.CreditAwards))
+		} else {
+			award := notif.CreditAwards[0]
+			if award.PlayerID != fake.AttackerControllerID {
+				t.Errorf("Expected credit for player %s, got %s", fake.AttackerControllerID, award.PlayerID)
+			}
+			if award.Amount != expectedDamage {
+				t.Errorf("Expected %d credits, got %d", expectedDamage, award.Amount)
+			}
+			if award.Source != "damage" {
+				t.Errorf("Expected source 'damage', got '%s'", award.Source)
+			}
+		}
+	}
+}
