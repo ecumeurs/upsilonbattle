@@ -3,18 +3,33 @@ package controller
 import (
 	"fmt"
 
+	"github.com/ecumeurs/upsilonbattle/battlearena/controller/behavior"
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
 	"github.com/ecumeurs/upsilontools/tools/actor"
 	"github.com/google/uuid"
 )
 
+// Controller is the base struct for all entity controllers.
+// It handles actor plumbing (message routing, ruler communication) and optionally
+// delegates AI decision-making to a pluggable Behavior.
+//
+// @spec-link [[mech_behavior_system]]
 type Controller struct {
 	*actor.Actor
 	ID             uuid.UUID
+	// EntityID is the entity this controller is responsible for.
+	// When using the one-controller-per-entity model, this is set at construction.
+	// NOTE: Will evolve toward a single EntityController with a map[entityID]Behavior.
+	EntityID       uuid.UUID
 	Assigned       bool
 	ControllerName string
 	Ruler          actor.Communication
+	// Behavior is the optional pluggable AI decision system.
+	// When nil, the controller falls back to its own inline logic.
+	// @spec-link [[mech_behavior_system]]
+	Behavior       behavior.Behavior
 }
+
 
 // New
 func New() *Controller {

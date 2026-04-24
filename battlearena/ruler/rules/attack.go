@@ -6,9 +6,9 @@ import (
 	"github.com/ecumeurs/upsilonmapdata/grid/cell"
 	"github.com/ecumeurs/upsilontools/tools"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
-	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
+
 
 type localAttackCtx struct {
 	*GameState
@@ -41,7 +41,12 @@ func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAtt
 	ent := gs.Entities[req.EntityID]
 	attackerAttack := ent.GetPropertyI(property.Attack)
 
-	foe := gs.Entities[target.EntityID]
+	// In multi-entity cells, attack only targets Characters/Monsters, not WalkThrough entities.
+	// @spec-link [[mechanic_multi_entity_cell_system]]
+	foe, found := gs.FindCharacterInCell(target.EntityIDs)
+	if !found {
+		return msg.ReplyWithError("No attackable entity at target position", "entity.attack.noentity")
+	}
 	foeDefense := foe.GetPropertyI(property.Defense)
 	foeHP := foe.GetPropertyI(property.HP)
 
@@ -79,7 +84,7 @@ func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAtt
 
 	ctx.log.WithFields(logrus.Fields{
 		"entityID":    req.EntityID.String()[0:8],
-		"foeID":       target.EntityID.String()[0:8],
+		"foeID":       foe.ID.String()[0:8],
 		"damage":      computedDamage,
 		"Attack":      attackerAttack.I(),
 		"Defense":     foeDefense.I(),
@@ -114,7 +119,8 @@ func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAtt
 	}
 
 	if foeHP.I() <= 0 {
-// ... (lines 109-117)
+		ctx.log.WithField("foeID", foe.ID.String()[0:8]).Info("Entity killed in combat")
+		gs.RemoveEntity(foe.ID)
 	}
 
 	// notify all controllers of the attack.
@@ -176,9 +182,16 @@ func (ctx *localAttackCtx) preAttackChecks(msg *message.Message, req rulermethod
 		return false, msg.ReplyWithError("Invalid attack", "entity.attack.celltype")
 	}
 
-	if target.EntityID == uuid.Nil {
+	if !target.IsOccupied() {
 		ctx.log.Error("Target has no entities")
 		return false, msg.ReplyWithError("Invalid attack", "entity.attack.noentity")
+	}
+
+	// Use FindCharacterInCell to ensure we only target attackable entities.
+	targetEntity, found := ctx.FindCharacterInCell(target.EntityIDs)
+	if !found {
+		ctx.log.Error("Target cell has no attackable character")
+		return false, msg.ReplyWithError("No attackable entity", "entity.attack.noentity")
 	}
 
 	// range check.
@@ -195,7 +208,6 @@ func (ctx *localAttackCtx) preAttackChecks(msg *message.Message, req rulermethod
 
 	// @spec-link [[rule_friendly_fire_team_validation]]
 	attackerTeam := ent.GetPropertyI(property.TeamID)
-	targetEntity := ctx.Entities[target.EntityID]
 	targetTeam := targetEntity.GetPropertyI(property.TeamID)
 
 	if attackerTeam.I() == targetTeam.I() {

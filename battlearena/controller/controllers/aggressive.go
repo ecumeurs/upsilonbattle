@@ -447,7 +447,8 @@ func (ctl *AggressiveController) isPathStepBlocked(pos position.Position, selfID
 		}
 	}
 
-	// 2. Check Grid for obstacles or occupancy 
+	// 2. Check Grid for obstacles or occupancy
+	// @spec-link [[mechanic_multi_entity_cell_system]]
 	if ctl.Grid != nil {
 		cells := ctl.Grid.CellsForPositions([]position.Position{pos})
 		if len(cells) > 0 {
@@ -456,10 +457,12 @@ func (ctl *AggressiveController) isPathStepBlocked(pos position.Position, selfID
 				return true
 			}
 
-			
-			if c.EntityID != uuid.Nil && c.EntityID != selfID {
-				// check if entity is in KnownEntities; if not present, then it's a dead or ghost entity on a stale grid.
-				if _, present := ctl.KnownEntities[c.EntityID]; present {
+			// Multi-entity: check all EntityIDs for non-self occupants known in KnownEntities
+			for _, entID := range c.EntityIDs {
+				if entID == selfID {
+					continue
+				}
+				if _, present := ctl.KnownEntities[entID]; present {
 					return true
 				}
 			}
@@ -468,3 +471,4 @@ func (ctl *AggressiveController) isPathStepBlocked(pos position.Position, selfID
 
 	return false
 }
+

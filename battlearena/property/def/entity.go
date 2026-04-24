@@ -67,6 +67,26 @@ func TeamID() *defaultproperty.DefaultIntProperty {
 	return defaultproperty.MakeIntProperty(property.TeamID, 0, property.Public, property.Character)
 }
 
+func EntityDuration() *defaultproperty.DefaultIntCounterProperty {
+	return defaultproperty.MakeIntCounterProperty(property.EntityDuration, 0, 0, property.Public, property.Character)
+}
+
+func ExpiresWithCaster() *defaultproperty.DefaultBoolProperty {
+	return defaultproperty.MakeBoolProperty(property.ExpiresWithCaster, false, property.Public, property.Character)
+}
+
+func WalkThrough() *defaultproperty.DefaultBoolProperty {
+	return defaultproperty.MakeBoolProperty(property.WalkThrough, false, property.Public, property.Character)
+}
+
+func Invisible() *defaultproperty.DefaultBoolProperty {
+	return defaultproperty.MakeBoolProperty(property.Invisible, false, property.Public, property.Character)
+}
+
+func AIBehavior() *defaultproperty.DefaultStringProperty {
+	return defaultproperty.MakeStringProperty(property.AIBehavior, "none", property.Public, property.Character)
+}
+
 // note: futher properties may be added per entity basis.
 func PropertiesForCharacter() []property.Property {
 	return []property.Property{
@@ -118,6 +138,16 @@ func EntityProperty(name property.EntityProperties) property.Property {
 		return Stun()
 	case property.TeamID:
 		return TeamID()
+	case property.EntityDuration:
+		return EntityDuration()
+	case property.ExpiresWithCaster:
+		return ExpiresWithCaster()
+	case property.WalkThrough:
+		return WalkThrough()
+	case property.Invisible:
+		return Invisible()
+	case property.AIBehavior:
+		return AIBehavior()
 	}
 	return nil
 }

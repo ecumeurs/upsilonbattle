@@ -13,10 +13,20 @@ import (
 
 type EntityType int
 
+// @spec-link [[mechanic_mech_temporary_entity_system]]
 const (
-	Character EntityType = 0
-	Monster   EntityType = 1
-	Others    EntityType = 2
+	Character  EntityType = 0
+	Monster    EntityType = 1
+	// TimeBased is a channeling entity or delayed-effect entity that acts on its own turn.
+	TimeBased  EntityType = 2
+	// Trap is an entity that triggers OnStep. It typically has no controller but has positional effects.
+	Trap       EntityType = 3
+	// AreaEffect is an entity that affects a zone each turn.
+	AreaEffect EntityType = 4
+	// Obstacle is a player-created wall/barrier: blocks movement, has HP, may decay.
+	// NOTE: This is distinct from cell.CellType.Obstacle (immutable map geometry).
+	Obstacle   EntityType = 5
+	Others     EntityType = 6
 )
 
 type EntityOrientation int

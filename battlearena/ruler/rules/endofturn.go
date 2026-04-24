@@ -84,6 +84,29 @@ func (gs *GameState) EndOfTurn(msg *message.Message, req rulermethods.EndOfTurn,
 	// update entity in state
 	gs.Entities[req.EntityID] = ent
 
+	// @spec-link [[mech_entity_expiration]]
+	// Decrement EntityDuration for temporary entities.
+	// EntityDuration == 0 means permanent (no expiry).
+	if durProp := ent.GetProperty(property.EntityDuration); durProp != nil {
+		dur := ent.GetPropertyC(property.EntityDuration).GetValue()
+		if dur > 0 {
+			dur--
+			if dur == 0 {
+				loclog.WithFields(logrus.Fields{
+					"entityID": req.EntityID.String()[0:8],
+					"reason":   "duration_expired",
+				}).Info("Temporary entity expired — removing from arena")
+				// Do NOT re-add to Turner. RemoveEntity handles all cleanup.
+				gs.RemoveEntity(req.EntityID)
+				gs.IncTurn()
+				// Notify controllers: skip the ControllerPassed broadcast for dead entity.
+				return true, msg
+			}
+			ent.UpdatePropertyValue(property.EntityDuration, dur)
+			gs.Entities[req.EntityID] = ent
+		}
+	}
+
 	gs.Turner.AddEntity(req.EntityID, gs.Entities[req.EntityID].CurrentDelay) // well ...end of turn delay
 	gs.IncTurn()
 

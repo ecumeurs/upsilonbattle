@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
+
 func TestRuleMoveFailOutOfTurn(t *testing.T) {
 	gs, fake := makeGameStateForTwo()
 	gs.Turner.ForceTurn(fake.Entity2)
@@ -413,8 +414,8 @@ func TestRuleMoveSucceed(t *testing.T) {
 
 	// Checks position on grid
 	c, _ := gs.Grid.CellAt(content.Entity.Position)
-	if c.EntityID != fake.Entity1 {
-		t.Errorf("Expected entity id '%s' at position '%s', got '%s'", fake.Entity1, content.Entity.Position, c.EntityID)
+	if !c.HasEntity(fake.Entity1) {
+		t.Errorf("Expected entity id '%s' at position '%s'", fake.Entity1, content.Entity.Position)
 	}
 
 	// Checks entity's position in gamestate

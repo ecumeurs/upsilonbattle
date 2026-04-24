@@ -10,9 +10,9 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
-	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
+
 
 type localSkillCtx struct {
 	*GameState
@@ -68,7 +68,12 @@ func (gs *GameState) UseSkill(msg *message.Message, req rulermethods.ControllerU
 
 	// update entities in global context.
 	for _, tar := range dds {
-		ctx.Entities[tar.ID] = tar
+		if tar.GetPropertyC(property.HP).GetValue() <= 0 {
+			ctx.log.WithField("targetID", tar.ID.String()[0:8]).Info("Entity killed by skill effect")
+			gs.RemoveEntity(tar.ID)
+		} else {
+			ctx.Entities[tar.ID] = tar
+		}
 		damaged = append(damaged, rulermethods.ControllerAttacked{
 			ControllerID:         tar.ControllerID,
 			Entity:               tar,
@@ -80,7 +85,12 @@ func (gs *GameState) UseSkill(msg *message.Message, req rulermethods.ControllerU
 	}
 
 	for _, tar := range aff {
-		ctx.Entities[tar.ID] = tar
+		if tar.GetPropertyC(property.HP).GetValue() <= 0 {
+			ctx.log.WithField("targetID", tar.ID.String()[0:8]).Info("Entity killed by skill effect")
+			gs.RemoveEntity(tar.ID)
+		} else {
+			ctx.Entities[tar.ID] = tar
+		}
 		affected = append(affected, rulermethods.ControllerSkillUsed{
 			ControllerID:        tar.ControllerID,
 			Entity:              tar,
@@ -196,40 +206,46 @@ func (ctx *localSkillCtx) checkSkillTarget(msg *message.Message, user entity.Ent
 		}
 		ctx.targetedEntities = append(ctx.targetedEntities, user)
 	case def.TargetTypeTile:
+		// TargetTypeTile targets empty cells (no entity present)
 		ctx.targetedEntities = make([]entity.Entity, 0)
 		for _, pos := range selectedZone {
-			c, _ := ctx.Grid.CellAt(pos) // should be ok because it has been veted before.
-			if c.EntityID == uuid.Nil {
-				ctx.targetedEntities = append(ctx.targetedEntities, ctx.Entities[c.EntityID])
+			c, _ := ctx.Grid.CellAt(pos)
+			if !c.IsOccupied() {
+				ctx.targetedTiles = append(ctx.targetedTiles, pos)
 			}
 		}
 	case def.TargetTypeEntity:
+		// @spec-link [[mechanic_multi_entity_cell_system]]
 		ctx.targetedEntities = make([]entity.Entity, 0)
 		for _, pos := range selectedZone {
-			c, _ := ctx.Grid.CellAt(pos) // should be ok because it has been veted before.
-			if c.EntityID != uuid.Nil {
-				ctx.targetedEntities = append(ctx.targetedEntities, ctx.Entities[c.EntityID])
+			c, _ := ctx.Grid.CellAt(pos)
+			for _, entID := range c.EntityIDs {
+				if ent, ok := ctx.Entities[entID]; ok {
+					ctx.targetedEntities = append(ctx.targetedEntities, ent)
+				}
 			}
 		}
 	case def.TargetTypeFriendOnly:
 		ctx.targetedEntities = make([]entity.Entity, 0)
 		for _, pos := range selectedZone {
-			c, _ := ctx.Grid.CellAt(pos) // should be ok because it has been veted before.
-			if c.EntityID != uuid.Nil {
-				targetEnt := ctx.Entities[c.EntityID]
-				if targetEnt.GetPropertyI(property.TeamID).I() == user.GetPropertyI(property.TeamID).I() {
-					ctx.targetedEntities = append(ctx.targetedEntities, targetEnt)
+			c, _ := ctx.Grid.CellAt(pos)
+			for _, entID := range c.EntityIDs {
+				if targetEnt, ok := ctx.Entities[entID]; ok {
+					if targetEnt.GetPropertyI(property.TeamID).I() == user.GetPropertyI(property.TeamID).I() {
+						ctx.targetedEntities = append(ctx.targetedEntities, targetEnt)
+					}
 				}
 			}
 		}
 	case def.TargetTypeEnemyOnly:
 		ctx.targetedEntities = make([]entity.Entity, 0)
 		for _, pos := range selectedZone {
-			c, _ := ctx.Grid.CellAt(pos) // should be ok because it has been veted before.
-			if c.EntityID != uuid.Nil {
-				targetEnt := ctx.Entities[c.EntityID]
-				if targetEnt.GetPropertyI(property.TeamID).I() != user.GetPropertyI(property.TeamID).I() {
-					ctx.targetedEntities = append(ctx.targetedEntities, targetEnt)
+			c, _ := ctx.Grid.CellAt(pos)
+			for _, entID := range c.EntityIDs {
+				if targetEnt, ok := ctx.Entities[entID]; ok {
+					if targetEnt.GetPropertyI(property.TeamID).I() != user.GetPropertyI(property.TeamID).I() {
+						ctx.targetedEntities = append(ctx.targetedEntities, targetEnt)
+					}
 				}
 			}
 		}
@@ -237,14 +253,19 @@ func (ctx *localSkillCtx) checkSkillTarget(msg *message.Message, user entity.Ent
 		ctx.targetedTiles = make([]position.Position, 0)
 		ctx.targetedEntities = make([]entity.Entity, 0)
 		for _, pos := range selectedZone {
-			c, _ := ctx.Grid.CellAt(pos) // should be ok because it has been veted before.
-			if c.EntityID != uuid.Nil {
-				ctx.targetedEntities = append(ctx.targetedEntities, ctx.Entities[c.EntityID])
+			c, _ := ctx.Grid.CellAt(pos)
+			if c.IsOccupied() {
+				for _, entID := range c.EntityIDs {
+					if ent, ok := ctx.Entities[entID]; ok {
+						ctx.targetedEntities = append(ctx.targetedEntities, ent)
+					}
+				}
 			} else {
 				ctx.targetedTiles = append(ctx.targetedTiles, pos)
 			}
 		}
 	}
+
 
 	if len(ctx.targetedTiles) == 0 && len(ctx.targetedEntities) == 0 {
 		ctx.log.Error("No Target found")

@@ -25,6 +25,22 @@ const (
 	// Buffs and other applied, inherited properties ... ?
 	AttackRange EntityProperties = "AttackRange" // Absence means 1, Basic attack range. Altered with items, mostly.
 
+	// @spec-link [[mech_entity_expiration]]
+	// EntityDuration tracks how many turns a temporary entity lives. 0 means permanent.
+	// NOTE: distinct from SkillProperties.Duration which is used for buff duration.
+	EntityDuration      EntityProperties = "EntityDuration"
+	// ExpiresWithCaster: if true, entity's owned positional effects are removed when their caster entity dies.
+	// @spec-link [[mechanic_effect_caster_tracking]]
+	ExpiresWithCaster   EntityProperties = "ExpiresWithCaster"
+	// WalkThrough: if true, other entities may occupy the same cell as this entity.
+	// @spec-link [[mechanic_multi_entity_cell_system]]
+	WalkThrough         EntityProperties = "WalkThrough"
+	// Invisible: if true, the entity is not sent in client-facing state snapshots.
+	Invisible           EntityProperties = "Invisible"
+	// AIBehavior stores the slug for the automated behavior (e.g. "aggressive", "spooked").
+	// @spec-link [[mech_behavior_interface]]
+	AIBehavior          EntityProperties = "AIBehavior"
+
 	// (counters) Absence means 0,0, can have overshield (when applied through healing and buffs...) Max shield is only used at initialisation of battle. Allowed to twice HP Max
 	Shield EntityProperties = "Shield"
 	Poison EntityProperties = "Poison" // Absence means 0, Poisoned state. Sum of all poison damage taken per turn. Mostly a temporary status. Negative PoisonPower will cure; /2 each turn, remove at <1
@@ -69,6 +85,14 @@ const (
 	MvtCost SkillProperties = "MvtCost" // Absence means 0
 
 	Cooldown SkillProperties = "Cooldown" // Absence means 3 turns. Special note: Cool down is stored as a counter, minValue represent initial cooldown at battle start. MaxValue represent the cooldown value when used.
+
+	// @spec-link [[mech_trigger_system]]
+	// TriggerType defines when a positional effect fires. Value is a TriggerTypeValue string.
+	TriggerType     SkillProperties = "TriggerType"
+	// RemoveOnTrigger: if true, the positional effect is consumed after firing once.
+	RemoveOnTrigger SkillProperties = "RemoveOnTrigger"
+	// TriggerCount: how many times the effect can fire (0 = unlimited).
+	TriggerCount    SkillProperties = "TriggerCount"
 
 )
 

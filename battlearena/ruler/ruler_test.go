@@ -383,11 +383,11 @@ func TestRulerBattleBeginNextTurnFetchGridAndEntities(t *testing.T) {
 		if !found {
 			t.Error("Position should be on board")
 		}
-		if c.EntityID == uuid.Nil {
+		if !c.IsOccupied() {
 			t.Error("Cell should have an entity")
 		}
-		if c.EntityID != ent.ID {
-			t.Error("Cell should have the same entity")
+		if !c.HasEntity(ent.ID) {
+			t.Error("Cell should contain this entity")
 		}
 	}
 
@@ -502,7 +502,7 @@ func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 										zDiff = -zDiff
 									}
 
-									if c, ok := grd.CellAt(p); ok && c.EntityID == uuid.Nil && zDiff <= 2 {
+									if c, ok := grd.CellAt(p); ok && !c.IsOccupied() && zDiff <= 2 {
 										nextPos = p
 										found = true
 										break

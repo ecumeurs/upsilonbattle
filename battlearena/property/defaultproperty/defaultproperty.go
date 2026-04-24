@@ -391,3 +391,71 @@ func (d DefaultBoolProperty) UnapplyBuff(p property.Property) property.Property 
 	res.Set(!p.Get().(bool))
 	return res
 }
+
+type DefaultStringProperty struct {
+	value               string
+	name                string
+	minInformationLevel property.InformationLevel
+	propertyType        property.PropertyType
+}
+
+func MakeStringProperty(name interface{}, value string, minInformationLevel property.InformationLevel, pt property.PropertyType) *DefaultStringProperty {
+	nname := property.PropertyToString(name)
+	if nname == "" {
+		return nil
+	}
+
+	return &DefaultStringProperty{
+		name:                nname,
+		value:               value,
+		minInformationLevel: minInformationLevel,
+		propertyType:        pt,
+	}
+}
+
+func (d DefaultStringProperty) Name(i property.InformationLevel) string {
+	if i >= d.minInformationLevel {
+		return d.name
+	}
+	return ""
+}
+
+func (d DefaultStringProperty) UserFriendlyGet(i property.InformationLevel) interface{} {
+	if i >= d.minInformationLevel {
+		return d.value
+	}
+	return nil
+}
+
+func (d DefaultStringProperty) Get() interface{} {
+	return d.value
+}
+
+func (d *DefaultStringProperty) Set(p interface{}) {
+	d.value = p.(string)
+}
+
+func (d DefaultStringProperty) Increase() {
+	// do nothing
+}
+
+func (d DefaultStringProperty) GetType() property.PropertyType {
+	return d.propertyType
+}
+
+func (d DefaultStringProperty) Duplicate() property.Property {
+	return &DefaultStringProperty{
+		value:               d.value,
+		name:                d.name,
+		minInformationLevel: d.minInformationLevel,
+		propertyType:        d.propertyType,
+	}
+}
+
+func (d DefaultStringProperty) ApplyBuff(p property.Property) property.Property {
+	return d.Duplicate()
+}
+
+func (d DefaultStringProperty) UnapplyBuff(p property.Property) property.Property {
+	return d.Duplicate()
+}

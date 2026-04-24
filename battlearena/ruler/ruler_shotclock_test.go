@@ -1,5 +1,5 @@
 // @test-link [[rule_turn_clock]]
-// @spec-link [[rule_ruler_test_robustness]]
+// @test-link [[rule_ruler_test_robustness]]
 package ruler
 
 import (
@@ -89,7 +89,7 @@ func TestShotClockExpiry(t *testing.T) {
 }
 
 // @test-link [[rule_turn_clock]]
-// @spec-link [[rule_ruler_test_robustness]]
+// @test-link [[rule_ruler_test_robustness]]
 func TestShotClockCancellation(t *testing.T) {
 	ruler := NewCompleteRuler()
 	ruler.ShotClockDuration = 500 * time.Millisecond

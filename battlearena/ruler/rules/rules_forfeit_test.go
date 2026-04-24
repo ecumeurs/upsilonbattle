@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// @spec-link [[rule_forfeit_battle]]
-// @spec-link [[rule_team_mechanics]]
+// @test-link [[rule_forfeit_battle]]
+// @test-link [[rule_team_mechanics]]
 
 func setTeam(gs *GameState, entityID uuid.UUID, teamID int) {
 	ent := gs.Entities[entityID]

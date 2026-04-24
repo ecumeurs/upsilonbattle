@@ -41,6 +41,14 @@ func (gs *GameState) BeginingOfTurn(ent entity.Entity) {
 
 	}
 
+	// @spec-link [[mech_trigger_system]]
+	// Fire OnTurn positional effects for the entity's current cell.
+	// This runs after stun resolution so the entity's final state is used.
+	gs.ProcessPositionalEffects(ent, ent.Position, property.TriggerOnTurn)
+
+	// Reload entity in case positional effects modified it
+	ent = gs.Entities[ent.ID]
+
 	// update entity in gamestate.
 	gs.Entities[ent.ID] = ent
 }

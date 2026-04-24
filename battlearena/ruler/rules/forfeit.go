@@ -38,7 +38,7 @@ func (gs *GameState) Forfeit(controllerID uuid.UUID) (uuid.UUID, int, bool) {
 			gs.Logger.WithFields(logrus.Fields{
 				"entityID": id.String()[0:8],
 				"teamID":   forfeitingTeam}).Info("Removing forfeiting team entity")
-			gs.Grid.RemoveEntity(ent.Position)
+			gs.Grid.RemoveEntity(ent.Position, id)
 			delete(gs.Entities, id)
 			gs.Turner.RemoveEntity(id)
 		}

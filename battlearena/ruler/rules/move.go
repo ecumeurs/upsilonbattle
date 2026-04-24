@@ -6,9 +6,9 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonmapdata/grid/cell"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
-	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
+
 
 type localMoveCtx struct {
 	*GameState
@@ -35,17 +35,31 @@ func (gs *GameState) Move(msg *message.Message, req rulermethods.ControllerMove)
 	}
 
 	ent := ctx.Entities[req.EntityID]
+	fromPos := ent.Position
+	destPos := req.Path[len(req.Path)-1]
+
+	// @spec-link [[mech_trigger_system]]
+	// Fire OnExit for the cell the entity is leaving.
+	ctx.ProcessPositionalEffects(ent, fromPos, property.TriggerOnExit)
 
 	// Move the entity
-	ctx.Grid.MoveEntity(ent.Position, req.Path[len(req.Path)-1], ent.ID)
+	ctx.Grid.MoveEntity(fromPos, destPos, ent.ID)
 
 	ctx.log.WithFields(logrus.Fields{
 		"entityID": req.EntityID.String()[0:8],
-		"from":     ent.Position,
-		"to":       req.Path[len(req.Path)-1]}).Debug("Entity moved")
+		"from":     fromPos,
+		"to":       destPos}).Debug("Entity moved")
 
-	// update entity position
-	ent.Position = req.Path[len(req.Path)-1]
+	// Update entity position in GameState so it's correct for effect processing and reply.
+	ent.Position = destPos
+	ctx.Entities[req.EntityID] = ent
+
+	// @spec-link [[mech_trigger_system]]
+	// Fire OnEnter for the cell the entity just entered.
+	ctx.ProcessPositionalEffects(ent, destPos, property.TriggerOnEnter)
+
+	// Reload entity in case OnEnter positional effects modified it (e.g. applied poison).
+	ent = ctx.Entities[req.EntityID]
 
 	// Compute the new delay
 	ent.CurrentDelay = ent.CurrentDelay + len(req.Path)*20
@@ -120,10 +134,12 @@ func (ctx *localMoveCtx) preMoveChecks(msg *message.Message, req rulermethods.Co
 	// a valid path is a path that contains only walkable cells and all cells must be adjascent
 	for i, c := range cells {
 		if c.Type == cell.Ground {
-			if c.EntityID != uuid.Nil {
+			// Multi-entity cells: a cell is blocked if it contains a non-WalkThrough entity (other than self).
+			// @spec-link [[mechanic_multi_entity_cell_system]]
+			if ctx.HasBlockingEntity(c.EntityIDs, req.EntityID) {
 				ctx.log.WithFields(logrus.Fields{
 					"position": c.Position,
-				}).Error("Path contains an occupied cell")
+				}).Error("Path contains a blocking entity")
 				return false, msg.ReplyWithError("Path contains an occupied cell", "entity.path.occupied")
 			}
 			if i > 0 && !cells[i-1].Position.IsAdjacent(c.Position, jumpHeight) {
@@ -139,7 +155,9 @@ func (ctx *localMoveCtx) preMoveChecks(msg *message.Message, req rulermethods.Co
 			}).Error("Path is not valid")
 			return false, msg.ReplyWithError("Invalid path(wrong type)", "entity.path.obstacle")
 		}
+
 	}
+
 
 	// ensure entity has movement credits to perform the action.
 	prop := ent.GetPropertyC(property.Movement)

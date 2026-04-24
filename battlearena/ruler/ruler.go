@@ -9,6 +9,7 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/entity/entitygenerator"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property"
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/behavior"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rules"
 	"github.com/ecumeurs/upsilonmapdata/grid"
@@ -323,10 +324,11 @@ func (r *Ruler) triggerFirstTurn() {
 		candidateID := r.GameState.Turner.Turns[0].EntityId
 		ent, ok := r.GameState.Entities[candidateID]
 		
-		// GUARD: Ensure the entity exists and is controlled
-		if !ok || ent.ControllerID == uuid.Nil {
+		// GUARD: Ensure the entity exists and can act (either has a controller or an automated behavior)
+		hasBehavior := ent.HasProperty(property.AIBehavior) && ent.GetProperty(property.AIBehavior).Get().(string) != "none"
+		if !ok || (ent.ControllerID == uuid.Nil && !hasBehavior) {
 			r.RequestLogger.WithFields(logrus.Fields{
-				"entityID": candidateID.String()}).Debug("First entity in queue is uncontrolled, waiting for readiness")
+				"entityID": candidateID.String()}).Debug("First entity in queue is uncontrolled and has no behavior, waiting for readiness")
 			return
 		}
 
@@ -337,34 +339,20 @@ func (r *Ruler) triggerFirstTurn() {
 
 	// Re-verify the picked entity (in case CurrentEntityTurn was already set)
 	ent, ok := r.GameState.Entities[entID]
-	if !ok || ent.ControllerID == uuid.Nil {
+	hasBehavior := ent.HasProperty(property.AIBehavior) && ent.GetProperty(property.AIBehavior).Get().(string) != "none"
+	if !ok || (ent.ControllerID == uuid.Nil && !hasBehavior) {
 		r.RequestLogger.WithFields(logrus.Fields{
-			"entityID": entID.String()}).Warn("Current entity turn is invalid/uncontrolled, skipping (waiting for recovery)")
+			"entityID": entID.String()}).Warn("Current entity turn is invalid/uncontrolled/no-behavior, skipping (waiting for recovery)")
 		return
 	}
 
 	r.RequestLogger.WithFields(logrus.Fields{
 		"entityID": entID.String()[0:8]}).Info("Handing turn to first entity")
 
-
 	r.firstTurnSent = true
 	r.GameState.IncTurn() // @spec-link [[mech_game_state_versioning]]
-	// @spec-link [[rule_turn_clock]]
-	r.startShotClock()
-
-	r.RequestLogger.WithFields(logrus.Fields{
-		"entityID": entID.String()[0:8]}).Info("First entity to play")
-
-	ent.CurrentDelay = 0
-	r.GameState.Entities[entID] = ent
-
-	for _, ctrl := range r.GameState.Controllers {
-		ctrl.NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
-			Entity:  ent,
-			Turn:    r.GameState.Turner.GetTurnState(),
-			Version: r.GameState.Version,
-		}, nil))
-	}
+	
+	r.handTurn(entID)
 }
 
 // @spec-link [[rule_battle_readiness]]
@@ -671,32 +659,69 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 			}
 
 			if nextTurnEnt != uuid.Nil {
-				ent := r.GameState.Entities[nextTurnEnt]
-				ent.CurrentDelay = 0
-				r.GameState.Entities[nextTurnEnt] = ent
-
-				_, found := r.GameState.Controllers[ent.ControllerID]
-				if !found {
-					r.RequestLogger.WithFields(logrus.Fields{
-						"entityID":     nextTurnEnt.String()[0:8],
-						"controllerID": ent.ControllerID.String()[0:8]}).Error("Controller not found")
-				} else {
-					// @spec-link [[rule_turn_clock]]
-					r.startShotClock()
-					for _, c := range r.GameState.Controllers {
-						c.NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
-							Entity:  ent,
-							Turn:    r.GameState.Turner.GetTurnState(),
-							Version: r.GameState.Version,
-						}, nil))
-					}
-				}
+				r.handTurn(nextTurnEnt)
 			}
 		}
 
 	}
 
 	ctx.Reply(ctx.Msg.Reply())
+}
+
+// handTurn handles giving the turn to an entity, either by notifying its controller
+// or by executing an automated behavior (AI).
+func (r *Ruler) handTurn(entID uuid.UUID) {
+	ent, found := r.GameState.Entities[entID]
+	if !found {
+		r.logger.WithField("entityID", entID.String()[0:8]).Error("Cannot hand turn: Entity not found")
+		return
+	}
+
+	// Always reset delay for the active entity
+	ent.CurrentDelay = 0
+	r.GameState.Entities[entID] = ent
+
+	// @spec-link [[mech_behavior_system]]
+	// Check for automated behavior first
+	behaviorProp := ent.GetProperty(property.AIBehavior)
+	behaviorSlug := "none"
+	if behaviorProp != nil {
+		behaviorSlug = behaviorProp.Get().(string)
+	}
+
+	if behaviorSlug != "none" || ent.ControllerID == uuid.Nil {
+		r.logger.WithFields(logrus.Fields{
+			"entityID": entID.String()[0:8],
+			"behavior": behaviorSlug,
+		}).Info("Executing automated behavior")
+
+		b := behavior.GetBehavior(behaviorSlug)
+		msg := b.Decide(r.GameState, ent)
+		
+		// Self-dispatch the decided message to the ruler
+		// We use a small delay to avoid deep recursion or blocking the queue
+		r.SelfDispatchMessageDelayed(msg, 50*time.Millisecond)
+		return
+	}
+
+	// Regular player turn
+	_, found = r.GameState.Controllers[ent.ControllerID]
+	if !found {
+		r.RequestLogger.WithFields(logrus.Fields{
+			"entityID":     entID.String()[0:8],
+			"controllerID": ent.ControllerID.String()[0:8]}).Error("Controller not found for entity")
+		return
+	}
+
+	// @spec-link [[rule_turn_clock]]
+	r.startShotClock()
+	for _, c := range r.GameState.Controllers {
+		c.NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
+			Entity:  ent,
+			Turn:    r.GameState.Turner.GetTurnState(),
+			Version: r.GameState.Version,
+		}, nil))
+	}
 }
 
 // controllerForfeit handles the forfeiture of a controller.
@@ -745,7 +770,7 @@ func (r *Ruler) controllerQuit(ctx actor.NotificationContext) {
 
 		for id, ent := range r.GameState.Entities {
 			if ent.ControllerID == req.ControllerID {
-				r.GameState.Grid.RemoveEntity(ent.Position)
+				r.GameState.Grid.RemoveEntity(ent.Position, id)
 				delete(r.GameState.Entities, id)
 				r.GameState.Turner.RemoveEntity(id)
 			}
