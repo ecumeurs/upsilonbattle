@@ -8,7 +8,7 @@ status: STABLE
 priority: 5
 tags: [auth, sanctum, middleware]
 parents:
-  - [[req_security_token_ttl]]
+  - [[shared:req_security_token_ttl]]
 dependents: []
 ---
 # Sanctum Token Renewal Mechanic

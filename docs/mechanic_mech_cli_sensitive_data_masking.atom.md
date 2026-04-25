@@ -3,9 +3,9 @@ id: mechanic_mech_cli_sensitive_data_masking
 status: STABLE
 type: MECHANIC
 parents:
-  - [[api_auth_login]]
-  - [[api_auth_register]]
-  - [[api_auth_user]]
+  - [[upsilonapi:api_auth_login]]
+  - [[upsilonapi:api_auth_register]]
+  - [[upsilonapi:api_auth_user]]
 dependents: []
 layer: IMPLEMENTATION
 priority: 3

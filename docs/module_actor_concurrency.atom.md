@@ -8,7 +8,7 @@ type: MODULE
 layer: ARCHITECTURE
 tags: concurrency,actor,message-passing,sequential-execution
 parents:
-  - [[domain_upsilon_engine]]
+  - [[upsilonapi:domain_upsilon_engine]]
 dependents:
   - [[mech_actor_pattern]]
   - [[mech_message_queue]]

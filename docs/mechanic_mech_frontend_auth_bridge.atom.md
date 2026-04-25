@@ -8,7 +8,7 @@ tags: auth,axios,security
 dependents: []
 layer: IMPLEMENTATION
 parents:
-  - [[req_security_token_ttl]]
+  - [[shared:req_security_token_ttl]]
 version: 1.0
 ---
 

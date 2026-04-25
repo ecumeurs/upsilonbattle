@@ -8,7 +8,7 @@ status: STABLE
 priority: 5
 tags: [matchmaking, logic, logic-flow]
 parents:
-  - [[req_matchmaking]]
+  - [[shared:req_matchmaking]]
 dependents: []
 ---
 # Matchmaking Mechanics

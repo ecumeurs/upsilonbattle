@@ -1,12 +1,22 @@
 ---
 id: weapon_damage_computation_rework
+human_name: Weapon Damage Computation Rework
+type: MECHANIC
+layer: IMPLEMENTATION
 status: DRAFT
+priority: 3
+tags: [combat, weapons, damage, iss-074]
 parents: []
 dependents: []
 version: 1.0
+issue_ref: upsilon-hub/issues/ISS-074_20260423_comprehensive_item_system.md
 ---
 
-# New Atom
+# Weapon Damage Computation Rework
+
+> **NOTE:** This is currently better tracked as an issue than as a stable atom.
+> See [ISS-074 Comprehensive Item System](../../issues/ISS-074_20260423_comprehensive_item_system.md)
+> in the upsilon-hub root. Promote to STABLE once the issue is resolved.
 
 ## INTENT
 To implement weapon-based attack computation system where equipped weapons transform basic attacks into skill-based attacks, utilizing weapon properties as skill attributes for full damage calculation.

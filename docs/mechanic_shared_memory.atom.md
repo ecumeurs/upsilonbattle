@@ -8,7 +8,7 @@ status: DRAFT
 priority: 2
 tags: [scripting, farm, coordination]
 parents:
-  - [[script_farm]]
+  - [[upsiloncli:script_farm]]
 dependents: []
 ---
 

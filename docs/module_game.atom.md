@@ -9,7 +9,7 @@ priority: 5
 tags: [game, core]
 parents: []
 dependents:
-  - [[ui_board]]
+  - [[battleui:ui_board]]
 ---
 # TRPG Game Module
 

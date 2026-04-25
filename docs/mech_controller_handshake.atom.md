@@ -8,7 +8,7 @@ status: STABLE
 priority: 5
 tags: [handshake, initialization, controller]
 parents:
-  - [[api_controller_methods]]
+  - [[upsilonapi:api_controller_methods]]
 dependents:
   - [[mech_controller_communication_sequence]]
 ---

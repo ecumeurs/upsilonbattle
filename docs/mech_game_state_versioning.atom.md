@@ -8,7 +8,7 @@ status: STABLE
 priority: 1
 tags: [performance, networking, deduplication]
 parents:
-  - [[api_go_webhook_callback]]
+  - [[upsilonapi:api_go_webhook_callback]]
 dependents:
   - [[mech_version_bit_packing]]
 ---

@@ -3,7 +3,7 @@ id: mechanic_mech_battle_startup_handshake
 status: STABLE
 type: MECHANIC
 parents:
-  - [[uc_combat_turn]]
+  - [[shared:uc_combat_turn]]
 version: 1.0
 dependents: []
 human_name: Battle Startup Handshake

@@ -8,7 +8,7 @@ layer: IMPLEMENTATION
 priority: 5
 version: 2.0
 parents:
-  - [[domain_upsilon_engine]]
+  - [[upsilonapi:domain_upsilon_engine]]
 ---
 
 # New Atom

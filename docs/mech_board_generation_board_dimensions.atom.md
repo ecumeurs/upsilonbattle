@@ -10,7 +10,7 @@ tags: []
 parents:
   - [[mech_board_generation]]
 dependents:
-  - [[ui_iso_board]]
+  - [[battleui:ui_iso_board]]
 ---
 # Board Dimensions Mechanic
 

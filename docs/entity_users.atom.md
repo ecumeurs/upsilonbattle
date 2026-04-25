@@ -8,8 +8,8 @@ status: STABLE
 priority: 5
 tags: []
 parents:
-  - [[data_persistence]]
   - [[entity_player]]
+  - [[upsilonapi:data_persistence]]
 dependents:
   - [[entity_match_participants]]
 ---

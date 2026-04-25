@@ -2,11 +2,11 @@
 id: entity_player_credits
 status: STABLE
 priority: 5
-layer: CUSTOMER
+layer: BUSINESS
 version: 2.0
 tags: ["credits", "economy", "player"]
 parents:
-  - [[domain_credit_economy]]
+  - [[upsilonapi:domain_credit_economy]]
 dependents: []
 human_name: Player Credit Entity
 type: ENTITY

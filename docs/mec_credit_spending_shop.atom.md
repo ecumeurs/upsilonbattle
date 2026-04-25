@@ -8,7 +8,7 @@ status: DRAFT
 priority: 5
 tags: [economy, shop, progression]
 parents:
-  - [[domain_credit_economy]]
+  - [[upsilonapi:domain_credit_economy]]
 dependents:
   - [[mec_shop_inventory_system]]
 ---

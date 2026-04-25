@@ -8,7 +8,7 @@ status: DRAFT
 priority: 3
 tags: [ai, names, aesthetic, generation]
 parents:
-  - [[req_ui_look_and_feel]]
+  - [[battleui:req_ui_look_and_feel]]
 dependents: []
 ---
 
