@@ -15,7 +15,7 @@ var propertyRandomizers = map[string]tools.IntRange{
 	"Defense":     tools.IntRange{Start: 0, End: 3},
 	"Movement":    tools.IntRange{Start: 3, End: 7},
 	"AttackRange": tools.IntRange{Start: 1, End: 3},
-	"JumpHeight":  tools.IntRange{Start: 1, End: 3},
+	"JumpHeight":  tools.IntRange{Start: 2, End: 4},
 }
 
 func GenerateRandomEntity() entity.Entity {

@@ -36,3 +36,6 @@ To manage a 3D spatial collection of cells, providing utilities for navigation, 
 - `NewGrid(10, 10, 2)` -> Returns a grid where `Height` is 4 (groundlevel + 2) and all X,Y positions have `Dirt` or `Ground` cells up to level 2.
 - `AStarPath` from (0,0,0) to (1,1,1) with `jumpHeight=0` -> Fails if verticality change is required.
 - `MoveEntity` to a position outside `Width`/`Length` -> Returns an error.
+
+## CLIENT PROJECTION
+Clients (CLI, battleui) consume a 2D projection of this grid: for each `(x, y)` column, the API returns the **topmost cell** (via `TopMostCellAt`) plus its Z index as `height`, and the full engine Z ceiling as `max_height`. Caves/underground are not exposed in the current iteration.
