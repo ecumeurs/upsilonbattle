@@ -8,7 +8,10 @@ status: STABLE
 priority: 5
 tags: []
 parents: []
-dependents: []
+dependents:
+  - [[entity_character_distribute_remaining_points]]
+  - [[rule_character_create_character]]
+  - [[rule_progression]]
 ---
 # Character Entity
 
