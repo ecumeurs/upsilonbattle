@@ -9,7 +9,8 @@ priority: 5
 tags: [combat, damage, math]
 parents:
   - [[module_backend_combat_math]]
-dependents: []
+dependents:
+  - [[mech_combat_shielding]]
 ---
 
 # Combat Attack Computation

@@ -11,6 +11,7 @@ parents:
   - [[mec_credit_spending_shop]]
   - [[upsilonapi:domain_credit_economy]]
 dependents:
+  - [[api_shop_browse]]
   - [[entity_player_inventory]]
 ---
 

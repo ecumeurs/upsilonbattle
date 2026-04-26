@@ -9,7 +9,6 @@ priority: 5
 tags: []
 parents: []
 dependents:
-  - [[mech_character_reroll_availability]]
   - [[mech_character_reroll_effect]]
   - [[mech_character_reroll_limit]]
 ---

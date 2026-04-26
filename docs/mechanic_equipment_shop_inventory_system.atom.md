@@ -3,7 +3,8 @@ id: mechanic_equipment_shop_inventory_system
 status: DRAFT
 version: 1.0
 parents: []
-dependents: []
+dependents:
+  - [[mechanic_mech_daily_random_shop_roll]]
 type: MECHANIC
 layer: IMPLEMENTATION
 ---
