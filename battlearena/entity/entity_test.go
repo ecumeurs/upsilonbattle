@@ -68,3 +68,31 @@ func TestBuffGetRemovedAfterTime(t *testing.T) {
 		t.Error("GetProperty() should return 10")
 	}
 }
+
+func TestRemoveBuffsByOrigin(t *testing.T) {
+	e := New()
+	origin1 := uuid.New()
+	origin2 := uuid.New()
+
+	buff1 := property.TemporaryProperties{Forever: true, OriginEntityID: origin1, Properties: make(map[string]property.Property)}
+	buff2 := property.TemporaryProperties{Forever: true, OriginEntityID: origin2, Properties: make(map[string]property.Property)}
+	buff3 := property.TemporaryProperties{Forever: true, OriginEntityID: origin1, Properties: make(map[string]property.Property)}
+
+	e.RegisterBuff(buff1)
+	e.RegisterBuff(buff2)
+	e.RegisterBuff(buff3)
+
+	if len(e.Buffs) != 3 {
+		t.Errorf("Expected 3 buffs, got %d", len(e.Buffs))
+	}
+
+	e.RemoveBuffsByOrigin(origin1)
+
+	if len(e.Buffs) != 1 {
+		t.Errorf("Expected 1 buff after removal, got %d", len(e.Buffs))
+	}
+
+	if e.Buffs[0].OriginEntityID != origin2 {
+		t.Error("Remaining buff should be origin2")
+	}
+}

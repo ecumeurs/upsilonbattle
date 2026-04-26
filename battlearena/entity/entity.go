@@ -191,6 +191,18 @@ func (e *Entity) RegisterBuff(b property.TemporaryProperties) {
 	e.Buffs = append(e.Buffs, b)
 }
 
+// RemoveBuffsByOrigin removes all buffs from the entity that originated from a specific source ID.
+// @spec-link [[mec_item_buff_application]]
+func (e *Entity) RemoveBuffsByOrigin(originID uuid.UUID) {
+	kept := make([]property.TemporaryProperties, 0, len(e.Buffs))
+	for _, b := range e.Buffs {
+		if b.OriginEntityID != originID {
+			kept = append(kept, b)
+		}
+	}
+	e.Buffs = kept
+}
+
 func (e Entity) GetBuffsFor(name interface{}) []property.Property {
 	nname := property.PropertyToString(name)
 

@@ -2,11 +2,7 @@
 id: mechanic_mech_temporary_entity_system
 status: DRAFT
 parent: []
-dependents:
-  - [[mec_cell_attached_effects]]
-  - [[mec_channeling_mechanic]]
-  - [[mec_effect_caster_tracking]]
-  - [[mec_expiration_controller]]
+dependents: []
 human_name: Temporary Entity System
 type: MECHANIC
 layer: IMPLEMENTATION

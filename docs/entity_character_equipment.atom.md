@@ -7,7 +7,8 @@ version: 2.0
 priority: 5
 tags: [equipment, slots, characters, iss-074]
 human_name: Character Equipment Entity
-dependents: []
+dependents:
+  - [[mec_item_buff_application]]
 parents:
   - [[entity_equipment_system]]
   - [[entity_player_inventory]]
