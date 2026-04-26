@@ -9,7 +9,8 @@ priority: 5
 tags: [equipment, stats, bonuses]
 parents:
   - [[entity_equipment_system]]
-dependents: []
+dependents:
+  - [[mec_item_buff_application]]
 ---
 
 # Equipment Stat Bonuses Mechanic

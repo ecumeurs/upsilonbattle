@@ -9,8 +9,6 @@ priority: 5
 tags: []
 parents: []
 dependents:
-  - [[shared:rule_character_create_character]]
-  - [[shared:rule_progression]]
   - [[entity_character_distribute_remaining_points]]
 ---
 # Character Entity

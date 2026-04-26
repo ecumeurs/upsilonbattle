@@ -8,8 +8,7 @@ status: REVIEW
 priority: 5
 tags: [game, core]
 parents: []
-dependents:
-  - [[battleui:ui_board]]
+dependents: []
 ---
 # TRPG Game Module
 
