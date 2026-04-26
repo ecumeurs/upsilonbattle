@@ -10,7 +10,8 @@ tags: []
 parents:
   - [[upsilonapi:data_persistence]]
 dependents:
-  - [[entity_match_participants]]
+  - [[shared:uc_admin_history_management]]
+  - [[uc_admin_history_management]]
 ---
 # Game Match Entity
 
