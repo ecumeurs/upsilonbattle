@@ -152,6 +152,11 @@ type ControllerMoveReply struct {
 	Entity entity.Entity `json:"entity"`
 }
 
+type ControllerPassReply struct {
+	Entity  entity.Entity `json:"entity"`
+	Version int64         `json:"version"`
+}
+
 type ControllerAttackReply struct {
 	Attacker entity.Entity  `json:"attacker"`
 	Results  []ActionResult `json:"results"`

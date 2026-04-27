@@ -89,7 +89,7 @@ func (gs *GameState) Move(msg *message.Message, req rulermethods.ControllerMove)
 	reply = msg.Reply()
 
 	reply.Content = rulermethods.ControllerMoveReply{
-		Entity: ent,
+		Entity: gs.Entities[req.EntityID],
 	}
 
 	return reply
