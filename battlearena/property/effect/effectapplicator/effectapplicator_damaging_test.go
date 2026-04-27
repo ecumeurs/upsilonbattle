@@ -61,11 +61,11 @@ func TestEffectApplicatorDamage1Target(t *testing.T) {
 		t.Errorf("Expected 1 target to be damaged, got %d", len(damaged))
 	}
 
-	if damaged[0].ID != fake.Target.ID {
-		t.Errorf("Expected target to be damaged, got %s", damaged[0].ID)
+	if damaged[0].Target.ID != fake.Target.ID {
+		t.Errorf("Expected target to be damaged, got %s", damaged[0].Target.ID)
 	}
 
-	hp := damaged[0].GetPropertyC(property.HP).GetValue()
+	hp := damaged[0].Target.GetPropertyC(property.HP).GetValue()
 
 	if hp != 4 {
 		t.Errorf("Expected target to have 4 HP, got %d", hp)
@@ -103,17 +103,17 @@ func TestEffectApplicatorDamage1TargetShield(t *testing.T) {
 		t.Errorf("Expected 1 target to be damaged, got %d", len(damaged))
 	}
 
-	if damaged[0].ID != fake.Target.ID {
-		t.Errorf("Expected target to be damaged, got %s", damaged[0].ID)
+	if damaged[0].Target.ID != fake.Target.ID {
+		t.Errorf("Expected target to be damaged, got %s", damaged[0].Target.ID)
 	}
 
-	hp := damaged[0].GetPropertyC(property.HP).GetValue()
+	hp := damaged[0].Target.GetPropertyC(property.HP).GetValue()
 
 	if hp != 9 {
 		t.Errorf("Expected target to have 9 HP, got %d", hp)
 	}
 
-	shield := damaged[0].GetPropertyC(property.Shield).GetValue()
+	shield := damaged[0].Target.GetPropertyC(property.Shield).GetValue()
 	if shield != 0 {
 		t.Errorf("Expected shield to be 0, got %d", shield)
 	}
@@ -149,11 +149,11 @@ func TestEffectApplicatorDamage1Defense(t *testing.T) {
 		t.Errorf("Expected 1 target to be damaged, got %d", len(damaged))
 	}
 
-	if damaged[0].ID != fake.Target.ID {
-		t.Errorf("Expected target to be damaged, got %s", damaged[0].ID)
+	if damaged[0].Target.ID != fake.Target.ID {
+		t.Errorf("Expected target to be damaged, got %s", damaged[0].Target.ID)
 	}
 
-	hp := damaged[0].GetPropertyC(property.HP).GetValue()
+	hp := damaged[0].Target.GetPropertyC(property.HP).GetValue()
 
 	if hp != 9 {
 		t.Errorf("Expected target to have 9 HP, got %d", hp)
@@ -189,11 +189,11 @@ func TestEffectApplicatorPoison1Defense(t *testing.T) {
 		t.Errorf("Expected 1 target to be damaged, got %d", len(damaged))
 	}
 
-	if damaged[0].ID != fake.Target.ID {
-		t.Errorf("Expected target to be damaged, got %s", damaged[0].ID)
+	if damaged[0].Target.ID != fake.Target.ID {
+		t.Errorf("Expected target to be damaged, got %s", damaged[0].Target.ID)
 	}
 
-	hp := damaged[0].GetPropertyC(property.HP).GetValue()
+	hp := damaged[0].Target.GetPropertyC(property.HP).GetValue()
 
 	if hp != 8 {
 		t.Errorf("Expected target to have 8 HP, got %d", hp)
@@ -229,11 +229,11 @@ func TestEffectApplicatorStun1Armor(t *testing.T) {
 		t.Errorf("Expected 1 target to be damaged, got %d", len(damaged))
 	}
 
-	if damaged[0].ID != fake.Target.ID {
-		t.Errorf("Expected target to be damaged, got %s", damaged[0].ID)
+	if damaged[0].Target.ID != fake.Target.ID {
+		t.Errorf("Expected target to be damaged, got %s", damaged[0].Target.ID)
 	}
 
-	hp := damaged[0].GetPropertyC(property.HP).GetValue()
+	hp := damaged[0].Target.GetPropertyC(property.HP).GetValue()
 
 	if hp != 8 {
 		t.Errorf("Expected target to have 8 HP, got %d", hp)
@@ -272,18 +272,18 @@ func TestEffectApplicatorPoisoned(t *testing.T) {
 		t.Errorf("Expected 1 target to be damaged, got %d", len(damaged))
 	}
 
-	if damaged[0].ID != fake.Target.ID {
-		t.Errorf("Expected target to be damaged, got %s", damaged[0].ID)
+	if damaged[0].Target.ID != fake.Target.ID {
+		t.Errorf("Expected target to be damaged, got %s", damaged[0].Target.ID)
 	}
 
-	hp := damaged[0].GetPropertyC(property.HP).GetValue()
+	hp := damaged[0].Target.GetPropertyC(property.HP).GetValue()
 
 	if hp != 5 {
 		t.Errorf("Expected target to have 5 HP, got %d", hp)
 	}
 
 	// Poisoned!
-	poisoned := damaged[0].GetPropertyI(property.Poison).I()
+	poisoned := damaged[0].Target.GetPropertyI(property.Poison).I()
 
 	if poisoned != 2 {
 		t.Errorf("Expected target to be poisoned, got %d", poisoned)
@@ -319,18 +319,18 @@ func TestEffectApplicatorPoisonedTwice(t *testing.T) {
 		t.Errorf("Expected 1 target to be damaged, got %d", len(damaged))
 	}
 
-	if damaged[0].ID != fake.Target.ID {
-		t.Errorf("Expected target to be damaged, got %s", damaged[0].ID)
+	if damaged[0].Target.ID != fake.Target.ID {
+		t.Errorf("Expected target to be damaged, got %s", damaged[0].Target.ID)
 	}
 
-	hp := damaged[0].GetPropertyC(property.HP).GetValue()
+	hp := damaged[0].Target.GetPropertyC(property.HP).GetValue()
 
 	if hp != 0 { // oops it's also dead ;) But that's for the rules to decide. Maybe.
 		t.Errorf("Expected target to have 0 HP, got %d", hp)
 	}
 
 	// Poisoned!
-	poisoned := damaged[0].GetPropertyI(property.Poison).I()
+	poisoned := damaged[0].Target.GetPropertyI(property.Poison).I()
 
 	if poisoned != 4 {
 		t.Errorf("Expected target to be poisoned, got %d", poisoned)
@@ -369,18 +369,18 @@ func TestEffectApplicatorStuned(t *testing.T) {
 		t.Errorf("Expected 1 target to be damaged, got %d", len(damaged))
 	}
 
-	if damaged[0].ID != fake.Target.ID {
-		t.Errorf("Expected target to be damaged, got %s", damaged[0].ID)
+	if damaged[0].Target.ID != fake.Target.ID {
+		t.Errorf("Expected target to be damaged, got %s", damaged[0].Target.ID)
 	}
 
-	hp := damaged[0].GetPropertyC(property.HP).GetValue()
+	hp := damaged[0].Target.GetPropertyC(property.HP).GetValue()
 
 	if hp != 5 {
 		t.Errorf("Expected target to have 5 HP, got %d", hp)
 	}
 
 	// Stuned!
-	stuned := damaged[0].GetPropertyI(property.Stun).I()
+	stuned := damaged[0].Target.GetPropertyI(property.Stun).I()
 
 	if stuned != 2 {
 		t.Errorf("Expected target to be stuned, got %d", stuned)
@@ -421,11 +421,11 @@ func TestEffectApplicatorCrit(t *testing.T) {
 		t.Errorf("Expected 1 target to be damaged, got %d", len(damaged))
 	}
 
-	if damaged[0].ID != fake.Target.ID {
-		t.Errorf("Expected target to be damaged, got %s", damaged[0].ID)
+	if damaged[0].Target.ID != fake.Target.ID {
+		t.Errorf("Expected target to be damaged, got %s", damaged[0].Target.ID)
 	}
 
-	hp := damaged[0].GetPropertyC(property.HP).GetValue()
+	hp := damaged[0].Target.GetPropertyC(property.HP).GetValue()
 
 	if hp != 4 {
 		t.Errorf("Expected target to have 4 HP, got %d", hp)

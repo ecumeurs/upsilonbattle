@@ -102,10 +102,10 @@ func (gs *GameState) applyPositionalEffect(log *logrus.Entry, target entity.Enti
 	// Write back the modified entities
 	gs.Entities[target.ID] = target
 	for _, d := range damaged {
-		gs.Entities[d.ID] = d
+		gs.Entities[d.Target.ID] = d.Target
 	}
 	for _, a := range affected {
-		gs.Entities[a.ID] = a
+		gs.Entities[a.Target.ID] = a.Target
 	}
 
 	gs.IncVersion()

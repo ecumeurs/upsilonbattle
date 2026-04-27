@@ -607,7 +607,7 @@ func TestRuleSkillSetCooldown(t *testing.T) {
 	}
 
 	// get skill from reply message and check cooldown.
-	skill = reply.Content.(rulermethods.ControllerUseSkillReply).Entity.Skills[fake.SkillID]
+	skill = reply.Content.(rulermethods.ControllerUseSkillReply).Attacker.Skills[fake.SkillID]
 	if skill.Cooldown != 3 {
 		t.Errorf("Expected cooldown to be 3, got %d", skill.Cooldown)
 	}
@@ -637,7 +637,7 @@ func TestRuleSkillDeduceMP(t *testing.T) {
 	}
 
 	// get Entity from reply message and check MP.
-	prop = reply.Content.(rulermethods.ControllerUseSkillReply).Entity.GetPropertyC(property.MP)
+	prop = reply.Content.(rulermethods.ControllerUseSkillReply).Attacker.GetPropertyC(property.MP)
 	if prop.GetValue() != 9 { // from 10
 		t.Errorf("Expected MP to be 9, got %d", prop.GetValue())
 	}
@@ -668,7 +668,7 @@ func TestRuleSkillDeduceSP(t *testing.T) {
 	}
 
 	// get Entity from reply message and check MP.
-	prop = reply.Content.(rulermethods.ControllerUseSkillReply).Entity.GetPropertyC(property.SP)
+	prop = reply.Content.(rulermethods.ControllerUseSkillReply).Attacker.GetPropertyC(property.SP)
 	if prop.GetValue() != 9 { // from 10
 		t.Errorf("Expected SP to be 9, got %d", prop.GetValue())
 	}
@@ -698,7 +698,7 @@ func TestRuleSkillDeduceMvt(t *testing.T) {
 	}
 
 	// get Entity from reply message and check MP.
-	prop = reply.Content.(rulermethods.ControllerUseSkillReply).Entity.GetPropertyC(property.Movement)
+	prop = reply.Content.(rulermethods.ControllerUseSkillReply).Attacker.GetPropertyC(property.Movement)
 	if prop.GetValue() != 2 { // from 3
 		t.Errorf("Expected Movement to be 2, got %d", prop.GetValue())
 	}
@@ -728,7 +728,7 @@ func TestRuleSkillDeduceHP(t *testing.T) {
 	}
 
 	// get Entity from reply message and check MP.
-	prop = reply.Content.(rulermethods.ControllerUseSkillReply).Entity.GetPropertyC(property.HP)
+	prop = reply.Content.(rulermethods.ControllerUseSkillReply).Attacker.GetPropertyC(property.HP)
 	if prop.GetValue() != 9 { // from 10
 		t.Errorf("Expected HP to be 9, got %d", prop.GetValue())
 	}

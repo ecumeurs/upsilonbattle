@@ -218,7 +218,7 @@ func (ctl *AggressiveController) ControllerNextTurn(ctx actor.NotificationContex
 				Target:       target.Position,
 				ControllerID: ctl.ID,
 			}, rulermethods.ControllerAttackReply{
-				Entity: controllerData.Entity,
+				Attacker: controllerData.Entity,
 			}), ctl.GetCallbackChan())
 		}
 	}
@@ -332,7 +332,7 @@ func (ctl *AggressiveController) ControllerMoveReply(ctx actor.ReplyContext) {
 			Target:       target.Position,
 			ControllerID: ctl.ID,
 		}, rulermethods.ControllerAttackReply{
-			Entity: ControllerData.Entity,
+			Attacker: ControllerData.Entity,
 		}), ctl.GetCallbackChan())
 	} else {
 		// end of turn
@@ -368,7 +368,7 @@ func (ctl *AggressiveController) ControllerAttackReply(ctx actor.ReplyContext) {
 
 	time.Sleep(100 * time.Millisecond)
 	ctl.ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
-		EntityID:     reply.Entity.ID,
+		EntityID:     reply.Attacker.ID,
 		ControllerID: ctl.ID,
 	}, rulermethods.EndOfTurn{}), ctl.GetCallbackChan())
 }

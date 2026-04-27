@@ -32,11 +32,11 @@ func TestEffectApplicatorHeal(t *testing.T) {
 		t.Errorf("Expected 1 target to be affected, got %d", len(affected))
 	}
 
-	if affected[0].ID != fake.Target.ID {
-		t.Errorf("Expected target to be affected, got %s", affected[0].ID)
+	if affected[0].Target.ID != fake.Target.ID {
+		t.Errorf("Expected target to be affected, got %s", affected[0].Target.ID)
 	}
 
-	hp := affected[0].GetPropertyC(property.HP).GetValue()
+	hp := affected[0].Target.GetPropertyC(property.HP).GetValue()
 
 	if hp != 10 {
 		t.Errorf("Expected target to have 10 HP, got %d", hp)
@@ -66,11 +66,11 @@ func TestEffectApplicatorOverheal(t *testing.T) {
 		t.Errorf("Expected 1 target to be affected, got %d", len(affected))
 	}
 
-	if affected[0].ID != fake.Target.ID {
-		t.Errorf("Expected target to be affected, got %s", affected[0].ID)
+	if affected[0].Target.ID != fake.Target.ID {
+		t.Errorf("Expected target to be affected, got %s", affected[0].Target.ID)
 	}
 
-	hp := affected[0].GetPropertyC(property.HP).GetValue()
+	hp := affected[0].Target.GetPropertyC(property.HP).GetValue()
 
 	if hp != 10 {
 		t.Errorf("Expected target to have 10 HP, got %d", hp)
@@ -100,11 +100,11 @@ func TestEffectApplicatorCurePoison(t *testing.T) {
 		t.Errorf("Expected 1 target to be affected, got %d", len(affected))
 	}
 
-	if affected[0].ID != fake.Target.ID {
-		t.Errorf("Expected target to be affected, got %s", affected[0].ID)
+	if affected[0].Target.ID != fake.Target.ID {
+		t.Errorf("Expected target to be affected, got %s", affected[0].Target.ID)
 	}
 
-	poison := affected[0].GetPropertyI(property.Poison).I()
+	poison := affected[0].Target.GetPropertyI(property.Poison).I()
 
 	if poison != 0 {
 		t.Errorf("Expected target to have 0 poison, got %d", poison)
@@ -134,11 +134,11 @@ func TestEffectApplicatorCureStun(t *testing.T) {
 		t.Errorf("Expected 1 target to be affected, got %d", len(affected))
 	}
 
-	if affected[0].ID != fake.Target.ID {
-		t.Errorf("Expected target to be affected, got %s", affected[0].ID)
+	if affected[0].Target.ID != fake.Target.ID {
+		t.Errorf("Expected target to be affected, got %s", affected[0].Target.ID)
 	}
 
-	stun := affected[0].GetPropertyI(property.Stun).I()
+	stun := affected[0].Target.GetPropertyI(property.Stun).I()
 
 	if stun != 0 {
 		t.Errorf("Expected target to have 0 stun, got %d", stun)
@@ -165,11 +165,11 @@ func TestEffectApplicatorShielding(t *testing.T) {
 		t.Errorf("Expected 1 target to be affected, got %d", len(affected))
 	}
 
-	if affected[0].ID != fake.Target.ID {
-		t.Errorf("Expected target to be affected, got %s", affected[0].ID)
+	if affected[0].Target.ID != fake.Target.ID {
+		t.Errorf("Expected target to be affected, got %s", affected[0].Target.ID)
 	}
 
-	shield := affected[0].GetPropertyC(property.Shield).GetValue()
+	shield := affected[0].Target.GetPropertyC(property.Shield).GetValue()
 
 	if shield != 5 {
 		t.Errorf("Expected target to have 5 shield, got %d", shield)

@@ -291,7 +291,7 @@ func TestRuleAttackSucceed(t *testing.T) {
 	// Check reply entity's to have the same values as game state.
 	content := reply.Content.(rulermethods.ControllerAttackReply)
 
-	attacker = content.Entity
+	attacker = content.Attacker
 
 	// Attacker has Acted.
 	if !attacker.HasActed() {

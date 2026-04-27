@@ -36,7 +36,7 @@ func getPropertyOrDefaultC(eff effect.Effect, p interface{}) property.IntCounter
 }
 
 // Machine that apply effects
-func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effect, target position.Position, cells []position.Position, grd *grid.Grid, targetedEntities []entity.Entity) (damaged []entity.Entity, affected []entity.Entity, credits []rulermethods.CreditAward, err string, errkey string) {
+func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effect, target position.Position, cells []position.Position, grd *grid.Grid, targetedEntities []entity.Entity) (damaged []rulermethods.ActionResult, affected []rulermethods.ActionResult, credits []rulermethods.CreditAward, err string, errkey string) {
 	logger.WithFields(logrus.Fields{}).Info("ApplyDirectEffect")
 	credits = []rulermethods.CreditAward{}
 
@@ -116,6 +116,8 @@ func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effe
 				"multiplier":  multiplier,
 			}).Info("Target")
 
+			prevHP := hp
+
 			// apply shield damage (only if negative! otherwise it's healing the shield)
 			if shieldPower < 0 {
 				target.UpdatePropertyValue(property.Shield, tools.Max(shield+shieldPower, 0))
@@ -184,7 +186,13 @@ func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effe
 				}
 			}
 			totalDamageCredits += actionDamage
-			damaged = append(damaged, target)
+			damaged = append(damaged, rulermethods.ActionResult{
+				Target:   target,
+				TargetID: target.ID,
+				Damage:   actionDamage,
+				PrevHP:   prevHP,
+				NewHP:    hp,
+			})
 		}
 
 		if totalDamageCredits > 0 {
@@ -206,8 +214,10 @@ func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effe
 		for _, target := range targetedEntities {
 			hp := target.GetPropertyC(property.HP).GetValue()
 			maxhp := target.GetPropertyC(property.HP).GetMaxValue()
+			prevHP := hp
+			actualHeal := 0
+
 			if hp < maxhp {
-				actualHeal := 0
 				if hp+heal > maxhp {
 					actualHeal = maxhp - hp
 					hp = maxhp
@@ -237,7 +247,13 @@ func ApplyDirectEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Effe
 				target.UpdatePropertyValue(property.Stun, tools.Max(stun+stunPower, 0))
 			}
 
-			affected = append(affected, target)
+			affected = append(affected, rulermethods.ActionResult{
+				Target:   target,
+				TargetID: target.ID,
+				Heal:     actualHeal,
+				PrevHP:   prevHP,
+				NewHP:    hp,
+			})
 		}
 
 		if totalHealCredits > 0 {

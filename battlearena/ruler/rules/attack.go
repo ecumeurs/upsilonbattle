@@ -145,7 +145,17 @@ func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAtt
 	reply = msg.Reply()
 
 	reply.Content = rulermethods.ControllerAttackReply{
-		Entity: ent,
+		Attacker: ent,
+		Results: []rulermethods.ActionResult{
+			{
+				Target:       foe,
+				TargetID:     foe.ID,
+				Damage:       computedDamage,
+				PrevHP:       foeHP.I() + computedDamage,
+				NewHP:        foeHP.I(),
+				CreditAwards: credits,
+			},
+		},
 	}
 
 	return reply

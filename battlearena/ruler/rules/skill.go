@@ -67,37 +67,52 @@ func (gs *GameState) UseSkill(msg *message.Message, req rulermethods.ControllerU
 	}
 
 	// update entities in global context.
-	for _, tar := range dds {
+	results := make([]rulermethods.ActionResult, 0)
+	for _, res := range dds {
+		tar := res.Target
 		if tar.GetPropertyC(property.HP).GetValue() <= 0 {
 			ctx.log.WithField("targetID", tar.ID.String()[0:8]).Info("Entity killed by skill effect")
 			gs.RemoveEntity(tar.ID)
 		} else {
 			ctx.Entities[tar.ID] = tar
 		}
+		
+		res.CreditAwards = credits
+		results = append(results, res)
+
 		damaged = append(damaged, rulermethods.ControllerAttacked{
 			ControllerID:         tar.ControllerID,
 			Entity:               tar,
 			SkillID:              sk.ID,
 			AttackerControllerID: ent.ControllerID,
 			Attacker:             ent,
-			CreditAwards:         credits, // Attach all credits from this action
+			Damage:               res.Damage,
+			PrevHP:               res.PrevHP,
+			NewHP:                res.NewHP,
+			Dead:                 tar.GetPropertyC(property.HP).GetValue() <= 0,
+			CreditAwards:         credits,
 		})
 	}
 
-	for _, tar := range aff {
+	for _, res := range aff {
+		tar := res.Target
 		if tar.GetPropertyC(property.HP).GetValue() <= 0 {
 			ctx.log.WithField("targetID", tar.ID.String()[0:8]).Info("Entity killed by skill effect")
 			gs.RemoveEntity(tar.ID)
 		} else {
 			ctx.Entities[tar.ID] = tar
 		}
+
+		res.CreditAwards = credits
+		results = append(results, res)
+
 		affected = append(affected, rulermethods.ControllerSkillUsed{
 			ControllerID:        tar.ControllerID,
 			Entity:              tar,
 			SkillID:             sk.ID,
 			EmitterControllerID: ent.ControllerID,
 			Emitter:             ent,
-			CreditAwards:        credits, // Attach all credits from this action
+			CreditAwards:        credits,
 		})
 	}
 
@@ -115,7 +130,8 @@ func (gs *GameState) UseSkill(msg *message.Message, req rulermethods.ControllerU
 	// reply to user
 	reply = msg.Reply()
 	reply.Content = rulermethods.ControllerUseSkillReply{
-		Entity: ent,
+		Attacker: ent,
+		Results:  results,
 	}
 
 	return

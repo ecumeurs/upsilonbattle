@@ -138,16 +138,28 @@ type GetBoardStateReply struct {
 
 // especially for those ... Are they in the CallbackTarget field or content ? or both ? :'(
 
+type ActionResult struct {
+	Target       entity.Entity `json:"target"`
+	TargetID     uuid.UUID     `json:"target_id"`
+	Damage       int           `json:"damage"`
+	Heal         int           `json:"heal"`
+	PrevHP       int           `json:"prev_hp"`
+	NewHP        int           `json:"new_hp"`
+	CreditAwards []CreditAward `json:"credits,omitempty"`
+}
+
 type ControllerMoveReply struct {
-	Entity entity.Entity
+	Entity entity.Entity `json:"entity"`
 }
 
 type ControllerAttackReply struct {
-	Entity entity.Entity
+	Attacker entity.Entity  `json:"attacker"`
+	Results  []ActionResult `json:"results"`
 }
 
 type ControllerUseSkillReply struct {
-	Entity entity.Entity
+	Attacker entity.Entity  `json:"attacker"`
+	Results  []ActionResult `json:"results"`
 }
 
 // Broadcasted messages
