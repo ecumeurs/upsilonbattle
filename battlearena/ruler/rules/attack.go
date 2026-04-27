@@ -133,13 +133,15 @@ func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAtt
 		PrevHP:               foeHP.I() + computedDamage,
 		NewHP:                foeHP.I(),
 		CreditAwards:         credits,
+		Version:              gs.Version,
 	}
+
+	gs.IncVersion()
+	notification.Version = gs.Version
 
 	for _, ctrl := range gs.Controllers {
 		ctrl.NotifyActor(message.Create(nil, notification, nil))
 	}
-
-	gs.IncVersion()
 
 	// reply with the new entities state (opaque to the client)
 	reply = msg.Reply()

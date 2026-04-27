@@ -800,6 +800,7 @@ func (r *Ruler) evaluateVictory(nextTurnEnt uuid.UUID) {
 		for _, ctrl := range r.GameState.Controllers {
 			ctrl.NotifyActor(message.Create(nil, rulermethods.BattleEnd{
 				WinnerTeamID: winningTeamID,
+				Version:      r.GameState.Version,
 			}, nil))
 		}
 	}

@@ -66,6 +66,8 @@ func (gs *GameState) UseSkill(msg *message.Message, req rulermethods.ControllerU
 		}
 	}
 
+	ctx.IncVersion()
+
 	// update entities in global context.
 	results := make([]rulermethods.ActionResult, 0)
 	for _, res := range dds {
@@ -91,6 +93,7 @@ func (gs *GameState) UseSkill(msg *message.Message, req rulermethods.ControllerU
 			NewHP:                res.NewHP,
 			Dead:                 tar.GetPropertyC(property.HP).GetValue() <= 0,
 			CreditAwards:         credits,
+			Version:              gs.Version,
 		})
 	}
 
@@ -113,6 +116,7 @@ func (gs *GameState) UseSkill(msg *message.Message, req rulermethods.ControllerU
 			EmitterControllerID: ent.ControllerID,
 			Emitter:             ent,
 			CreditAwards:        credits,
+			Version:             gs.Version,
 		})
 	}
 
@@ -125,7 +129,6 @@ func (gs *GameState) UseSkill(msg *message.Message, req rulermethods.ControllerU
 	// Update the entity in the game state
 	ctx.Entities[req.EntityID] = ent
 
-	ctx.IncVersion()
 
 	// reply to user
 	reply = msg.Reply()

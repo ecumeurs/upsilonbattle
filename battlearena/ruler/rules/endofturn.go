@@ -115,6 +115,7 @@ func (gs *GameState) EndOfTurn(msg *message.Message, req rulermethods.EndOfTurn,
 		ctrl.NotifyActor(message.Create(nil, rulermethods.ControllerPassed{
 			EntityID:     req.EntityID,
 			ControllerID: req.ControllerID,
+			Version:      gs.Version,
 		}, nil))
 	}
 

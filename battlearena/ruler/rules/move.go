@@ -81,6 +81,7 @@ func (gs *GameState) Move(msg *message.Message, req rulermethods.ControllerMove)
 			EntityID:     req.EntityID,
 			Path:         req.Path,
 			ControllerID: req.ControllerID,
+			Version:      gs.Version,
 		}, nil))
 	}
 
