@@ -6,7 +6,8 @@ layer: ARCHITECTURE
 version: 2.0
 tags: ["credits", "communication", "api"]
 parents: []
-dependents: []
+dependents:
+  - [[upsilonapi:mech_webhook_delivery]]
 type: RULE
 ---
 

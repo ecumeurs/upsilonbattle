@@ -10,10 +10,9 @@ tags: [economy, shop, progression]
 parents:
   - [[upsilonapi:domain_credit_economy]]
 dependents:
-  - [[api_shop_browse]]
-  - [[api_shop_purchase]]
   - [[upsilonapi:api_shop_browse]]
   - [[upsilonapi:api_shop_purchase]]
+  - [[mec_shop_inventory_system]]
 ---
 
 # Credit Spending Shop Mechanic

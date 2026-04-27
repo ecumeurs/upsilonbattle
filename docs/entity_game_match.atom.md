@@ -11,7 +11,7 @@ parents:
   - [[upsilonapi:data_persistence]]
 dependents:
   - [[shared:uc_admin_history_management]]
-  - [[uc_admin_history_management]]
+  - [[entity_match_participants]]
 ---
 # Game Match Entity
 

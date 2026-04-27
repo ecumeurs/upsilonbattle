@@ -11,6 +11,7 @@ parents: []
 dependents:
   - [[mech_initiative_active_state]]
   - [[mech_initiative_delay_costs]]
+  - [[mech_initiative_initiative_roll]]
   - [[mech_initiative_requeue_calculation]]
 ---
 # Initiative & Delay Mechanic

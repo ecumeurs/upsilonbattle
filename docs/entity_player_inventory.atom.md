@@ -11,6 +11,9 @@ parents:
   - [[entity_shop_item]]
   - [[mec_shop_inventory_system]]
 dependents:
+  - [[shared:rule_quantity_cap]]
+  - [[upsilonapi:api_inventory_list]]
+  - [[upsilonapi:api_shop_purchase]]
   - [[entity_character_equipment]]
 ---
 
