@@ -10,6 +10,9 @@ tags: []
 parents:
   - [[shared:requirement_customer_user_id_privacy]]
 dependents:
+  - [[uc_admin_user_management]]
+  - [[upsilonapi:infra_seed_admin]]
+  - [[upsilonapi:rule_admin_access_restriction]]
   - [[entity_player_entity_character_rules_apply]]
   - [[entity_player_entity_player_initial_setup]]
   - [[entity_player_entity_player_registration]]

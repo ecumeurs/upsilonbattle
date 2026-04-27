@@ -9,6 +9,7 @@ priority: 5
 tags: []
 parents: []
 dependents:
+  - [[upsilonapi:api_plan_travel_toward]]
   - [[mech_move_validation_move_validation_already_moved]]
   - [[mech_move_validation_move_validation_controller_mismatch]]
   - [[mech_move_validation_move_validation_entity_collision]]
