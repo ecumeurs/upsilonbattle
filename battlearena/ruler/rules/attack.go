@@ -207,13 +207,20 @@ func (ctx *localAttackCtx) preAttackChecks(msg *message.Message, req rulermethod
 	}
 
 	// range check.
+	// @spec-link [[rule_combat_range_validation]]
 	attackerRange := ent.GetPropertyI(property.AttackRange)
-	distance := ent.Position.Distance(target.Position)
-	if attackerRange.I() < distance {
+	// Base distance is 2D Manhattan distance (ISS-098)
+	distance2D := tools.Abs(ent.Position.X-target.Position.X) + tools.Abs(ent.Position.Y-target.Position.Y)
+	// Vertical distance check
+	zDiff := tools.Abs(ent.Position.Z - target.Position.Z)
+
+	if attackerRange.I() < distance2D || zDiff > (attackerRange.I()+1) {
 		ctx.log.WithFields(logrus.Fields{
 			"attackrange": attackerRange.I(),
-			"distance":    distance,
+			"distance2D":  distance2D,
+			"zDiff":       zDiff,
 			"attacker":    ent.Position,
+			"target":      target.Position,
 		}).Error("Target is out of range")
 		return false, msg.ReplyWithError("Invalid attack", "entity.attack.outofrange")
 	}
