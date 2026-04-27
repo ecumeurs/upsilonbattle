@@ -1,6 +1,6 @@
 ---
 id: mechanic_mech_arena_lifecycle
-status: DRAFT
+status: STABLE
 parents: []
 dependents: []
 type: MECHANIC
