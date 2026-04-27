@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity/entitygenerator"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property"
+	"github.com/ecumeurs/upsilontypes/entity"
+	"github.com/ecumeurs/upsilontypes/entity/entitygenerator"
+	"github.com/ecumeurs/upsilontypes/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/behavior"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rules"

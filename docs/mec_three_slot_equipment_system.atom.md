@@ -10,6 +10,8 @@ tags: [equipment, slots, inventory]
 parents:
   - [[entity_equipment_system]]
 dependents:
+  - [[api_equipment_management]]
+  - [[upsilonapi:api_equipment_management]]
   - [[entity_character_equipment]]
 ---
 

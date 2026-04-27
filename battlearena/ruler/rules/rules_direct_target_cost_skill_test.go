@@ -3,10 +3,10 @@ package rules
 import (
 	"testing"
 
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity/skill"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property/def"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property/defaultproperty"
+	"github.com/ecumeurs/upsilontypes/entity/skill"
+	"github.com/ecumeurs/upsilontypes/property"
+	"github.com/ecumeurs/upsilontypes/property/def"
+	"github.com/ecumeurs/upsilontypes/property/defaultproperty"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"

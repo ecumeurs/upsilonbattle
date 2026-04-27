@@ -32,7 +32,7 @@ import (
 	"time"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
+	"github.com/ecumeurs/upsilontypes/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/ecumeurs/upsilontools/tools"

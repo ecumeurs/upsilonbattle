@@ -1,7 +1,7 @@
 package behavior
 
 import (
-	"github.com/ecumeurs/upsilonbattle/battlearena/property"
+	"github.com/ecumeurs/upsilontypes/property"
 	"github.com/ecumeurs/upsilonmapdata/grid"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
 )

@@ -3,7 +3,7 @@ package rules
 import (
 	"testing"
 
-	"github.com/ecumeurs/upsilonbattle/battlearena/property"
+	"github.com/ecumeurs/upsilontypes/property"
 	"github.com/google/uuid"
 )
 

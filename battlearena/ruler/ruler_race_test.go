@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
+	"github.com/ecumeurs/upsilontypes/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonmapmaker/gridgenerator"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"

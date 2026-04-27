@@ -7,7 +7,8 @@ version: 2.0
 tags: ["credits", "economy", "player"]
 parents:
   - [[upsilonapi:domain_credit_economy]]
-dependents: []
+dependents:
+  - [[api_shop_purchase]]
 human_name: Player Credit Entity
 type: ENTITY
 ---

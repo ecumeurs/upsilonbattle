@@ -1,8 +1,8 @@
 package rules
 
 import (
-	"github.com/ecumeurs/upsilonbattle/battlearena/property"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property/defaultproperty"
+	"github.com/ecumeurs/upsilontypes/property"
+	"github.com/ecumeurs/upsilontypes/property/defaultproperty"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonmapdata/grid/cell"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"

@@ -1,9 +1,9 @@
 package rules
 
 import (
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property/effect"
+	"github.com/ecumeurs/upsilontypes/entity"
+	"github.com/ecumeurs/upsilontypes/property"
+	"github.com/ecumeurs/upsilontypes/property/effect"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/turner"
 	"github.com/ecumeurs/upsilonmapdata/grid"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"

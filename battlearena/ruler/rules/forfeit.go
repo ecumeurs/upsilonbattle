@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/ecumeurs/upsilonbattle/battlearena/property"
+	"github.com/ecumeurs/upsilontypes/property"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )

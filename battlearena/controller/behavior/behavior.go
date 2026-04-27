@@ -13,7 +13,7 @@
 package behavior
 
 import (
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
+	"github.com/ecumeurs/upsilontypes/entity"
 	"github.com/ecumeurs/upsilonmapdata/grid"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/google/uuid"

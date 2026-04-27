@@ -1,8 +1,8 @@
 package rules
 
 import (
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property"
+	"github.com/ecumeurs/upsilontypes/entity"
+	"github.com/ecumeurs/upsilontypes/property"
 	"github.com/sirupsen/logrus"
 )
 

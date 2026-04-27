@@ -3,7 +3,7 @@ package rules
 import (
 	"testing"
 
-	"github.com/ecumeurs/upsilonbattle/battlearena/property"
+	"github.com/ecumeurs/upsilontypes/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonmapdata/grid/cell"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"

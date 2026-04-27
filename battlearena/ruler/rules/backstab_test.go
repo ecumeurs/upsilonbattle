@@ -3,8 +3,8 @@ package rules
 import (
 	"testing"
 
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property"
+	"github.com/ecumeurs/upsilontypes/entity"
+	"github.com/ecumeurs/upsilontypes/property"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/stretchr/testify/assert"
 )

@@ -3,9 +3,9 @@ package effectapplicator
 import (
 	"testing"
 
-	"github.com/ecumeurs/upsilonbattle/battlearena/property"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property/defaultproperty"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property/effect"
+	"github.com/ecumeurs/upsilontypes/property"
+	"github.com/ecumeurs/upsilontypes/property/defaultproperty"
+	"github.com/ecumeurs/upsilontypes/property/effect"
 	"github.com/sirupsen/logrus"
 )
 

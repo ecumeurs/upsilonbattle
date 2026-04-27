@@ -1,9 +1,9 @@
 package effectapplicator
 
 import (
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property/def"
+	"github.com/ecumeurs/upsilontypes/entity"
+	"github.com/ecumeurs/upsilontypes/property"
+	"github.com/ecumeurs/upsilontypes/property/def"
 	"github.com/ecumeurs/upsilonmapdata/grid"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/google/uuid"

@@ -1,11 +1,11 @@
 package rules
 
 import (
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity/skill"
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity/skill/skillweight"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property/def"
+	"github.com/ecumeurs/upsilontypes/entity"
+	"github.com/ecumeurs/upsilontypes/entity/skill"
+	"github.com/ecumeurs/upsilontypes/entity/skill/skillweight"
+	"github.com/ecumeurs/upsilontypes/property"
+	"github.com/ecumeurs/upsilontypes/property/def"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/effect/effectapplicator"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"

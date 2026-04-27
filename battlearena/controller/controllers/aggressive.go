@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
-	"github.com/ecumeurs/upsilonbattle/battlearena/entity"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property"
-	"github.com/ecumeurs/upsilonbattle/battlearena/property/defaultproperty"
+	"github.com/ecumeurs/upsilontypes/entity"
+	"github.com/ecumeurs/upsilontypes/property"
+	"github.com/ecumeurs/upsilontypes/property/defaultproperty"
 	"github.com/ecumeurs/upsilonmapdata/grid"
 	"github.com/ecumeurs/upsilonmapdata/grid/cell"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
