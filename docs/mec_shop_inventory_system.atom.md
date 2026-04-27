@@ -10,7 +10,6 @@ tags: [shop, economy, inventory]
 parents:
   - [[mec_credit_spending_shop]]
 dependents:
-  - [[upsilonapi:api_inventory_list]]
   - [[entity_player_inventory]]
 ---
 

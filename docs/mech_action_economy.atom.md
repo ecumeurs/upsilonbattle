@@ -11,6 +11,8 @@ parents: []
 dependents:
   - [[battleui:ui_action_panel]]
   - [[battleui:ui_initiative_timeline]]
+  - [[ui_action_panel]]
+  - [[ui_initiative_timeline]]
   - [[mech_action_economy_action_cost_rules]]
   - [[mech_action_economy_time_constraint_rules]]
   - [[mech_action_economy_timeout_penalty_rules]]

@@ -9,7 +9,6 @@ priority: 5
 tags: [equipment, inventory, progression]
 parents: []
 dependents:
-  - [[upsilonapi:api_equipment_management]]
   - [[entity_character_equipment]]
   - [[mec_equipment_stat_bonuses]]
   - [[mec_three_slot_equipment_system]]
