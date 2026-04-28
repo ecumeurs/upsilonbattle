@@ -28,7 +28,7 @@ To define the per-user inventory entity — the set of items a user has purchase
 **Core Fields (`player_inventory` table):**
 - **id:** UUID primary key.
 - **player_id:** UUID FK → `users.id` ON DELETE CASCADE. Inventory dies with the user.
-- **shop_item_id:** UUID FK → `shop_items.id`. Catalog reference.
+- **shop_item_id:** UUID FK → `shop_items.id` ON DELETE CASCADE. Catalog reference (D13).
 - **quantity:** Integer default 1, hard-capped at 99 per `[[rule_quantity_cap]]`.
 - **purchased_at:** Timestamp default `now()`.
 
@@ -47,7 +47,7 @@ To define the per-user inventory entity — the set of items a user has purchase
 **Lifecycle:**
 - Created by `[[api_shop_purchase]]`.
 - Read by `[[api_inventory_list]]` and joined into `[[api_equipment_management]]` for the equip flow.
-- Deleted only via cascade (user deletion).
+- Deleted via cascade (user deletion OR shop item deletion).
 
 ## TECHNICAL INTERFACE
 - **Code Tag:** `@spec-link [[entity_player_inventory]]`
