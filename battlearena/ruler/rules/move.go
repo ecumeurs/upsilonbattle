@@ -43,7 +43,10 @@ func (gs *GameState) Move(msg *message.Message, req rulermethods.ControllerMove)
 	ctx.ProcessPositionalEffects(ent, fromPos, property.TriggerOnExit)
 
 	// Move the entity
-	ctx.Grid.MoveEntity(fromPos, destPos, ent.ID)
+	err := ctx.Grid.MoveEntity(fromPos, destPos, ent.ID)
+	if err != nil {
+		return msg.ReplyWithError(err.Error(), "entity.move.failed")
+	}
 
 	ctx.log.WithFields(logrus.Fields{
 		"entityID": req.EntityID.String()[0:8],
@@ -132,8 +135,20 @@ func (ctx *localMoveCtx) preMoveChecks(msg *message.Message, req rulermethods.Co
 
 	// Check if the path is valid
 	cells := ctx.Grid.CellsForPositions(req.Path)
-	// a valid path is a path that contains only walkable cells and all cells must be adjascent
+	if len(cells) != len(req.Path) {
+		return false, msg.ReplyWithError("Invalid path(out of grid)", "entity.path.notfound")
+	}
+
 	for i, c := range cells {
+		// check for adjacency with previous cell
+		if i == 0 && !ent.Position.IsAdjacent(c.Position, jumpHeight) {
+			ctx.log.Error("Path is not valid")
+			return false, msg.ReplyWithError("Invalid path", "entity.path.notvalid")
+		} else if i > 0 && !cells[i-1].Position.IsAdjacent(c.Position, jumpHeight) {
+			ctx.log.Error("Path is not valid")
+			return false, msg.ReplyWithError("Invalid path", "entity.path.notvalid")
+		}
+
 		if c.Type == cell.Ground || c.Type == cell.Dirt {
 			// Multi-entity cells: a cell is blocked if it contains a non-WalkThrough entity (other than self).
 			// @spec-link [[mechanic_multi_entity_cell_system]]
@@ -142,12 +157,6 @@ func (ctx *localMoveCtx) preMoveChecks(msg *message.Message, req rulermethods.Co
 					"position": c.Position,
 				}).Error("Path contains a blocking entity")
 				return false, msg.ReplyWithError("Path contains an occupied cell", "entity.path.occupied")
-			}
-			if i > 0 && !cells[i-1].Position.IsAdjacent(c.Position, jumpHeight) {
-				ctx.log.WithFields(logrus.Fields{
-					"jumpHeight": jumpHeight,
-				}).Error("Path is not valid")
-				return false, msg.ReplyWithError("Invalid path", "entity.path.notvalid")
 			}
 		} else {
 			ctx.log.WithFields(logrus.Fields{
