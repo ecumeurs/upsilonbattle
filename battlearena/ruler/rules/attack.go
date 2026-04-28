@@ -194,7 +194,7 @@ func (ctx *localAttackCtx) preAttackChecks(msg *message.Message, req rulermethod
 		return false, msg.ReplyWithError("Invalid target", "entity.attack.target.invalid")
 	}
 
-	if target.Type != cell.Ground {
+	if target.Type != cell.Ground && target.Type != cell.Dirt {
 		ctx.log.Error("Target is not valid")
 		return false, msg.ReplyWithError("Invalid attack", "entity.attack.celltype")
 	}

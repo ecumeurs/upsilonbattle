@@ -134,7 +134,7 @@ func (ctx *localMoveCtx) preMoveChecks(msg *message.Message, req rulermethods.Co
 	cells := ctx.Grid.CellsForPositions(req.Path)
 	// a valid path is a path that contains only walkable cells and all cells must be adjascent
 	for i, c := range cells {
-		if c.Type == cell.Ground {
+		if c.Type == cell.Ground || c.Type == cell.Dirt {
 			// Multi-entity cells: a cell is blocked if it contains a non-WalkThrough entity (other than self).
 			// @spec-link [[mechanic_multi_entity_cell_system]]
 			if ctx.HasBlockingEntity(c.EntityIDs, req.EntityID) {
