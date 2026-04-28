@@ -40,6 +40,8 @@ func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAtt
 
 	ent := gs.Entities[req.EntityID]
 	attackerAttack := ent.GetPropertyI(property.Attack)
+	weaponDmg := ent.GetPropertyI(property.WeaponBaseDamage)
+	totalAttack := attackerAttack.I() + weaponDmg.I()
 
 	// In multi-entity cells, attack only targets Characters/Monsters, not WalkThrough entities.
 	// @spec-link [[mechanic_multi_entity_cell_system]]
@@ -48,12 +50,13 @@ func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAtt
 		return msg.ReplyWithError("No attackable entity at target position", "entity.attack.noentity")
 	}
 	foeDefense := foe.GetPropertyI(property.Defense)
+	foeArmor := foe.GetPropertyI(property.ArmorRating)
 	foeHP := foe.GetPropertyI(property.HP)
 
 	// @spec-link [[mech_combat_standard_attack_computation]]
 	// @spec-link [[mec_backstabbing_mechanic]]
 	multiplier := 1.0
-	effectiveDefense := foeDefense.I()
+	effectiveDefense := foeDefense.I() + foeArmor.I()
 
 	if ent.IsBackstabbing(foe) {
 		multiplier = 1.5
@@ -62,7 +65,7 @@ func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAtt
 		ctx.log.Debug("Backstab detected! 150% damage and 50% armor penetration applied.")
 	}
 
-	computedDamage := tools.Max(1, int(float64(attackerAttack.I())*multiplier)-effectiveDefense)
+	computedDamage := tools.Max(1, int(float64(totalAttack)*multiplier)-effectiveDefense)
 
 	// Apply shield (not penetrated)
 	foeShield := foe.GetPropertyC(property.Shield)
@@ -87,7 +90,9 @@ func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAtt
 		"foeID":       foe.ID.String()[0:8],
 		"damage":      computedDamage,
 		"Attack":      attackerAttack.I(),
+		"WeaponDmg":   weaponDmg.I(),
 		"Defense":     foeDefense.I(),
+		"Armor":       foeArmor.I(),
 		"HP":          foeHP.I(),
 		"ResultingHP": foeHP.I() - computedDamage,
 		"Shield":      foeShield.GetValue(),
@@ -209,15 +214,20 @@ func (ctx *localAttackCtx) preAttackChecks(msg *message.Message, req rulermethod
 	// range check.
 	// @spec-link [[rule_combat_range_validation]]
 	attackerRange := ent.GetPropertyI(property.AttackRange)
+	weaponRange := ent.GetPropertyI(property.WeaponRange)
+	effectiveRange := tools.Max(attackerRange.I(), weaponRange.I())
+
 	// Base distance is 2D Manhattan distance (ISS-098)
 	distance2D := tools.Abs(ent.Position.X-target.Position.X) + tools.Abs(ent.Position.Y-target.Position.Y)
 	// Vertical distance check
 	zDiff := tools.Abs(ent.Position.Z - target.Position.Z)
 
-	if attackerRange.I() < distance2D || zDiff > (attackerRange.I()+1) {
+	if effectiveRange < distance2D || zDiff > (effectiveRange+1) {
 		ctx.log.WithFields(logrus.Fields{
-			"attackrange": attackerRange.I(),
-			"distance2D":  distance2D,
+			"attackrange":    attackerRange.I(),
+			"weaponrange":    weaponRange.I(),
+			"effectiveRange": effectiveRange,
+			"distance2D":     distance2D,
 			"zDiff":       zDiff,
 			"attacker":    ent.Position,
 			"target":      target.Position,
