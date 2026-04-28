@@ -127,6 +127,16 @@ func (gs *GameState) UseSkill(msg *message.Message, req rulermethods.ControllerU
 	ent.Skills[sk.ID] = sk
 
 	// Update the entity in the game state
+	// Set that unit acted
+	hasActed := ent.GetProperty(property.HasActed)
+	hasActed.Set(true)
+	ent.UpdateProperty(hasActed)
+
+	// Set that unit moved
+	hasMoved := ent.GetProperty(property.HasMoved)
+	hasMoved.Set(true)
+	ent.UpdateProperty(hasMoved)
+
 	ctx.Entities[req.EntityID] = ent
 
 
