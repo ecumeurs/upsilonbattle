@@ -9,6 +9,7 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/effect/effectapplicator"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
+	"github.com/ecumeurs/upsilontools/tools"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/sirupsen/logrus"
 )
@@ -209,9 +210,16 @@ func (ctx *localSkillCtx) checkSkillTarget(msg *message.Message, user entity.Ent
 	rng := sk.GetProperty(property.Range).(*def.RangeProperty)
 
 	// Check target within range
-	dist := user.Position.Distance(target)
+	// Use 2D Manhattan distance (ignoring height) 
+	dist := tools.Abs(user.Position.X-target.X) + tools.Abs(user.Position.Y-target.Y)
 	if dist > rng.MaxRange || dist < rng.MinRange {
-		ctx.log.Error("Target is not in range")
+		ctx.log.WithFields(logrus.Fields{
+			"dist":     dist,
+			"minRange": rng.MinRange,
+			"maxRange": rng.MaxRange,
+			"userPos":  user.Position,
+			"target":   target,
+		}).Error("Target is not in range")
 		return false, msg.ReplyWithError("Target is not in range", "skill.target.range")
 	}
 

@@ -58,6 +58,7 @@ func NewAggressiveController(id uuid.UUID, name string) *AggressiveController {
 	ctrl.AddNotificationHandler(rulermethods.BattleEnd{}, ctrl.BattleEnd, nil)
 	ctrl.AddNotificationHandler(rulermethods.EntitiesStateChanged{}, ctrl.EntitiesStateChanged, nil)
 	ctrl.AddNotificationHandler(rulermethods.ControllerAttacked{}, ctrl.ControllerAttacked, nil)
+	ctrl.AddNotificationHandler(rulermethods.ControllerSkillUsed{}, ctrl.NoOp, nil)
 	ctrl.AddNotificationHandler(rulermethods.ControllerMoved{}, ctrl.NoOp, nil)
 	ctrl.AddNotificationHandler(rulermethods.ControllerPassed{}, ctrl.NoOp, nil)
 
