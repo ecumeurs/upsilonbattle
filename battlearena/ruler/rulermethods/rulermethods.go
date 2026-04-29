@@ -241,6 +241,14 @@ type EntitiesStateChanged struct {
 	actor.NoReply
 }
 
+// Resurrect is dispatched internally after all controllers are re-registered
+// during arena resurrection (ISS-054). Skips BattleStart handshake and directly
+// hands the turn to the entity that was active when the engine crashed.
+type Resurrect struct {
+	CurrentEntityID uuid.UUID
+	actor.NoReply
+}
+
 // Testing-only messages to avoid direct access to actor state from tests
 // which causes data races.
 

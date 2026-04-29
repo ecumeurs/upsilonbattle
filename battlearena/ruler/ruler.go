@@ -12,6 +12,7 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/behavior"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rules"
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/turner"
 	"github.com/ecumeurs/upsilonmapdata/grid"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/ecumeurs/upsilonmapmaker/gridgenerator"
@@ -188,6 +189,7 @@ func (r *Ruler) init() {
 	r.AddCallHandler(rulermethods.ControllerForfeit{}, r.controllerForfeit, nil)
 	r.AddNotificationHandler(rulermethods.Timeout{}, r.timeout, nil)
 	r.AddNotificationHandler(actor.ActorAboutToStop{}, r.actorAboutToStop, nil)
+	r.AddNotificationHandler(rulermethods.Resurrect{}, r.resurrect, nil)
 
 	// Testing-only handlers
 	r.AddNotificationHandler(rulermethods.TestingDeleteEntity{}, r.testingDeleteEntity, nil)
@@ -248,8 +250,14 @@ func (r *Ruler) addController(ctx actor.CallContext) {
 	ctx.Reply(reply)
 
 	if len(r.GameState.Controllers) == r.NbControllers {
-		r.RequestLogger.Info("All controllers registered, scheduling BattleStart")
-		r.SelfNotifyDelayed(rulermethods.BattleStart{}, 20*time.Millisecond)
+		// In resurrection mode (ISS-054) the arena is already InProgress.
+		// Skip BattleStart — the Resurrect notification will hand the turn directly.
+		if r.CurrentState == InProgress {
+			r.RequestLogger.Info("All controllers re-registered after resurrection, skipping BattleStart")
+		} else {
+			r.RequestLogger.Info("All controllers registered, scheduling BattleStart")
+			r.SelfNotifyDelayed(rulermethods.BattleStart{}, 20*time.Millisecond)
+		}
 	}
 }
 
@@ -875,6 +883,33 @@ func (r *Ruler) stopShotClock() {
 		r.shotClock.Stop()
 		r.shotClock = nil
 	}
+}
+
+// Resurrect configures the Ruler to resume an arena from persisted state (ISS-054).
+// Must be called after SetGrid/AddEntity and before Start(). It sets the turner
+// queue, the current-turn entity, the game version, and marks the ruler as already
+// in-progress so it skips the BattleStart handshake.
+func (r *Ruler) Resurrect(turns []turner.EntityTurn, currentEntityID uuid.UUID, version int64) {
+	r.GameState.Turner.Turns = turns
+	r.GameState.Turner.CurrentEntityTurn = currentEntityID
+	r.GameState.Version = version
+	r.GameState.TurnIndex = uint32(version >> 32)
+	r.GameState.ActionIndex = uint32(version & 0xFFFFFFFF)
+	r.CurrentState = InProgress
+	r.firstTurnSent = true
+}
+
+// resurrect is the notification handler triggered after all controllers register
+// during resurrection. It skips BattleStart/ControllerBattleReady and hands the
+// turn directly to the entity that was active when the engine crashed.
+// ISS-054: HasMoved/HasActed flags reset here is an accepted mid-turn state loss.
+func (r *Ruler) resurrect(ctx actor.NotificationContext) {
+	req := ctx.Msg.TargetMethod.(rulermethods.Resurrect)
+	r.RequestLogger.WithFields(logrus.Fields{
+		"entityID": req.CurrentEntityID.String()[0:8],
+	}).Info("Resuming resurrected arena — handing turn to current entity")
+	r.startShotClock()
+	r.handTurn(req.CurrentEntityID)
 }
 
 // @spec-link [[mech_arena_lifecycle]]
