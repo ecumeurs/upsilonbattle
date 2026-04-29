@@ -6,6 +6,7 @@ import (
 	"github.com/ecumeurs/upsilontypes/entity/skill/skillweight"
 	"github.com/ecumeurs/upsilontypes/property"
 	"github.com/ecumeurs/upsilontypes/property/def"
+	"github.com/ecumeurs/upsilontypes/property/defaultproperty"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/effect/effectapplicator"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
@@ -204,19 +205,19 @@ func (ctx *localSkillCtx) preSkillChecks(msg *message.Message, req rulermethods.
 }
 
 func (ctx *localSkillCtx) checkSkillTarget(msg *message.Message, user entity.Entity, target position.Position, sk skill.Skill) (bool, *message.Message) {
-	mech := sk.GetProperty(property.TargetingMechanics).(*def.TargetingMechanicsProperty)
-	targetype := sk.GetProperty(property.TargetType).(*def.TargetTypeProperty)
+	mech := sk.GetProperty(property.TargetingMechanics).(*defaultproperty.DefaultStringProperty)
+	targetype := sk.GetProperty(property.TargetType).(*defaultproperty.DefaultStringProperty)
 	zone := sk.GetProperty(property.Zone).(*def.ZoneProperty)
-	rng := sk.GetProperty(property.Range).(*def.RangeProperty)
+	rng := sk.GetProperty(property.Range).(property.IntCounterProperty)
 
 	// Check target within range
 	// Use 2D Manhattan distance (ignoring height) 
 	dist := tools.Abs(user.Position.X-target.X) + tools.Abs(user.Position.Y-target.Y)
-	if dist > rng.MaxRange || dist < rng.MinRange {
+	if dist > rng.GetMaxValue() || dist < rng.GetValue() {
 		ctx.log.WithFields(logrus.Fields{
 			"dist":     dist,
-			"minRange": rng.MinRange,
-			"maxRange": rng.MaxRange,
+			"minRange": rng.GetValue(),
+			"maxRange": rng.GetMaxValue(),
 			"userPos":  user.Position,
 			"target":   target,
 		}).Error("Target is not in range")
@@ -231,11 +232,11 @@ func (ctx *localSkillCtx) checkSkillTarget(msg *message.Message, user entity.Ent
 	}
 
 	// considere only TargetingMechanicsAnywhere for now ... because it's the only one implemented :p
-	if mech.TargetingMechanics == def.TargetingMechanicsAnywhere || mech.TargetingMechanics == def.TargetingMechanicsLOS {
+	if mech.Get().(string) == string(def.TargetingMechanicsAnywhere) || mech.Get().(string) == string(def.TargetingMechanicsLOS) {
 		// only okay.
 	}
 
-	switch targetype.TargetType {
+	switch def.TargetTypes(targetype.Get().(string)) {
 	case def.TargetTypeSelf:
 		if !user.Position.Equals(target) {
 			ctx.log.Error("Target is not self")
