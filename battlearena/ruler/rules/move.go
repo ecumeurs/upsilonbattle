@@ -142,8 +142,8 @@ func (ctx *localMoveCtx) preMoveChecks(msg *message.Message, req rulermethods.Co
 	for i, c := range cells {
 		// check for adjacency with previous cell
 		if i == 0 && !ent.Position.IsAdjacent(c.Position, jumpHeight) {
-			ctx.log.Error("Path is not valid")
-			return false, msg.ReplyWithError("Invalid path", "entity.path.notvalid")
+			ctx.log.Error("Entity is not adjacent to the first move")
+			return false, msg.ReplyWithError("Invalid path", "entity.path.notadjacent")
 		} else if i > 0 && !cells[i-1].Position.IsAdjacent(c.Position, jumpHeight) {
 			ctx.log.Error("Path is not valid")
 			return false, msg.ReplyWithError("Invalid path", "entity.path.notvalid")

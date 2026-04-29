@@ -256,9 +256,11 @@ func TestRuleSkillFailTargetNoApplicableTarget_Entity(t *testing.T) {
 func TestRuleSkillFailTargetNoApplicableTarget_Self(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
-	fake.Skill.Targeting[property.TargetType.String()] = def.MakeTargetTypeProperty(def.TargetTypeSelf)
-	rng := fake.Skill.GetProperty(property.Range).(*def.RangeProperty)
-	rng.MinRange = 0
+	prop := def.SkillProperty(property.TargetType)
+	prop.Set(string(def.TargetTypeSelf))
+	fake.Skill.Targeting[property.TargetType.String()] = prop
+	rng := fake.Skill.GetProperty(property.Range).(*defaultproperty.DefaultIntCounterProperty)
+	rng.Value = 0
 	fake.Skill.Targeting[rng.Name(property.GameMaster)] = rng
 	gs.addSkillToEntity(fake.Attacker, fake.Skill) // update skill.
 
@@ -298,7 +300,9 @@ func TestRuleSkillFailTargetNoApplicableTarget_Self(t *testing.T) {
 func TestRuleSkillFailTargetNoApplicableTarget_Ennemy(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
-	fake.Skill.Targeting[property.TargetType.String()] = def.MakeTargetTypeProperty(def.TargetTypeEnemyOnly)
+	prop := def.SkillProperty(property.TargetType)
+	prop.Set(string(def.TargetTypeEnemyOnly))
+	fake.Skill.Targeting[property.TargetType.String()] = prop
 	gs.addSkillToEntity(fake.Attacker, fake.Skill) // update skill.
 
 	msg := message.Create(nil,
@@ -364,7 +368,9 @@ func TestRuleSkillFailTargetNoApplicableTarget_Ennemy(t *testing.T) {
 func TestRuleSkillFailTargetNoApplicableTarget_Ally(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
-	fake.Skill.Targeting[property.TargetType.String()] = def.MakeTargetTypeProperty(def.TargetTypeFriendOnly)
+	prop := def.SkillProperty(property.TargetType)
+	prop.Set(string(def.TargetTypeFriendOnly))
+	fake.Skill.Targeting[property.TargetType.String()] = prop
 	gs.addSkillToEntity(fake.Attacker, fake.Skill) // update skill.
 
 	msg := message.Create(nil,
@@ -430,7 +436,9 @@ func TestRuleSkillFailTargetNoApplicableTarget_Ally(t *testing.T) {
 func TestRuleSkillFailTargetNoApplicableTarget_Cell(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
-	fake.Skill.Targeting[property.TargetType.String()] = def.MakeTargetTypeProperty(def.TargetTypeTile)
+	prop := def.SkillProperty(property.TargetType)
+	prop.Set(string(def.TargetTypeTile))
+	fake.Skill.Targeting[property.TargetType.String()] = prop
 	gs.addSkillToEntity(fake.Attacker, fake.Skill) // update skill.
 
 	msg := message.Create(nil,
