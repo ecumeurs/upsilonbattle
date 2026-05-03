@@ -13,6 +13,7 @@ dependents:
   - [[upsilonapi:api_shop_browse]]
   - [[upsilonapi:api_shop_purchase]]
   - [[mec_shop_inventory_system]]
+  - [[upsilontypes:entity_shop_item]]
 ---
 
 # Credit Spending Shop Mechanic

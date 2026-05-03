@@ -8,7 +8,7 @@ status: DRAFT
 priority: 5
 tags: [time-based, skills, casting]
 parents:
-  - [[mechanic_mech_temporary_entity_system]]
+  - [[upsilontypes:mechanic_mech_temporary_entity_system]]
 dependents: []
 ---
 

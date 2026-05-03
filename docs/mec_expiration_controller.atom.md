@@ -8,7 +8,7 @@ status: DRAFT
 priority: 5
 tags: [controllers, entities, time-based]
 parents:
-  - [[mechanic_mech_temporary_entity_system]]
+  - [[upsilontypes:mechanic_mech_temporary_entity_system]]
 dependents: []
 ---
 

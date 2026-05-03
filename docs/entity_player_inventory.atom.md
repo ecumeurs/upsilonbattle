@@ -8,7 +8,7 @@ human_name: Player Inventory Entity
 version: 2.0
 priority: 5
 parents:
-  - [[entity_shop_item]]
+  - [[upsilontypes:entity_shop_item]]
   - [[mec_shop_inventory_system]]
 dependents:
   - [[shared:rule_quantity_cap]]
