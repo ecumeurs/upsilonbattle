@@ -57,7 +57,7 @@ func (gs *GameState) UseSkill(msg *message.Message, req rulermethods.ControllerU
 	// Status Effect Credits (Flat Rate)
 	// rule: SkillWeight / 10 credits per application
 	if len(aff) > 0 && sk.Effect.IsOverTime() {
-		pos, _, _ := skillweight.Calculate(sk)
+		pos, _, _ := skillweight.Calculate(&sk)
 		statusCredits := pos / 10
 		if statusCredits > 0 {
 			credits = append(credits, rulermethods.CreditAward{
