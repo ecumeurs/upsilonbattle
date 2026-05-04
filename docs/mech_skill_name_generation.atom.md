@@ -9,7 +9,7 @@ priority: 4
 tags: [skills, names, generation, aesthetic]
 parents:
   - [[battleui:req_ui_look_and_feel]]
-  - [[shared:req_skill_generation_overhaul]]
+  - [[shared:req_skill_generation]]
   - [[upsilonbattle:mech_ai_name_generation]]
 dependents: []
 ---
