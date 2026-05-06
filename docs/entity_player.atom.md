@@ -10,6 +10,7 @@ tags: []
 parents:
   - [[shared:requirement_customer_user_id_privacy]]
 dependents:
+  - [[shared:infra_seed_test_account]]
   - [[shared:uc_admin_user_management]]
   - [[upsilonapi:infra_seed_admin]]
   - [[upsilonapi:rule_admin_access_restriction]]
