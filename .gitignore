@@ -17,3 +17,6 @@
 *.db
 *.sqlite
 *.sqlite3
+
+pipeline_output/
+atd_trace.log
