@@ -231,7 +231,7 @@ func (ctl *AggressiveController) BattleStart(ctx actor.NotificationContext) {
 	ctl.ruler.SendActor(message.Create(nil, rulermethods.GetGridState{}, rulermethods.GetGridStateReply{}), ctl.GetCallbackChan())
 }
 
-// @spec-link [[mech_ai_termination]]
+// @spec-link [[mechanic_mech_ai_termination]]
 func (ctl *AggressiveController) BattleEnd(ctx actor.NotificationContext) {
 	ctl.RequestLogger.Info("##### BattleEnd #####")
 	select {

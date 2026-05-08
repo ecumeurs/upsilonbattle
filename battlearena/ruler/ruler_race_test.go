@@ -52,7 +52,7 @@ func TestInitRace(t *testing.T) {
 
 // TestStartArenaWithoutGrid highlights ISS-010 where a battle can start
 // even if the grid is missing from the GameState.
-// @test-link [[spec_match_format_ready_to_start_rule]]
+// @test-link [[rule_spec_match_format_ready_to_start_rule]]
 func TestStartArenaWithoutGrid(t *testing.T) {
 	matchID := uuid.New()
 	pID := uuid.New()
