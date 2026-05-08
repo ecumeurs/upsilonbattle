@@ -11,6 +11,12 @@ parents:
   - [[module_backend_combat_math]]
 dependents:
   - [[mech_combat_shielding]]
+  - [[mechanic_mech_effect_critical]]
+  - [[mechanic_mech_effect_damage]]
+  - [[mechanic_mech_effect_heal]]
+  - [[mechanic_mech_effect_poison]]
+  - [[mechanic_mech_effect_shield]]
+  - [[mechanic_mech_effect_stun]]
 ---
 
 # Combat Attack Computation

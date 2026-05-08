@@ -48,8 +48,11 @@ func makeGameStateForTwoSkill() (*GameState, FakeStateSkill) {
 	return gs, fake
 }
 
+// TestRuleSkillFailOutOfTurn ensures that a skill usage fails if it is not the entity's turn.
+// @test-link [[mech_skill_validation_turn_controller_identity_verification]]
 func TestRuleSkillFailOutOfTurn(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
+	// Force the turn to another entity.
 	gs.Turner.ForceTurn(fake.Entity2)
 
 	msg := message.Create(nil,
@@ -60,6 +63,7 @@ func TestRuleSkillFailOutOfTurn(t *testing.T) {
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Attempt to use a skill when it is not the attacker's turn.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
@@ -71,17 +75,20 @@ func TestRuleSkillFailOutOfTurn(t *testing.T) {
 	}
 }
 
+// TestRuleSkillFailWrongController ensures that a skill usage fails if the controller ID does not match the entity's controller.
+// @test-link [[mech_skill_validation_turn_controller_identity_verification]]
 func TestRuleSkillFailWrongController(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
 			EntityID:     fake.Attacker,
-			ControllerID: fake.FoeControllerID,
+			ControllerID: fake.FoeControllerID, // Wrong controller!
 			Target:       fake.FoePosition,
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Attempt to use a skill with an unauthorized controller.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
@@ -93,17 +100,20 @@ func TestRuleSkillFailWrongController(t *testing.T) {
 	}
 }
 
+// TestRuleSkillFailUnknownEntity ensures that a skill usage fails if the entity ID is invalid.
+// @test-link [[mech_skill_validation_existence_verification]]
 func TestRuleSkillFailUnknownEntity(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
-			EntityID:     uuid.New(),
+			EntityID:     uuid.New(), // Random UUID
 			ControllerID: fake.AttackerControllerID,
 			Target:       fake.FoePosition,
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Attempt to use a skill for a non-existent entity.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
@@ -115,6 +125,8 @@ func TestRuleSkillFailUnknownEntity(t *testing.T) {
 	}
 }
 
+// TestRuleSkillFailUnknownSkill ensures that a skill usage fails if the skill ID is invalid for the entity.
+// @test-link [[mech_skill_validation_existence_verification]]
 func TestRuleSkillFailUnknownSkill(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -123,9 +135,10 @@ func TestRuleSkillFailUnknownSkill(t *testing.T) {
 			EntityID:     fake.Attacker,
 			ControllerID: fake.AttackerControllerID,
 			Target:       fake.FoePosition,
-			SkillID:      uuid.New(),
+			SkillID:      uuid.New(), // Random UUID
 		}, nil)
 
+	// Attempt to use a skill that the entity does not possess.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
@@ -137,11 +150,13 @@ func TestRuleSkillFailUnknownSkill(t *testing.T) {
 	}
 }
 
+// TestRuleSkillFailAlreadyActed ensures that an entity cannot use a skill if it has already acted this turn.
+// @test-link [[mech_skill_validation_action_state_verification]]
 func TestRuleSkillFailAlreadyActed(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
 	ent := gs.Entities[fake.Attacker]
-	// this flag is set when the entity has acted or has been interrupted during movement by reaction or traps.
+	// Manually set the HasActed property to true.
 	prop := ent.GetProperty(property.HasActed)
 	prop.Set(true)
 	ent.UpdateProperty(prop)
@@ -155,6 +170,7 @@ func TestRuleSkillFailAlreadyActed(t *testing.T) {
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Attempt to use a skill when the entity is already in 'acted' state.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
@@ -168,19 +184,21 @@ func TestRuleSkillFailAlreadyActed(t *testing.T) {
 
 // Targeting checks
 
+// TestRuleSkillFailTargetOutOfRange ensures that a skill fails if the target is outside the skill's defined range.
+// @test-link [[mech_skill_validation_range_limit_verification]]
 func TestRuleSkillFailTargetOutOfRange(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
-	// default skill has range 1, so target is out of range.
-
+	// Default skill has range 1, targeting (5, 7, 3) from (5, 5, 3) is distance 2.
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
 			EntityID:     fake.Attacker,
 			ControllerID: fake.AttackerControllerID,
-			Target:       position.New(5, 7, 3), // just target somewhere else ;)
+			Target:       position.New(5, 7, 3), 
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Attempt to use a skill on an out-of-range target.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
@@ -193,18 +211,19 @@ func TestRuleSkillFailTargetOutOfRange(t *testing.T) {
 
 }
 
+// TestRuleSkillFailTargetOutOfGrid ensures that a skill fails if the target coordinate is outside the board boundaries.
+// @test-link [[mech_skill_validation_grid_boundaries_verification]]
 func TestRuleSkillFailTargetOutOfGrid(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
-	// move attacker at the border of the grid.
+	// Move attacker to the grid border (0, 0).
 	attacker := gs.Entities[fake.Attacker]
 	attacker.Position = position.Position{X: 0, Y: 0, Z: 3}
 	gs.Entities[fake.Attacker] = attacker
 	gs.Grid.MoveEntity(position.New(5, 5, 3), position.New(0, 0, 3), fake.Attacker)
 	fake.AttackerPosition = position.New(0, 0, 3)
 
-	// default skill has range 1, zone 1, so targeting toward -1,0,3 should be out of grid.
-
+	// Targeting (-1, 0, 3) is outside the grid.
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
 			EntityID:     fake.Attacker,
@@ -213,6 +232,7 @@ func TestRuleSkillFailTargetOutOfGrid(t *testing.T) {
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Attempt to use a skill on a target outside grid boundaries.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
@@ -224,10 +244,12 @@ func TestRuleSkillFailTargetOutOfGrid(t *testing.T) {
 	}
 }
 
+// TestRuleSkillFailTargetNoApplicableTarget_Entity ensures that a skill fails if no valid entity target is present at the target location.
+// @test-link [[mech_skill_validation_entity_targeting_rules_verification]]
 func TestRuleSkillFailTargetNoApplicableTarget_Entity(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
-	// move foe further away.
+	// Move the foe away so that the target cell (5, 6, 3) is empty.
 	foe := gs.Entities[fake.Foe]
 	foe.Position = position.Position{X: 5, Y: 7, Z: 3}
 	gs.Entities[fake.Foe] = foe
@@ -238,10 +260,11 @@ func TestRuleSkillFailTargetNoApplicableTarget_Entity(t *testing.T) {
 		rulermethods.ControllerUseSkill{
 			EntityID:     fake.Attacker,
 			ControllerID: fake.AttackerControllerID,
-			Target:       position.New(5, 6, 3), // skill has range 1 and zone 1, so there is noone under its scope.
+			Target:       position.New(5, 6, 3), // Target an empty cell.
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Attempt to use a skill on an empty cell when an entity target is required.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
@@ -253,25 +276,29 @@ func TestRuleSkillFailTargetNoApplicableTarget_Entity(t *testing.T) {
 	}
 }
 
+// TestRuleSkillFailTargetNoApplicableTarget_Self ensures that a skill with 'Self' targeting fails if used on another entity.
+// @test-link [[mech_skill_validation_entity_targeting_rules_verification]]
 func TestRuleSkillFailTargetNoApplicableTarget_Self(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
+	// Modify skill to be 'Self' target only.
 	prop := def.SkillProperty(property.TargetType)
 	prop.Set(string(def.TargetTypeSelf))
 	fake.Skill.Targeting[property.TargetType.String()] = prop
 	rng := fake.Skill.GetProperty(property.Range).(*defaultproperty.DefaultIntCounterProperty)
 	rng.Value = 0
 	fake.Skill.Targeting[rng.Name(property.GameMaster)] = rng
-	gs.addSkillToEntity(fake.Attacker, fake.Skill) // update skill.
+	gs.addSkillToEntity(fake.Attacker, fake.Skill) 
 
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
 			EntityID:     fake.Attacker,
 			ControllerID: fake.AttackerControllerID,
-			Target:       fake.FoePosition, // target somebody else.
+			Target:       fake.FoePosition, // Attempting to target someone else.
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Verify that targeting another entity fails.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
@@ -282,11 +309,12 @@ func TestRuleSkillFailTargetNoApplicableTarget_Self(t *testing.T) {
 		t.Errorf("Expected error 'skill.target.self', got '%s'", reply.ErrorKey)
 	}
 
+	// Verify that targeting self succeeds.
 	msg = message.Create(nil,
 		rulermethods.ControllerUseSkill{
 			EntityID:     fake.Attacker,
 			ControllerID: fake.AttackerControllerID,
-			Target:       fake.AttackerPosition, // target self!
+			Target:       fake.AttackerPosition, 
 			SkillID:      fake.SkillID,
 		}, nil)
 
@@ -297,22 +325,26 @@ func TestRuleSkillFailTargetNoApplicableTarget_Self(t *testing.T) {
 	}
 }
 
+// TestRuleSkillFailTargetNoApplicableTarget_Ennemy ensures that an 'EnemyOnly' skill fails if used on an ally or empty cell.
+// @test-link [[mech_skill_validation_entity_targeting_rules_verification]]
 func TestRuleSkillFailTargetNoApplicableTarget_Ennemy(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
+	// Modify skill to be 'EnemyOnly'.
 	prop := def.SkillProperty(property.TargetType)
 	prop.Set(string(def.TargetTypeEnemyOnly))
 	fake.Skill.Targeting[property.TargetType.String()] = prop
-	gs.addSkillToEntity(fake.Attacker, fake.Skill) // update skill.
+	gs.addSkillToEntity(fake.Attacker, fake.Skill) 
 
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
 			EntityID:     fake.Attacker,
 			ControllerID: fake.AttackerControllerID,
-			Target:       position.New(4, 5, 3), // there is nobody there, so can't target the ennemy.
+			Target:       position.New(4, 5, 3), // Empty cell.
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Verify that targeting an empty cell fails.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
@@ -323,7 +355,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Ennemy(t *testing.T) {
 		t.Errorf("Expected error 'skill.target.none', got '%s'", reply.ErrorKey)
 	}
 
-	// move an ally (entity 2) to the target position.
+	// Move an ally to the target position.
 	ally := gs.Entities[fake.Entity2]
 	ally.Position = position.Position{X: 4, Y: 5, Z: 3}
 	gs.Entities[fake.Entity2] = ally
@@ -333,10 +365,11 @@ func TestRuleSkillFailTargetNoApplicableTarget_Ennemy(t *testing.T) {
 		rulermethods.ControllerUseSkill{
 			EntityID:     fake.Attacker,
 			ControllerID: fake.AttackerControllerID,
-			Target:       position.New(4, 5, 3), // there is an ally there
+			Target:       position.New(4, 5, 3), // Target an ally.
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Verify that targeting an ally fails for an 'EnemyOnly' skill.
 	reply, _, _ = gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
@@ -347,40 +380,42 @@ func TestRuleSkillFailTargetNoApplicableTarget_Ennemy(t *testing.T) {
 		t.Errorf("Expected error 'skill.target.none', got '%s'", reply.ErrorKey)
 	}
 
-	// and test again, shouldn't work.
-
 	msg = message.Create(nil,
 		rulermethods.ControllerUseSkill{
 			EntityID:     fake.Attacker,
 			ControllerID: fake.AttackerControllerID,
-			Target:       fake.FoePosition, // there is somebody there nnd it's an ennemy
+			Target:       fake.FoePosition, // Target an actual enemy.
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Verify that targeting an actual enemy succeeds.
 	reply, _, _ = gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if reply.HasError {
 		t.Errorf("Didn't expect and error but got one: %s", reply.ErrorKey)
 	}
-
 }
 
+// TestRuleSkillFailTargetNoApplicableTarget_Ally ensures that a 'FriendOnly' skill fails if used on an enemy or empty cell.
+// @test-link [[mech_skill_validation_entity_targeting_rules_verification]]
 func TestRuleSkillFailTargetNoApplicableTarget_Ally(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
+	// Modify skill to be 'FriendOnly'.
 	prop := def.SkillProperty(property.TargetType)
 	prop.Set(string(def.TargetTypeFriendOnly))
 	fake.Skill.Targeting[property.TargetType.String()] = prop
-	gs.addSkillToEntity(fake.Attacker, fake.Skill) // update skill.
+	gs.addSkillToEntity(fake.Attacker, fake.Skill) 
 
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
 			EntityID:     fake.Attacker,
 			ControllerID: fake.AttackerControllerID,
-			Target:       position.New(4, 5, 3), // there is nobody there, so can't target the ennemy.
+			Target:       position.New(4, 5, 3), // Empty cell.
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Verify that targeting an empty cell fails.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
@@ -391,16 +426,16 @@ func TestRuleSkillFailTargetNoApplicableTarget_Ally(t *testing.T) {
 		t.Errorf("Expected error 'skill.target.none', got '%s'", reply.ErrorKey)
 	}
 
-	// and test this time against an ennemy, shouldn't work.
-
+	// Attempt to target an enemy.
 	msg = message.Create(nil,
 		rulermethods.ControllerUseSkill{
 			EntityID:     fake.Attacker,
 			ControllerID: fake.AttackerControllerID,
-			Target:       fake.FoePosition, // there is somebody there nnd it's an ennemy
+			Target:       fake.FoePosition, 
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Verify that targeting an enemy fails for a 'FriendOnly' skill.
 	reply, _, _ = gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
@@ -411,7 +446,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Ally(t *testing.T) {
 		t.Errorf("Expected error 'skill.target.none', got '%s'", reply.ErrorKey)
 	}
 
-	// move an ally (entity 2) to the target position.
+	// Move an ally to the target position.
 	ally := gs.Entities[fake.Entity2]
 	ally.Position = position.Position{X: 4, Y: 5, Z: 3}
 	gs.Entities[fake.Entity2] = ally
@@ -421,34 +456,38 @@ func TestRuleSkillFailTargetNoApplicableTarget_Ally(t *testing.T) {
 		rulermethods.ControllerUseSkill{
 			EntityID:     fake.Attacker,
 			ControllerID: fake.AttackerControllerID,
-			Target:       position.New(4, 5, 3), // there is an ally there
+			Target:       position.New(4, 5, 3), // Target an ally.
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Verify that targeting an actual ally succeeds.
 	reply, _, _ = gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if reply.HasError {
 		t.Errorf("Didn't expect and error but got one: %s", reply.ErrorKey)
 	}
-
 }
 
+// TestRuleSkillFailTargetNoApplicableTarget_Cell ensures that a 'Tile' target skill fails if used on a cell occupied by an entity.
+// @test-link [[mech_skill_validation_entity_targeting_rules_verification]]
 func TestRuleSkillFailTargetNoApplicableTarget_Cell(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
+	// Modify skill to be 'Tile' target only.
 	prop := def.SkillProperty(property.TargetType)
 	prop.Set(string(def.TargetTypeTile))
 	fake.Skill.Targeting[property.TargetType.String()] = prop
-	gs.addSkillToEntity(fake.Attacker, fake.Skill) // update skill.
+	gs.addSkillToEntity(fake.Attacker, fake.Skill) 
 
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
 			EntityID:     fake.Attacker,
 			ControllerID: fake.AttackerControllerID,
-			Target:       fake.FoePosition, // there is somebody there, so can't target the cell itself.
+			Target:       fake.FoePosition, // Target an occupied cell.
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Verify that targeting an occupied cell fails for a 'Tile' only skill.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
@@ -462,11 +501,14 @@ func TestRuleSkillFailTargetNoApplicableTarget_Cell(t *testing.T) {
 
 // Check ability to pay for the skill usage.
 
+// TestRuleSkillFailCooldown ensures that a skill fails if it is currently on cooldown.
+// @test-link [[mech_skill_validation_economic_cost_verification_cooldown_check]]
 func TestRuleSkillFailCooldown(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
+	// Set the skill cooldown to 1.
 	fake.Skill.Cooldown = 1
-	gs.addSkillToEntity(fake.Attacker, fake.Skill) // update skill.
+	gs.addSkillToEntity(fake.Attacker, fake.Skill) 
 
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
@@ -476,6 +518,7 @@ func TestRuleSkillFailCooldown(t *testing.T) {
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Attempt to use a skill that is on cooldown.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
@@ -487,11 +530,14 @@ func TestRuleSkillFailCooldown(t *testing.T) {
 	}
 }
 
+// TestRuleSkillFailMP ensures that a skill fails if the entity does not have enough Mana Points (MP).
+// @test-link [[mech_skill_validation_economic_cost_verification_stat_leech]]
 func TestRuleSkillFailMP(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
+	// Set a skill MP cost higher than the entity's current MP.
 	fake.Skill.Targeting[property.TargetType.String()] = defaultproperty.MakeIntProperty(property.MPLeech, 11 /*Default MP is 10*/, property.FriendlyController, property.Skill)
-	gs.addSkillToEntity(fake.Attacker, fake.Skill) // update skill.
+	gs.addSkillToEntity(fake.Attacker, fake.Skill) 
 
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
@@ -501,6 +547,7 @@ func TestRuleSkillFailMP(t *testing.T) {
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Attempt to use a skill when MP is insufficient.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
@@ -512,11 +559,14 @@ func TestRuleSkillFailMP(t *testing.T) {
 	}
 }
 
+// TestRuleSkillFailSP ensures that a skill fails if the entity does not have enough Stamina Points (SP).
+// @test-link [[mech_skill_validation_economic_cost_verification_stat_leech]]
 func TestRuleSkillFailSP(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
+	// Set a skill SP cost higher than the entity's current SP.
 	fake.Skill.Targeting[property.TargetType.String()] = defaultproperty.MakeIntProperty(property.SPLeech, 11 /*Default HP is 10*/, property.FriendlyController, property.Skill)
-	gs.addSkillToEntity(fake.Attacker, fake.Skill) // update skill.
+	gs.addSkillToEntity(fake.Attacker, fake.Skill) 
 
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
@@ -526,6 +576,7 @@ func TestRuleSkillFailSP(t *testing.T) {
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Attempt to use a skill when SP is insufficient.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
@@ -537,11 +588,14 @@ func TestRuleSkillFailSP(t *testing.T) {
 	}
 }
 
+// TestRuleSkillFailMvt ensures that a skill fails if the entity does not have enough Movement points.
+// @test-link [[mech_skill_validation_economic_cost_verification_stat_leech]]
 func TestRuleSkillFailMvt(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
+	// Set a skill Movement cost higher than the entity's current Movement points.
 	fake.Skill.Targeting[property.TargetType.String()] = defaultproperty.MakeIntProperty(property.MvtCost, 11 /*Default Mvt is 3*/, property.FriendlyController, property.Skill)
-	gs.addSkillToEntity(fake.Attacker, fake.Skill) // update skill.
+	gs.addSkillToEntity(fake.Attacker, fake.Skill) 
 
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
@@ -551,6 +605,7 @@ func TestRuleSkillFailMvt(t *testing.T) {
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Attempt to use a skill when Movement points are insufficient.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
@@ -562,11 +617,14 @@ func TestRuleSkillFailMvt(t *testing.T) {
 	}
 }
 
+// TestRuleSkillFailHP ensures that a skill fails if the entity does not have enough Health Points (HP) to pay the cost.
+// @test-link [[mech_skill_validation_economic_cost_verification_stat_leech]]
 func TestRuleSkillFailHP(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
+	// Set a skill HP cost higher than the entity's current HP.
 	fake.Skill.Targeting[property.TargetType.String()] = defaultproperty.MakeIntProperty(property.HPLeech, 11 /*Default HP is 10*/, property.FriendlyController, property.Skill)
-	gs.addSkillToEntity(fake.Attacker, fake.Skill) // update skill.
+	gs.addSkillToEntity(fake.Attacker, fake.Skill) 
 
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
@@ -576,6 +634,7 @@ func TestRuleSkillFailHP(t *testing.T) {
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Attempt to use a skill when HP is insufficient.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
@@ -589,10 +648,12 @@ func TestRuleSkillFailHP(t *testing.T) {
 
 // Check skill cost
 
+// TestRuleSkillSetCooldown verifies that using a skill correctly applies its cooldown to the entity.
+// @test-link [[mech_skill_validation_economic_cost_verification_cooldown_check]]
 func TestRuleSkillSetCooldown(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
-	// default cooldown cost is 3
+	// Default cooldown cost for the test skill is 3.
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
 			EntityID:     fake.Attacker,
@@ -601,33 +662,35 @@ func TestRuleSkillSetCooldown(t *testing.T) {
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Execute skill usage.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
-	// didn't expect error
 	if reply.HasError {
 		t.Errorf("Expected no error, got '%s'", reply.ErrorKey)
 	}
 
-	// get skill from gs and check cooldown.
+	// Verify that the cooldown was updated in the GameState.
 	skill := gs.Entities[fake.Attacker].Skills[fake.SkillID]
 	if skill.Cooldown != 3 {
 		t.Errorf("Expected cooldown to be 3(in GameState), got %d", skill.Cooldown)
 	}
 
-	// get skill from reply message and check cooldown.
+	// Verify that the cooldown was updated in the reply message.
 	skill = reply.Content.(rulermethods.ControllerUseSkillReply).Attacker.Skills[fake.SkillID]
 	if skill.Cooldown != 3 {
 		t.Errorf("Expected cooldown to be 3, got %d", skill.Cooldown)
 	}
 }
 
+// TestRuleSkillDeduceMP verifies that using a skill correctly deducts the Mana Point (MP) cost from the entity.
+// @test-link [[mech_skill_validation_economic_cost_verification_stat_leech]]
 func TestRuleSkillDeduceMP(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
+	// Set an MP cost of 1.
 	fake.Skill.Targeting[property.TargetType.String()] = defaultproperty.MakeIntProperty(property.MPLeech, 1, property.FriendlyController, property.Skill)
-	gs.addSkillToEntity(fake.Attacker, fake.Skill) // update skill.
+	gs.addSkillToEntity(fake.Attacker, fake.Skill) 
 
-	// default cooldown cost is 3
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
 			EntityID:     fake.Attacker,
@@ -636,29 +699,31 @@ func TestRuleSkillDeduceMP(t *testing.T) {
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Execute skill usage.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
-	// get Entity from gamestate and check MP
+	// Verify that MP was deducted in the GameState (from 10 to 9).
 	prop := gs.Entities[fake.Attacker].GetPropertyC(property.MP)
-	if prop.GetValue() != 9 { // from 10
+	if prop.GetValue() != 9 { 
 		t.Errorf("Expected MP(in GameState) to be 9, got %d", prop.GetValue())
 	}
 
-	// get Entity from reply message and check MP.
+	// Verify that MP was deducted in the reply message.
 	prop = reply.Content.(rulermethods.ControllerUseSkillReply).Attacker.GetPropertyC(property.MP)
-	if prop.GetValue() != 9 { // from 10
+	if prop.GetValue() != 9 { 
 		t.Errorf("Expected MP to be 9, got %d", prop.GetValue())
 	}
 }
 
+// TestRuleSkillDeduceSP verifies that using a skill correctly deducts the Stamina Point (SP) cost from the entity.
+// @test-link [[mech_skill_validation_economic_cost_verification_stat_leech]]
 func TestRuleSkillDeduceSP(t *testing.T) {
-
 	gs, fake := makeGameStateForTwoSkill()
 
+	// Set an SP cost of 1.
 	fake.Skill.Targeting[property.TargetType.String()] = defaultproperty.MakeIntProperty(property.SPLeech, 1, property.FriendlyController, property.Skill)
-	gs.addSkillToEntity(fake.Attacker, fake.Skill) // update skill.
+	gs.addSkillToEntity(fake.Attacker, fake.Skill) 
 
-	// default cooldown cost is 3
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
 			EntityID:     fake.Attacker,
@@ -667,28 +732,31 @@ func TestRuleSkillDeduceSP(t *testing.T) {
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Execute skill usage.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
-	// get Entity from gamestate and check MP
+	// Verify that SP was deducted in the GameState (from 10 to 9).
 	prop := gs.Entities[fake.Attacker].GetPropertyC(property.SP)
-	if prop.GetValue() != 9 { // from 10
+	if prop.GetValue() != 9 { 
 		t.Errorf("Expected SP(in GameState) to be 9, got %d", prop.GetValue())
 	}
 
-	// get Entity from reply message and check MP.
+	// Verify that SP was deducted in the reply message.
 	prop = reply.Content.(rulermethods.ControllerUseSkillReply).Attacker.GetPropertyC(property.SP)
-	if prop.GetValue() != 9 { // from 10
+	if prop.GetValue() != 9 { 
 		t.Errorf("Expected SP to be 9, got %d", prop.GetValue())
 	}
 }
 
+// TestRuleSkillDeduceMvt verifies that using a skill correctly deducts the Movement point cost from the entity.
+// @test-link [[mech_skill_validation_economic_cost_verification_stat_leech]]
 func TestRuleSkillDeduceMvt(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
+	// Set a Movement cost of 1.
 	fake.Skill.Targeting[property.TargetType.String()] = defaultproperty.MakeIntProperty(property.MvtCost, 1, property.FriendlyController, property.Skill)
-	gs.addSkillToEntity(fake.Attacker, fake.Skill) // update skill.
+	gs.addSkillToEntity(fake.Attacker, fake.Skill) 
 
-	// default cooldown cost is 3
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
 			EntityID:     fake.Attacker,
@@ -697,28 +765,31 @@ func TestRuleSkillDeduceMvt(t *testing.T) {
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Execute skill usage.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
-	// get Entity from gamestate and check MP
+	// Verify that Movement was deducted in the GameState (from 3 to 2).
 	prop := gs.Entities[fake.Attacker].GetPropertyC(property.Movement)
-	if prop.GetValue() != 2 { // from 3
+	if prop.GetValue() != 2 { 
 		t.Errorf("Expected Movement(in GameState) to be 2, got %d", prop.GetValue())
 	}
 
-	// get Entity from reply message and check MP.
+	// Verify that Movement was deducted in the reply message.
 	prop = reply.Content.(rulermethods.ControllerUseSkillReply).Attacker.GetPropertyC(property.Movement)
-	if prop.GetValue() != 2 { // from 3
+	if prop.GetValue() != 2 { 
 		t.Errorf("Expected Movement to be 2, got %d", prop.GetValue())
 	}
 }
 
+// TestRuleSkillDeduceHP verifies that using a skill correctly deducts the Health Point (HP) cost from the entity.
+// @test-link [[mech_skill_validation_economic_cost_verification_stat_leech]]
 func TestRuleSkillDeduceHP(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
+	// Set an HP cost of 1.
 	fake.Skill.Targeting[property.TargetType.String()] = defaultproperty.MakeIntProperty(property.HPLeech, 1, property.FriendlyController, property.Skill)
-	gs.addSkillToEntity(fake.Attacker, fake.Skill) // update skill.
+	gs.addSkillToEntity(fake.Attacker, fake.Skill) 
 
-	// default cooldown cost is 3
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
 			EntityID:     fake.Attacker,
@@ -727,17 +798,18 @@ func TestRuleSkillDeduceHP(t *testing.T) {
 			SkillID:      fake.SkillID,
 		}, nil)
 
+	// Execute skill usage.
 	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
-	// get Entity from gamestate and check MP
+	// Verify that HP was deducted in the GameState (from 10 to 9).
 	prop := gs.Entities[fake.Attacker].GetPropertyC(property.HP)
-	if prop.GetValue() != 9 { // from 10
+	if prop.GetValue() != 9 { 
 		t.Errorf("Expected HP(in GameState) to be 9, got %d", prop.GetValue())
 	}
 
-	// get Entity from reply message and check MP.
+	// Verify that HP was deducted in the reply message.
 	prop = reply.Content.(rulermethods.ControllerUseSkillReply).Attacker.GetPropertyC(property.HP)
-	if prop.GetValue() != 9 { // from 10
+	if prop.GetValue() != 9 { 
 		t.Errorf("Expected HP to be 9, got %d", prop.GetValue())
 	}
 }
