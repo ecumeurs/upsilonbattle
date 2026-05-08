@@ -2,23 +2,18 @@ package ruler
 
 import (
 	"fmt"
-
 	"time"
 
-	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
 	"github.com/ecumeurs/upsilontypes/entity"
 	"github.com/ecumeurs/upsilontypes/entity/entitygenerator"
 	"github.com/ecumeurs/upsilontypes/property"
-	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/behavior"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rules"
-	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/turner"
 	"github.com/ecumeurs/upsilonmapdata/grid"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/ecumeurs/upsilonmapmaker/gridgenerator"
 	"github.com/ecumeurs/upsilontools/tools"
 	"github.com/ecumeurs/upsilontools/tools/actor"
-	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -31,7 +26,7 @@ const (
 	Finished              ArenaState = 3
 )
 
-// Convert GameState to String
+// String returns the string representation of the ArenaState.
 func (g ArenaState) String() string {
 	switch g {
 	case WaitingForControllers:
@@ -45,6 +40,8 @@ func (g ArenaState) String() string {
 	}
 }
 
+// Ruler is the main actor managing a battle arena instance.
+// It orchestrates turn management, rule enforcement, and controller communication.
 type Ruler struct {
 	ID uuid.UUID
 	*actor.Actor
@@ -64,9 +61,26 @@ type Ruler struct {
 	firstTurnSent     bool
 }
 
-// NewCompleteRuler creates a new Ruler with a complete GameState.
-// WARNING: Calling this DOES NOT start the actor. You MUST call Start() manually
-// after initial setup is complete. Failure to do so will result in an unresponsive arena.
+// NewCompleteRuler is a factory function that constructs a fully initialized Ruler actor.
+// This constructor is designed for rapid deployment of a standard battle arena, pre-populating
+// the game state with a default 4x4x5 flat grid and 2 controllers, each assigned one randomly
+// generated character entity.
+//
+// The initialization process involves several distinct steps:
+// 1. Unique ID Generation: A new UUID is assigned to the Ruler for global identification.
+// 2. Actor Setup: The underlying actor system is initialized with the name "Ruler".
+// 3. Game State Creation: A fresh rules.GameState is instantiated and linked to the Ruler.
+// 4. Grid Generation: A flat terrain is generated using the gridgenerator package.
+// 5. Entity Population: For each expected controller, a random character is generated,
+//    assigned to a team (Team 1 or Team 2), and placed at a random position on the grid.
+// 6. Turner Initialization: Each entity is added to the initiative turner with a random initial delay.
+// 7. Handler Registration: The init() method is called to bind all network and internal message handlers.
+//
+// WARNING: This function DOES NOT automatically start the Ruler's internal message loop.
+// The caller is responsible for invoking the Start() method on the returned Ruler pointer.
+// Failure to do so will leave the actor in a dormant state, unable to process registrations or turns.
+//
+// @spec-link [[api_go_battle_start]]
 func NewCompleteRuler() *Ruler {
 	id := uuid.New()
 	r := Ruler{
@@ -82,16 +96,16 @@ func NewCompleteRuler() *Ruler {
 		"component": "Ruler",
 		"name":      r.Name()})
 
-	gg := gridgenerator.GridGenerator{}
-	gg.Width = tools.NewIntRange(4, 4)
-	gg.Length = tools.NewIntRange(4, 4)
-	gg.Height = tools.NewIntRange(5, 5)
-	gg.GenerateObstrcution = false
-	gg.Type = gridgenerator.Flat
-	gg.ObstructionRate = tools.NewIntRange(0, 0)
+	gg := gridgenerator.GridGenerator{
+		Width:                tools.NewIntRange(4, 4),
+		Length:               tools.NewIntRange(4, 4),
+		Height:               tools.NewIntRange(5, 5),
+		GenerateObstrcution:  false,
+		Type:                 gridgenerator.Flat,
+		ObstructionRate:      tools.NewIntRange(0, 0),
+	}
 
 	r.GameState.Grid = gg.Generate()
-
 	r.NbControllers = 2
 	r.NbEntitiesPerController = 1
 	nbEntities := r.NbEntitiesPerController * r.NbControllers
@@ -100,18 +114,14 @@ func NewCompleteRuler() *Ruler {
 		e := entitygenerator.GenerateRandomEntity()
 		e.Type = entity.Character
 		e.Name = fmt.Sprintf("Entity %d", i)
-		// Assign TeamID (1 for first half, 2 for second half)
 		teamID := 1
 		if i >= r.NbEntitiesPerController {
 			teamID = 2
 		}
 		e.RepsertPropertyValue(property.TeamID, teamID)
-		
 		e.CurrentDelay = tools.NewIntRange(1000, 2000).Random()
 		e.Position = r.GameState.Grid.RandomPosition()
 		r.GameState.Grid.MoveEntity(position.New(0, 0, 0), e.Position, e.ID)
-		
-		// Unassigned initially as per modern usage
 		r.GameState.Entities[e.ID] = e
 		r.GameState.Turner.AddEntity(e.ID, e.CurrentDelay)
 	}
@@ -120,10 +130,22 @@ func NewCompleteRuler() *Ruler {
 	return &r
 }
 
-// NewRuler creates a new Ruler with an empty GameState.
-// WARNING: Calling this DOES NOT start the actor. You MUST call Start() manually
-// after initial setup is complete (e.g., SetGrid, AddEntity).
-// Once Start() is called, you must never modify GameState directly again.
+// NewRuler provides a minimalist constructor for a Ruler actor, allowing for custom arena configuration.
+// Unlike NewCompleteRuler, this function returns a Ruler with an empty grid and no pre-populated entities.
+// It is the preferred method for production environments where the map and characters are retrieved
+// from a database or specified via a configuration file.
+//
+// Key features of this constructor:
+// - Deterministic Seeding: Calls tools.Seed() to ensure consistent random number generation.
+// - Clean Slate: Initializes only the essential actor and state containers.
+// - Flexibility: Allows the caller to manually invoke SetGrid() and AddEntity() to build the match state.
+//
+// Lifecycle Requirements:
+// 1. Grid Association: A valid grid MUST be provided via SetGrid() before any controllers are added.
+// 2. Entity Loading: Participants should be added via AddEntity() to ensure proper registration in the turner.
+// 3. Actor Activation: Like all actor-based components, Start() must be called to begin message processing.
+//
+// @spec-link [[api_go_battle_start]]
 func NewRuler(id uuid.UUID) *Ruler {
 	tools.Seed()
 	r := Ruler{
@@ -143,21 +165,23 @@ func NewRuler(id uuid.UUID) *Ruler {
 	return &r
 }
 
+// SetNbControllers sets the number of expected controllers for the match.
 func (r *Ruler) SetNbControllers(nb int) {
 	r.NbControllers = nb
 }
 
+// SetGrid associates a map grid with the battle arena.
 func (r *Ruler) SetGrid(g *grid.Grid) {
 	r.GameState.Grid = g
 }
 
+// AddEntity adds a new character or object to the battle.
 func (r *Ruler) AddEntity(e entity.Entity) {
 	e.CurrentDelay = tools.NewIntRange(1000, 1500).Random()
 
-	// ISS-047: Guard against nil grid during initialization races or misconfiguration
 	if r.GameState.Grid == nil {
 		r.logger.WithFields(logrus.Fields{
-			"entityID": e.ID.String()[0:8]}).Error("Cannot add entity: Grid is not initialized. Ensure SetGrid is called before AddEntity.")
+			"entityID": e.ID.String()[0:8]}).Error("Cannot add entity: Grid is not initialized.")
 		return
 	}
 
@@ -191,733 +215,11 @@ func (r *Ruler) init() {
 	r.AddNotificationHandler(actor.ActorAboutToStop{}, r.actorAboutToStop, nil)
 	r.AddNotificationHandler(rulermethods.Resurrect{}, r.resurrect, nil)
 
-	// Testing-only handlers
 	r.AddNotificationHandler(rulermethods.TestingDeleteEntity{}, r.testingDeleteEntity, nil)
 	r.AddCallHandler(rulermethods.TestingGetState{}, r.testingGetState, nil)
-
-	// r.Start() REMOVED: Callers must start manually after setup.
 }
 
+// PrintStack prints the current message queue stack for debugging.
 func (r *Ruler) PrintStack() {
 	r.GetQueue().PrintStack()
-}
-
-// addController handles the addition of a controller to the battle.
-func (r *Ruler) addController(ctx actor.CallContext) {
-	req := ctx.Msg.TargetMethod.(rulermethods.AddController)
-	r.RequestLogger.WithFields(logrus.Fields{
-		"ControllerID": req.ControllerID.String()[0:8]}).Info("AddController")
-
-	// reject if already registered
-	if _, ok := r.GameState.Controllers[req.ControllerID]; ok {
-		r.RequestLogger.Warn("Controller already registered")
-		ctx.Reply(ctx.Msg.ReplyWithError(fmt.Sprintf("Controller %s already registered", req.ControllerID), "controller.already.registered"))
-		return
-	}
-
-	// ISS-010: Guard against starting without a grid
-	if r.GameState.Grid == nil {
-		r.RequestLogger.Error("Cannot add controller: Grid is not initialized")
-		ctx.Reply(ctx.Msg.ReplyWithError("Grid not initialized", "arena.not_ready.no_grid"))
-		return
-	}
-
-	// @spec-link [[mech_controller_handshake]]
-	// @spec-link [[mech_controller_communication_sequence]]
-	req.Controller.NotifyActor(message.Create(nil, controllermethods.SetQueue{
-		ControllerID: req.ControllerID,
-		Ruler:        r,
-	}, nil))
-
-	// Revert automatic entity assignment if it was still active here
-	// This simplified version only cares about registering the controller.
-	r.GameState.Controllers[req.ControllerID] = req.Controller
-	r.ControllerBattleReady[req.ControllerID] = false
-
-	reply := ctx.Msg.Reply()
-	ent := make([]entity.Entity, 0)
-	for _, e := range r.GameState.Entities {
-		ent = append(ent, e)
-	}
-
-	reply.Content = rulermethods.AddControllerReply{
-		ControllerID: req.ControllerID,
-		Grid:         r.GameState.Grid,
-		TurnState:    r.GameState.Turner.GetTurnState(),
-		Entities:     ent,
-	}
-
-	ctx.Reply(reply)
-
-	if len(r.GameState.Controllers) == r.NbControllers {
-		// In resurrection mode (ISS-054) the arena is already InProgress.
-		// Skip BattleStart — the Resurrect notification will hand the turn directly.
-		if r.CurrentState == InProgress {
-			r.RequestLogger.Info("All controllers re-registered after resurrection, skipping BattleStart")
-		} else {
-			r.RequestLogger.Info("All controllers registered, scheduling BattleStart")
-			r.SelfNotifyDelayed(rulermethods.BattleStart{}, 20*time.Millisecond)
-		}
-	}
-}
-
-func (r *Ruler) testingDeleteEntity(ctx actor.NotificationContext) {
-	msg := ctx.Msg.TargetMethod.(rulermethods.TestingDeleteEntity)
-	r.logger.WithField("entityID", msg.EntityID.String()[0:8]).Info("Testing-only removal of entity")
-	delete(r.GameState.Entities, msg.EntityID)
-	r.GameState.Turner.RemoveEntity(msg.EntityID)
-}
-
-func (r *Ruler) testingGetState(ctx actor.CallContext) {
-	ctx.Reply(message.Create(nil, rulermethods.TestingGetStateReply{
-		CurrentEntityTurn: r.GameState.Turner.CurrentEntityTurn,
-		CurrentState:      r.CurrentState.String(),
-		WinnerTeamID:      r.GameState.WinnerTeamID,
-	}, nil))
-}
-
-func (r *Ruler) isBattleReadyToStart() bool {
-	if r.GameState.Grid == nil {
-		r.logger.Debug("isBattleReadyToStart: Grid is nil")
-		return false
-	}
-	if len(r.GameState.Controllers) != r.NbControllers {
-		r.logger.WithFields(logrus.Fields{
-			"current": len(r.GameState.Controllers),
-			"target":  r.NbControllers,
-		}).Debug("isBattleReadyToStart: Not all controllers added yet")
-		return false
-	}
-	return true
-}
-
-// @spec-link [[rule_battle_readiness]]
-func (r *Ruler) isBattleReadyToExecute() bool {
-	if r.CurrentState != InProgress {
-		return false
-	}
-	if !r.isBattleReadyToStart() {
-		return false
-	}
-	if len(r.ControllerBattleReady) != r.NbControllers {
-		return false
-	}
-	// All controllers must be ready
-	for _, ready := range r.ControllerBattleReady {
-		if !ready {
-			return false
-		}
-	}
-	return true
-}
-
-func (r *Ruler) processTriggerFirstTurn(ctx actor.NotificationContext) {
-	r.triggerFirstTurn()
-}
-
-func (r *Ruler) triggerFirstTurn() {
-	if r.firstTurnSent {
-		return
-	}
-
-	entID := r.GameState.Turner.CurrentEntityTurn
-	if entID == uuid.Nil {
-		// PEAK: Check if we have entities in the queue
-		if len(r.GameState.Turner.Turns) == 0 {
-			r.RequestLogger.Warn("Turner is empty, cannot trigger first turn")
-			return
-		}
-
-		// Look at the first entity in the queue
-		candidateID := r.GameState.Turner.Turns[0].EntityId
-		ent, ok := r.GameState.Entities[candidateID]
-		
-		// GUARD: Ensure the entity exists and can act (either has a controller or an automated behavior)
-		hasBehavior := ent.HasProperty(property.AIBehavior) && ent.GetProperty(property.AIBehavior).Get().(string) != "none"
-		if !ok || (ent.ControllerID == uuid.Nil && !hasBehavior) {
-			r.RequestLogger.WithFields(logrus.Fields{
-				"entityID": candidateID.String()}).Debug("First entity in queue is uncontrolled and has no behavior, waiting for readiness")
-			return
-		}
-
-		// OK: Pop it from the Turner only now that we are sure it can act
-		r.RequestLogger.Info("Picking first entity to play")
-		entID = r.GameState.Turner.NextTurn()
-	}
-
-	// Re-verify the picked entity (in case CurrentEntityTurn was already set)
-	ent, ok := r.GameState.Entities[entID]
-	hasBehavior := ent.HasProperty(property.AIBehavior) && ent.GetProperty(property.AIBehavior).Get().(string) != "none"
-	if !ok || (ent.ControllerID == uuid.Nil && !hasBehavior) {
-		r.RequestLogger.WithFields(logrus.Fields{
-			"entityID": entID.String()}).Warn("Current entity turn is invalid/uncontrolled/no-behavior, skipping (waiting for recovery)")
-		return
-	}
-
-	r.RequestLogger.WithFields(logrus.Fields{
-		"entityID": entID.String()[0:8]}).Info("Handing turn to first entity")
-
-	r.firstTurnSent = true
-	r.GameState.IncTurn() // @spec-link [[mech_game_state_versioning]]
-	
-	r.handTurn(entID)
-}
-
-// @spec-link [[rule_battle_readiness]]
-func (r *Ruler) controllerBattleReady(ctx actor.NotificationContext) {
-	req := ctx.Msg.TargetMethod.(rulermethods.ControllerBattleReady)
-	r.RequestLogger.Info("ControllerBattleReady")
-
-	// GUARD: Don't process ready checks if the game is already finished
-	if r.CurrentState == Finished {
-		r.RequestLogger.Warn("Received ControllerBattleReady after battle finished")
-		return
-	}
-
-	r.ControllerBattleReady[req.ControllerID] = true
-
-	if r.isBattleReadyToExecute() {
-		r.SelfNotifyDelayed(rulermethods.InternalTriggerFirstTurn{}, 100*time.Millisecond)
-	}
-}
-
-func (r *Ruler) controllerTurnReady(ctx actor.NotificationContext) {
-	r.RequestLogger.Info("ControllerTurnReady")
-}
-
-func (r *Ruler) battleStart(ctx actor.NotificationContext) {
-	r.RequestLogger.Info("Processing BattleStart internal notification")
-	r.CurrentState = InProgress
-
-	// @spec-link [[rule_turn_clock]]
-	r.startShotClock()
-
-	r.RequestLogger.Info("Broadcasting BattleStart to all controllers")
-	for id, c := range r.GameState.Controllers {
-		r.RequestLogger.WithFields(logrus.Fields{"target": id}).Debug("Sending BattleStart")
-		c.NotifyActor(message.Create(nil, rulermethods.BattleStart{
-			Turn:    r.GameState.Turner.GetTurnState(),
-			Version: r.GameState.Version,
-		}, nil))
-	}
-
-	if r.isBattleReadyToExecute() {
-		r.RequestLogger.Info("All controllers already ready, triggering first turn immediately")
-		r.SelfNotifyDelayed(rulermethods.InternalTriggerFirstTurn{}, 100*time.Millisecond)
-	} else {
-		r.RequestLogger.Info("Waiting for controllers to signal readiness before first turn")
-	}
-}
-
-func (r *Ruler) getState(ctx actor.CallContext) {
-	r.RequestLogger.Debug("GetState")
-	reply := ctx.Msg.Reply()
-	reply.Content = rulermethods.GetStateReply{
-		GameState:               r.CurrentState.String(),
-		NbControllers:           len(r.GameState.Controllers),
-		NbControllersExpected:   r.NbControllers,
-		NbEntitiesPerController: r.NbEntitiesPerController,
-		CurrentEntityTurn:       r.GameState.Turner.CurrentEntityTurn,
-	}
-
-	ctx.Reply(reply)
-}
-
-func (r *Ruler) getBoardState(ctx actor.CallContext) {
-	r.RequestLogger.Debug("GetBoardState")
-	req := ctx.Msg.TargetMethod.(rulermethods.GetBoardState)
-
-	entities := make([]entity.Entity, 0, len(r.GameState.Entities))
-	for _, e := range r.GameState.Entities {
-		entities = append(entities, e)
-	}
-
-	reply := ctx.Msg.Reply()
-	reply.Content = rulermethods.GetBoardStateReply{
-		Grid:          r.GameState.Grid,
-		Entities:      entities,
-		TurnState:     r.GameState.Turner.GetTurnState(),
-		WinnerTeamID:  r.GameState.WinnerTeamID,
-		Version:       r.GameState.Version,
-		ActionContext: req.ActionContext,
-	}
-
-	ctx.Reply(reply)
-}
-
-func (r *Ruler) getGridState(ctx actor.CallContext) {
-	r.RequestLogger.Debug("GetGridState")
-	reply := ctx.Msg.Reply()
-	reply.Content = rulermethods.GetGridStateReply{
-		Grid: r.GameState.Grid,
-	}
-
-	ctx.Reply(reply)
-}
-
-func (r *Ruler) getEntitiesState(ctx actor.CallContext) {
-	r.RequestLogger.Debug("GetEntitiesState")
-
-	reply := ctx.Msg.Reply()
-	ent := make([]entity.Entity, 0)
-	for _, e := range r.GameState.Entities {
-		ent = append(ent, e)
-	}
-
-	reply.Content = rulermethods.GetEntitiesStateReply{
-		Entities: ent,
-		Turn:     r.GameState.Turner.GetTurnState(),
-	}
-
-	ctx.Reply(reply)
-}
-
-// @spec-link [[mech_action_economy_action_cost_rules]]
-func (r *Ruler) controllerMove(ctx actor.CallContext) {
-	req := ctx.Msg.TargetMethod.(rulermethods.ControllerMove)
-	if r.CurrentState != InProgress {
-		r.RequestLogger.Error("Game is not in progress")
-		ctx.Reply(ctx.Msg.ReplyWithError("Game is not in progress", "game.not.in.progress"))
-		return
-	}
-
-	reply := r.GameState.Move(ctx.Msg, req)
-	ctx.Reply(reply)
-
-	if !reply.HasError {
-		ent := make([]entity.Entity, 0, len(r.GameState.Entities))
-		for _, e := range r.GameState.Entities {
-			ent = append(ent, e)
-		}
-		for _, ctrl := range r.GameState.Controllers {
-			ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
-				Entities: ent,
-				Turn:     r.GameState.Turner.GetTurnState(),
-				Version:  r.GameState.Version,
-			}, nil))
-		}
-	}
-}
-
-// @spec-link [[mech_action_economy_action_cost_rules]]
-func (r *Ruler) controllerAttack(ctx actor.CallContext) {
-	req := ctx.Msg.TargetMethod.(rulermethods.ControllerAttack)
-	if r.CurrentState != InProgress {
-		r.RequestLogger.Error("Game is not in progress")
-		ctx.Reply(ctx.Msg.ReplyWithError("Game is not in progress", "game.not.in.progress"))
-		return
-	}
-
-	reply := r.GameState.Attack(ctx.Msg, req)
-	ctx.Reply(reply)
-
-	if !reply.HasError {
-		ent := make([]entity.Entity, 0, len(r.GameState.Entities))
-		for _, e := range r.GameState.Entities {
-			ent = append(ent, e)
-		}
-		for _, ctrl := range r.GameState.Controllers {
-			ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
-				Entities: ent,
-				Turn:     r.GameState.Turner.GetTurnState(),
-				Version:  r.GameState.Version,
-			}, nil))
-		}
-	}
-}
-
-func (r *Ruler) controllerUseSkill(ctx actor.CallContext) {
-	req := ctx.Msg.TargetMethod.(rulermethods.ControllerUseSkill)
-	if r.CurrentState != InProgress {
-		r.RequestLogger.Error("Game is not in progress")
-		ctx.Reply(ctx.Msg.ReplyWithError("Game is not in progress", "game.not.in.progress"))
-		return
-	}
-
-	reply, damaged, affected := r.GameState.UseSkill(ctx.Msg, req)
-
-	ctx.Reply(reply)
-
-	for _, d := range damaged {
-		foectrlid := d.ControllerID
-		foectrl, found := r.GameState.Controllers[foectrlid]
-		if !found {
-			r.RequestLogger.WithFields(logrus.Fields{
-				"foeControllerID": foectrlid.String()[0:8]}).Error("Foe controller not found")
-		} else {
-			foectrl.NotifyActor(message.Create(nil, d, nil))
-		}
-	}
-
-	for _, d := range affected {
-		targetctrlid := d.ControllerID
-		targetctrl, found := r.GameState.Controllers[targetctrlid]
-		if !found {
-			r.RequestLogger.WithFields(logrus.Fields{
-				"targetControllerID": targetctrlid.String()[0:8]}).Error("target controller not found")
-		} else {
-			targetctrl.NotifyActor(message.Create(nil, d, nil))
-		}
-	}
-
-	if !reply.HasError {
-		ent := make([]entity.Entity, 0, len(r.GameState.Entities))
-		for _, e := range r.GameState.Entities {
-			ent = append(ent, e)
-		}
-		for _, ctrl := range r.GameState.Controllers {
-			ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
-				Entities: ent,
-				Turn:     r.GameState.Turner.GetTurnState(),
-				Version:  r.GameState.Version,
-			}, nil))
-		}
-	}
-}
-
-func (r *Ruler) notifyController(ctx actor.NotificationContext) {
-}
-
-func (r *Ruler) controllerPassed(ctx actor.NotificationContext) {
-	r.RequestLogger.Debug("Controller passed notification ignored by ruler")
-}
-
-// @spec-link [[mech_action_economy_action_cost_rules]]
-func (r *Ruler) endOfTurn(ctx actor.CallContext) {
-	req := ctx.Msg.TargetMethod.(rulermethods.EndOfTurn)
-	r.RequestLogger = r.RequestLogger.WithFields(logrus.Fields{
-		"entityID": req.EntityID.String()[0:8]})
-	r.RequestLogger.Debug("End of turn request")
-
-	if r.CurrentState != InProgress {
-		r.RequestLogger.Error("Game is not in progress")
-		ctx.Reply(ctx.Msg.ReplyWithError("Game is not in progress", "game.not.in.progress"))
-		return
-	}
-
-	// @spec-link [[rule_turn_clock]]
-	// GUARD: If this is a timeout from an old turn, ignore it.
-	if req.IsTimeout && req.TurnIndex != 0 && req.TurnIndex != r.GameState.GetTurn() {
-		r.logger.WithFields(logrus.Fields{
-			"reqTurn":     req.TurnIndex,
-			"currentTurn": r.GameState.GetTurn()}).Debug("Ignoring late timeout message")
-		ctx.Reply(ctx.Msg.Reply())
-		return
-	}
-
-	r.stopShotClock()
-
-	ok, reply := r.GameState.EndOfTurn(ctx.Msg, req, r.GameState.Entities[req.EntityID])
-	if !ok {
-		ctx.Reply(reply)
-		return
-	}
-
-	nextTurnEnt := r.GameState.Turner.NextTurn()
-
-	// @spec-link [[mech_initiative_active_state]]
-	// GUARD: Skip any entities that were killed mid-turn and removed from
-	// gs.Entities before NextTurn() could be called (e.g., killed by an
-	// attack action right before the acting entity passed). Without this,
-	// the ruler hands ControllerNextTurn to a dead entity (zero-value
-	// ControllerID == uuid.Nil), no controller receives the notification,
-	// and the battle permanently hangs.
-	for nextTurnEnt != uuid.Nil {
-		if _, alive := r.GameState.Entities[nextTurnEnt]; alive {
-			break
-		}
-		r.RequestLogger.WithFields(logrus.Fields{
-			"skippedEntityID": nextTurnEnt.String()[0:8],
-		}).Warn("Next-turn entity was already dead; skipping to next in queue")
-		nextTurnEnt = r.GameState.Turner.NextTurn()
-	}
-
-	if nextTurnEnt == uuid.Nil {
-		r.RequestLogger.Info("##### END OF BATTLE! (WEIRD) #####")
-	} else {
-		if beg, found := r.GameState.Entities[nextTurnEnt]; found {
-			r.GameState.BeginingOfTurn(beg)
-		}
-	}
-
-	ent := make([]entity.Entity, 0)
-	for _, e := range r.GameState.Entities {
-		ent = append(ent, e)
-	}
-
-	if nextTurnEnt == uuid.Nil {
-		r.evaluateVictory(nextTurnEnt)
-	} else {
-		remainingTeams := make(map[int]bool)
-		for _, ent := range r.GameState.Entities {
-			remainingTeams[ent.GetPropertyI(property.TeamID).I()] = true
-		}
-
-		if len(remainingTeams) <= 1 {
-			r.evaluateVictory(nextTurnEnt)
-		} else {
-			// @spec-link [[rule_turn_clock]]
-			r.RequestLogger.Info("##### END OF TURN #####")
-			for _, ctrl := range r.GameState.Controllers {
-				ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
-					Entities: ent,
-					Turn:     r.GameState.Turner.GetTurnState(),
-					Version:  r.GameState.Version,
-				}, nil))
-			}
-
-			if nextTurnEnt != uuid.Nil {
-				r.handTurn(nextTurnEnt)
-			}
-		}
-
-	}
-
-	ctx.Reply(ctx.Msg.Reply())
-}
-
-// handTurn handles giving the turn to an entity, either by notifying its controller
-// or by executing an automated behavior (AI).
-func (r *Ruler) handTurn(entID uuid.UUID) {
-	ent, found := r.GameState.Entities[entID]
-	if !found {
-		r.logger.WithField("entityID", entID.String()[0:8]).Error("Cannot hand turn: Entity not found")
-		return
-	}
-
-	// Always reset delay for the active entity
-	ent.CurrentDelay = 0
-	r.GameState.Entities[entID] = ent
-
-	// @spec-link [[mech_behavior_system]]
-	// Check for automated behavior first
-	behaviorProp := ent.GetProperty(property.AIBehavior)
-	behaviorSlug := "none"
-	if behaviorProp != nil {
-		behaviorSlug = behaviorProp.Get().(string)
-	}
-
-	if behaviorSlug != "none" || ent.ControllerID == uuid.Nil {
-		r.logger.WithFields(logrus.Fields{
-			"entityID": entID.String()[0:8],
-			"behavior": behaviorSlug,
-		}).Info("Executing automated behavior")
-
-		b := behavior.GetBehavior(behaviorSlug)
-		msg := b.Decide(r.GameState, ent)
-		
-		// Self-dispatch the decided message to the ruler
-		// We use a small delay to avoid deep recursion or blocking the queue
-		r.SelfDispatchMessageDelayed(msg, 50*time.Millisecond)
-		return
-	}
-
-	// Regular player turn
-	_, found = r.GameState.Controllers[ent.ControllerID]
-	if !found {
-		r.RequestLogger.WithFields(logrus.Fields{
-			"entityID":     entID.String()[0:8],
-			"controllerID": ent.ControllerID.String()[0:8]}).Error("Controller not found for entity")
-		return
-	}
-
-	// @spec-link [[rule_turn_clock]]
-	r.startShotClock()
-	for _, c := range r.GameState.Controllers {
-		c.NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
-			Entity:  ent,
-			Turn:    r.GameState.Turner.GetTurnState(),
-			Version: r.GameState.Version,
-		}, nil))
-	}
-}
-
-// controllerForfeit handles the forfeiture of a controller.
-// @spec-link [[rule_forfeit_battle]]
-func (r *Ruler) controllerForfeit(ctx actor.CallContext) {
-	req := ctx.Msg.TargetMethod.(rulermethods.ControllerForfeit)
-	r.RequestLogger.WithFields(logrus.Fields{
-		"controllerID": req.ControllerID.String()[0:8],
-		"entityID":     req.EntityID.String()[0:8]}).Info("ControllerForfeit")
-
-	if r.CurrentState != InProgress {
-		r.RequestLogger.Error("Game is not in progress")
-		ctx.Reply(ctx.Msg.ReplyWithError("Game is not in progress", "game.not.in.progress"))
-		return
-	}
-
-	_, winnerTeamID, finished := r.GameState.Forfeit(req.ControllerID)
-
-	if finished {
-		r.CurrentState = Finished
-		r.GameState.WinnerTeamID = winnerTeamID
-		r.RequestLogger.Info("##### END OF BATTLE! #####")
-
-		for _, ctrl := range r.GameState.Controllers {
-			ctrl.NotifyActor(message.Create(nil, rulermethods.BattleEnd{
-				WinnerTeamID: winnerTeamID,
-				Version:      r.GameState.Version,
-			}, nil))
-		}
-	}
-
-	ctx.Reply(ctx.Msg.Reply())
-}
-
-func (r *Ruler) controllerQuit(ctx actor.NotificationContext) {
-	req := ctx.Msg.TargetMethod.(rulermethods.ControllerQuit)
-	r.RequestLogger.Debug("Controller quit notification")
-
-	if r.CurrentState != Finished {
-	}
-
-	_, found := r.GameState.Controllers[req.ControllerID]
-	if found {
-		delete(r.GameState.Controllers, req.ControllerID)
-		r.RequestLogger.Info("Controller removed from match")
-
-		for id, ent := range r.GameState.Entities {
-			if ent.ControllerID == req.ControllerID {
-				r.GameState.Grid.RemoveEntity(ent.Position, id)
-				delete(r.GameState.Entities, id)
-				r.GameState.Turner.RemoveEntity(id)
-			}
-		}
-
-		// Re-evaluate victory if the match is still active
-		if r.CurrentState != Finished {
-			r.evaluateVictory(r.GameState.Turner.CurrentEntityTurn)
-		}
-	}
-}
-
-func (r *Ruler) evaluateVictory(nextTurnEnt uuid.UUID) {
-	remainingTeams := make(map[int]bool)
-	winningTeamID := 0
-	for _, ent := range r.GameState.Entities {
-		remainingTeams[ent.GetPropertyI(property.TeamID).I()] = true
-		winningTeamID = ent.GetPropertyI(property.TeamID).I()
-	}
-
-	if len(remainingTeams) <= 1 || nextTurnEnt == uuid.Nil {
-		// @spec-link [[rule_team_mechanics]]
-		// @spec-link [[spec_match_format_win_condition_rule]]
-		r.RequestLogger.Info("##### END OF BATTLE! #####")
-		r.CurrentState = Finished
-		r.GameState.WinnerTeamID = winningTeamID
-		for _, ctrl := range r.GameState.Controllers {
-			ctrl.NotifyActor(message.Create(nil, rulermethods.BattleEnd{
-				WinnerTeamID: winningTeamID,
-				Version:      r.GameState.Version,
-			}, nil))
-		}
-	}
-}
-
-// startShotClock initializes and starts the turn timer.
-// @spec-link [[rule_turn_clock]]
-// @spec-link [[mech_action_economy_timeout_penalty_rules]]
-func (r *Ruler) startShotClock() {
-	r.stopShotClock()
-
-	if r.ShotClockDuration <= 0 {
-		return
-	}
-
-	// Capture the turn index this shot clock is intended for
-	turn := uint32(r.GameState.GetTurn())
-
-	r.logger.WithFields(logrus.Fields{
-		"turn":    turn,
-		"version": fmt.Sprintf("%d.%d", turn, r.GameState.GetAction()),
-		"timeout": r.ShotClockDuration.String()}).Info("Starting turn shot clock")
-
-	r.shotClock = time.AfterFunc(r.ShotClockDuration, func() {
-		// Send a notification to self to handle the timeout safely within the actor loop.
-		// @spec-link [[mech_game_state_versioning]]
-		// @spec-link [[mech_action_economy_time_constraint_rules]]
-		r.NotifyActor(message.Create(nil, rulermethods.Timeout{TurnIndex: turn}, nil))
-	})
-}
-
-// timeout handles the turn expiration safely within the actor loop.
-// @spec-link [[mech_game_state_versioning]]
-func (r *Ruler) timeout(ctx actor.NotificationContext) {
-	req := ctx.Msg.TargetMethod.(rulermethods.Timeout)
-
-	// Verify if the turn has changed since the timer was started (Race Prevention)
-	if uint32(r.GameState.GetTurn()) != req.TurnIndex {
-		r.logger.WithFields(logrus.Fields{
-			"capturedTurn": req.TurnIndex,
-			"currentTurn":  r.GameState.GetTurn()}).Debug("Shot clock expired but turn already progressed, ignoring.")
-		return
-	}
-
-	r.logger.Warn("Turn timeout detected! Forcing EndOfTurn.")
-
-	// Validate that the current entity still exists
-	currentEntityID := r.GameState.Turner.CurrentEntityTurn
-	if currentEntityID == uuid.Nil {
-		return
-	}
-
-	ent, found := r.GameState.Entities[currentEntityID]
-	if !found {
-		return
-	}
-
-	// Trigger end of turn as a timeout
-	r.endOfTurn(actor.CallContext{
-		Msg: message.Create(nil, rulermethods.EndOfTurn{
-			ControllerID: ent.ControllerID,
-			EntityID:     currentEntityID,
-			IsTimeout:    true,
-			TurnIndex:    uint32(r.GameState.GetTurn()),
-		}, nil),
-	})
-}
-
-// @spec-link [[rule_turn_clock]]
-func (r *Ruler) stopShotClock() {
-	if r.shotClock != nil {
-		r.shotClock.Stop()
-		r.shotClock = nil
-	}
-}
-
-// Resurrect configures the Ruler to resume an arena from persisted state (ISS-054).
-// Must be called after SetGrid/AddEntity and before Start(). It sets the turner
-// queue, the current-turn entity, the game version, and marks the ruler as already
-// in-progress so it skips the BattleStart handshake.
-func (r *Ruler) Resurrect(turns []turner.EntityTurn, currentEntityID uuid.UUID, version int64) {
-	r.GameState.Turner.Turns = turns
-	r.GameState.Turner.CurrentEntityTurn = currentEntityID
-	r.GameState.Version = version
-	r.GameState.TurnIndex = uint32(version >> 32)
-	r.GameState.ActionIndex = uint32(version & 0xFFFFFFFF)
-	r.CurrentState = InProgress
-	r.firstTurnSent = true
-}
-
-// resurrect is the notification handler triggered after all controllers register
-// during resurrection. It skips BattleStart/ControllerBattleReady and hands the
-// turn directly to the entity that was active when the engine crashed.
-// ISS-054: HasMoved/HasActed flags reset here is an accepted mid-turn state loss.
-func (r *Ruler) resurrect(ctx actor.NotificationContext) {
-	req := ctx.Msg.TargetMethod.(rulermethods.Resurrect)
-	r.RequestLogger.WithFields(logrus.Fields{
-		"entityID": req.CurrentEntityID.String()[0:8],
-	}).Info("Resuming resurrected arena — handing turn to current entity")
-	r.startShotClock()
-	r.handTurn(req.CurrentEntityID)
-}
-
-// @spec-link [[mech_arena_lifecycle]]
-func (r *Ruler) actorAboutToStop(ctx actor.NotificationContext) {
-	r.logger.Info("Ruler is about to stop, stopping all controllers and timers")
-	r.stopShotClock()
-	for id, ctrl := range r.GameState.Controllers {
-		r.logger.Infof("Stopping controller %s", id)
-		ctrl.NotifyActor(message.Create(nil, actor.ActorStop{}, nil))
-	}
 }
