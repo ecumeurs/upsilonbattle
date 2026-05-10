@@ -9,13 +9,17 @@ import (
 
 // @test-link [[rule_forfeit_battle]]
 // @test-link [[rule_team_mechanics]]
+// @test-link [[uc_match_resolution]]
 
+// setTeam is a test helper to assign an entity to a specific team.
 func setTeam(gs *GameState, entityID uuid.UUID, teamID int) {
 	ent := gs.Entities[entityID]
 	ent.RepsertPropertyValue(property.TeamID, teamID)
 	gs.Entities[entityID] = ent
 }
 
+// TestRuleForfeitPvP verifies that forfeiting a match correctly identifies the winner team
+// and removes the forfeiting player's entities from the board.
 func TestRuleForfeitPvP(t *testing.T) {
 	gs, fake := makeGameStateForTwo()
 
@@ -55,6 +59,8 @@ func TestRuleForfeitPvP(t *testing.T) {
 }
 
 
+// TestRuleForfeitNoEntities verifies that forfeiting by an unknown controller
+// or a controller with no entities does not incorrectly end the battle.
 func TestRuleForfeitNoEntities(t *testing.T) {
 	gs, _ := makeGameStateForTwo()
 	

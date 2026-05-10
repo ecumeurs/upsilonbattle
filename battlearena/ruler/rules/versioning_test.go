@@ -5,6 +5,11 @@ import (
 	"github.com/google/uuid"
 )
 
+// @test-link [[api_standard_envelope]]
+// @test-link [[rule_credit_action_communication_layer]]
+
+// TestVersioningBitPacking verifies the internal bit-packing logic for game state versioning.
+// It ensures that turn indices and action indices are correctly encoded into a single 64-bit version integer.
 func TestVersioningBitPacking(t *testing.T) {
 	gs := New(uuid.New())
 

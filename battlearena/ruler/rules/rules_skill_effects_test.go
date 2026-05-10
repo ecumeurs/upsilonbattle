@@ -9,6 +9,14 @@ import (
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 )
 
+// @test-link [[mech_skill_validation]]
+// @test-link [[mechanic_mech_effect_damage]]
+// @test-link [[mechanic_mech_effect_heal]]
+// @test-link [[mechanic_mech_effect_poison]]
+// @test-link [[mechanic_mech_effect_shield]]
+
+// TestRuleSkillEffectDamage verifies that a skill with a damage effect correctly
+// reduces target HP and handles entity death.
 func TestRuleSkillEffectDamage(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -41,6 +49,7 @@ func TestRuleSkillEffectDamage(t *testing.T) {
 	}
 }
 
+// TestRuleSkillEffectHeal verifies that a healing skill correctly restores HP to the target.
 func TestRuleSkillEffectHeal(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -85,6 +94,8 @@ func TestRuleSkillEffectHeal(t *testing.T) {
 	}
 }
 
+// TestRuleSkillEffectPoisonCounter verifies that a poison skill correctly applies
+// the poison property to the target.
 func TestRuleSkillEffectPoisonCounter(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -121,6 +132,7 @@ func TestRuleSkillEffectPoisonCounter(t *testing.T) {
 	}
 }
 
+// TestRuleSkillEffectShield verifies that a skill correctly applies a shield property to the target.
 func TestRuleSkillEffectShield(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 

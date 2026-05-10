@@ -15,6 +15,12 @@ type localAttackCtx struct {
 	log *logrus.Entry
 }
 
+// Attack handles the execution of a basic physical attack between two entities.
+// It calculates damage based on attacker stats and weapon damage, applies defense/armor,
+// handles backstabbing bonuses, and updates the action state and version of the game.
+// Intent: Execute standard combat interactions between entities.
+// Inputs: msg (*message.Message) - the incoming request message, req (rulermethods.ControllerAttack) - the attack parameters.
+// Outputs: reply (*message.Message) - the attack results including damage dealt and credit awards.
 // @spec-link [[mech_action_economy_action_cost_rules]]
 func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAttack) (reply *message.Message) {
 	ctx := localAttackCtx{
@@ -168,6 +174,9 @@ func (gs *GameState) Attack(msg *message.Message, req rulermethods.ControllerAtt
 	return reply
 }
 
+// preAttackChecks performs validations before an attack can be executed.
+// It verifies entity existence, turn order, range, line of sight, and team-based restrictions (friendly fire).
+// Intent: Enforce combat rules and prevent invalid attack requests.
 func (ctx *localAttackCtx) preAttackChecks(msg *message.Message, req rulermethods.ControllerAttack) (ok bool, reply *message.Message) {
 
 	ent, found := ctx.Entities[req.EntityID]

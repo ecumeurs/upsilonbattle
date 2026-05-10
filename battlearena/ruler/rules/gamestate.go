@@ -102,7 +102,7 @@ func (gs *GameState) GetAction() uint32 {
 // This is the canonical way to resolve "who to attack" in a multi-entity cell, since only
 // Character/Monster entities are valid attack targets — WalkThrough entities (traps, zones) are not.
 //
-// @spec-link [[mechanic_multi_entity_cell_system]]
+//
 func (gs *GameState) FindCharacterInCell(entityIDs []uuid.UUID) (entity.Entity, bool) {
 	for _, id := range entityIDs {
 		if ent, ok := gs.Entities[id]; ok {
@@ -171,7 +171,6 @@ func (gs *GameState) RemoveEntity(entityID uuid.UUID) {
 	}
 
 	// Cleanup PositionalEffects owned by this entity (ExpiresWithCaster)
-	// @spec-link [[mechanic_effect_caster_tracking]]
 	for pos, effectIDs := range gs.PositionalEffects {
 		surviving := effectIDs[:0]
 		for _, effectID := range effectIDs {
@@ -193,7 +192,6 @@ func (gs *GameState) RemoveEntity(entityID uuid.UUID) {
 }
 
 // shouldEffectExpireWithCaster determines if an effect should be removed because its caster was deleted.
-// @spec-link [[mechanic_effect_caster_tracking]]
 func (gs *GameState) shouldEffectExpireWithCaster(effectID uuid.UUID, entityID uuid.UUID) bool {
 	eff, exists := gs.Effects[effectID]
 	return exists && eff.CasterID == entityID && eff.HasProperty(property.ExpiresWithCaster)

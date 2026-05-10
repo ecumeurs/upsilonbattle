@@ -10,12 +10,16 @@ import (
 	"github.com/google/uuid"
 )
 
+// @test-link [[mech_message_queue]]
+// @test-link [[module_game]]
+
 type FakeController struct {
 	ID             uuid.UUID
 	NotifyMessages []*message.Message
 	SentMessages   []*message.Message // expect only no reply.
 }
 
+// newFakeController creates a new instance of FakeController for testing.
 func newFakeController() *FakeController {
 	return &FakeController{
 		ID:             uuid.New(),
@@ -24,10 +28,12 @@ func newFakeController() *FakeController {
 	}
 }
 
+// NotifyActor appends a message to the controller's notification history.
 func (fc *FakeController) NotifyActor(m *message.Message) {
 	fc.NotifyMessages = append(fc.NotifyMessages, m)
 }
 
+// SendActor appends a message to the sent history and asynchronously sends a reply.
 func (fc *FakeController) SendActor(m *message.Message, replyTo chan *message.Message) {
 	fc.SentMessages = append(fc.SentMessages, m)
 	go func() {
@@ -46,6 +52,8 @@ type FakeState struct {
 	FakeController2 *FakeController
 }
 
+// makeGameStateForTwo initializes a test GameState with two controllers and four entities.
+// It sets up a 10x10x3 grid and populates it with characters for both teams.
 func makeGameStateForTwo() (*GameState, FakeState) {
 
 	gs := New(uuid.New())
