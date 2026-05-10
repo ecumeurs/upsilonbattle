@@ -1,4 +1,6 @@
 package ruler
+// @test-link [[mechanic_mech_arena_lifecycle]]
+// @test-link [[rule_team_mechanics]]
 
 import (
 	"os"
@@ -13,6 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TestRulerControllerFullGame simulates a complete battle between two automated controllers until victory.
 func TestRulerControllerFullGame(t *testing.T) {
 
 	logrus.SetFormatter(&logrus.TextFormatter{})

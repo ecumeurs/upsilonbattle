@@ -14,6 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// processTriggerFirstTurn is a notification handler that initiates the first turn of the battle.
 func (r *Ruler) processTriggerFirstTurn(ctx actor.NotificationContext) {
 	r.triggerFirstTurn()
 }
@@ -62,6 +63,7 @@ func (r *Ruler) triggerFirstTurn() {
 	r.handTurn(entID)
 }
 
+// controllerTurnReady is a notification handler that confirms a controller is ready for its turn.
 func (r *Ruler) controllerTurnReady(ctx actor.NotificationContext) {
 	r.RequestLogger.Info("ControllerTurnReady")
 }
@@ -129,7 +131,7 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 		return
 	}
 
-	// @spec-link [[rule_turn_clock]]
+	// shot clock validation
 	if req.IsTimeout && req.TurnIndex != 0 && req.TurnIndex != r.GameState.GetTurn() {
 		r.logger.WithFields(logrus.Fields{
 			"reqTurn":     req.TurnIndex,
@@ -183,7 +185,6 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 		if len(remainingTeams) <= 1 {
 			r.evaluateVictory(nextTurnEnt)
 		} else {
-			// @spec-link [[rule_turn_clock]]
 			r.RequestLogger.Info("##### END OF TURN #####")
 			for _, ctrl := range r.GameState.Controllers {
 				ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
@@ -213,7 +214,6 @@ func (r *Ruler) evaluateVictory(nextTurnEnt uuid.UUID) {
 
 	if len(remainingTeams) <= 1 || nextTurnEnt == uuid.Nil {
 		// @spec-link [[rule_team_mechanics]]
-		// @spec-link [[spec_match_format_win_condition_rule]]
 		r.RequestLogger.Info("##### END OF BATTLE! #####")
 		r.CurrentState = Finished
 		r.GameState.WinnerTeamID = winningTeamID
@@ -228,7 +228,6 @@ func (r *Ruler) evaluateVictory(nextTurnEnt uuid.UUID) {
 
 // startShotClock initializes and starts the turn timer.
 // @spec-link [[rule_turn_clock]]
-// @spec-link [[mech_action_economy_timeout_penalty_rules]]
 func (r *Ruler) startShotClock() {
 	r.stopShotClock()
 
@@ -244,14 +243,11 @@ func (r *Ruler) startShotClock() {
 		"timeout": r.ShotClockDuration.String()}).Info("Starting turn shot clock")
 
 	r.shotClock = time.AfterFunc(r.ShotClockDuration, func() {
-		// @spec-link [[mech_game_state_versioning]]
-		// @spec-link [[mech_action_economy_time_constraint_rules]]
 		r.NotifyActor(message.Create(nil, rulermethods.Timeout{TurnIndex: turn}, nil))
 	})
 }
 
 // timeout handles the turn expiration safely within the actor loop.
-// @spec-link [[mech_game_state_versioning]]
 func (r *Ruler) timeout(ctx actor.NotificationContext) {
 	req := ctx.Msg.TargetMethod.(rulermethods.Timeout)
 
@@ -285,7 +281,6 @@ func (r *Ruler) timeout(ctx actor.NotificationContext) {
 }
 
 // stopShotClock stops the active shot clock timer.
-// @spec-link [[rule_turn_clock]]
 func (r *Ruler) stopShotClock() {
 	if r.shotClock != nil {
 		r.shotClock.Stop()

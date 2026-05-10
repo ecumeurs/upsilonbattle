@@ -226,9 +226,11 @@ func (r *Ruler) controllerQuit(ctx actor.NotificationContext) {
 	}
 }
 
+// notifyController is a notification handler for controller-specific events.
 func (r *Ruler) notifyController(ctx actor.NotificationContext) {
 }
 
+// controllerPassed is a notification handler for when a controller skips its turn.
 func (r *Ruler) controllerPassed(ctx actor.NotificationContext) {
 	r.RequestLogger.Debug("Controller passed notification ignored by ruler")
 }

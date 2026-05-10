@@ -1,4 +1,6 @@
 package ruler
+// @test-link [[mechanic_mech_arena_lifecycle]]
+// @test-link [[mech_behavior_system]]
 
 import (
 	"testing"
@@ -14,6 +16,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// TestRulerAggressiveBehavior validates that entities with the "aggressive" behavior correctly move toward enemies.
 func TestRulerAggressiveBehavior(t *testing.T) {
 	tools.Seed()
 	r := NewRuler(uuid.New())
@@ -104,10 +107,12 @@ type fakeController struct {
 	replyChan chan *message.Message
 }
 
+// NotifyActor is a mock implementation for the actor interface.
 func (f *fakeController) NotifyActor(msg *message.Message) {
 	f.replyChan <- msg
 }
 
+// SendActor is a mock implementation for the actor interface.
 func (f *fakeController) SendActor(msg *message.Message, callback chan *message.Message) {
 	f.replyChan <- msg
 }

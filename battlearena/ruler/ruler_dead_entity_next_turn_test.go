@@ -1,6 +1,7 @@
 package ruler
-
+// @test-link [[mechanic_mech_arena_lifecycle]]
 // @test-link [[mech_initiative_active_state]]
+// @test-link [[uc_combat_turn]]
 
 import (
 	"testing"

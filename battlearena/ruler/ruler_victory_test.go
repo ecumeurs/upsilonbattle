@@ -1,4 +1,6 @@
 package ruler
+// @test-link [[mechanic_mech_arena_lifecycle]]
+// @test-link [[spec_match_format_win_condition_rule]]
 
 import (
 	"testing"
@@ -12,6 +14,7 @@ import (
 
 // @test-link [[spec_match_format_win_condition_rule]]
 
+// TestVictoryStandardizationForfeit verifies that a battle correctly ends when a controller forfeits, awarding victory to the opposing team.
 func TestVictoryStandardizationForfeit(t *testing.T) {
 	logrus.SetLevel(logrus.WarnLevel)
 	ruler := NewCompleteRuler()
@@ -62,6 +65,7 @@ func TestVictoryStandardizationForfeit(t *testing.T) {
 	// Since we removed the field from the struct, we can't access it here, which proves it's removed.
 }
 
+// TestVictoryStandardizationCasualties verifies the battle end state when win conditions are triggered by entity casualties.
 func TestVictoryStandardizationCasualties(t *testing.T) {
 	ruler := NewCompleteRuler()
 	ctrl1 := NewFake("Fake1")

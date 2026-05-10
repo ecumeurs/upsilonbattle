@@ -30,6 +30,7 @@ type Behavior interface {
 // @spec-link [[mech_entity_expiration]]
 type ExpirationBehavior struct{}
 
+// Decide returns an EndOfTurn message, as expiration behavior simply waits for the entity to expire.
 func (b *ExpirationBehavior) Decide(gs GameState, ent entity.Entity) *message.Message {
 	return message.Create(nil, rulermethods.EndOfTurn{
 		EntityID:     ent.ID,
@@ -41,6 +42,7 @@ func (b *ExpirationBehavior) Decide(gs GameState, ent entity.Entity) *message.Me
 // @spec-link [[mech_behavior_system]]
 type AggressiveBehavior struct{}
 
+// Decide selects an action (Move or Attack) based on the proximity of the nearest enemy entity.
 func (b *AggressiveBehavior) Decide(gs GameState, ent entity.Entity) *message.Message {
 	entities := gs.GetEntities()
 	myTeam := ent.GetPropertyI(property.TeamID).I()

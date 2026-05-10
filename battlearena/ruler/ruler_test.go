@@ -25,6 +25,8 @@ This allows tests to deterministically simulate a multi-turn battle loop without
 race conditions or sleep timers.
 */
 package ruler
+// @test-link [[mechanic_mech_arena_lifecycle]]
+// @test-link [[uc_combat_turn]]
 
 import (
 	"reflect"
@@ -42,6 +44,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// init initializes the logrus formatter and level for the test suite.
 func init() {
 	logrus.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true,
@@ -50,183 +53,8 @@ func init() {
 	tools.SeedWith(42)
 }
 
-type FakeController struct {
-	*actor.Actor
-	ID               uuid.UUID
-	Inbox            chan *message.Message
-	History          []*message.Message
-	KnownEntities    map[uuid.UUID]entity.Entity
-	ruler            actor.Communication
-	battleready      bool
-	receivedGrid     bool
-	receivedEntities bool
-}
 
-func NewFake(name string) *FakeController {
-	ctrl := &FakeController{
-		Actor:         actor.New(name),
-		Inbox:         make(chan *message.Message, 10000),
-		ID:            uuid.New(),
-		KnownEntities: make(map[uuid.UUID]entity.Entity),
-		battleready:   false,
-	}
-
-	ctrl.AddNotificationHandler(controllermethods.SetQueue{}, ctrl.SetQueue, nil)
-	ctrl.AddNotificationHandler(controllermethods.Send{}, ctrl.Send, nil)
-	ctrl.AddNotificationHandler(controllermethods.ReceiveAPIMessage{}, ctrl.ReceiveAPIMessage, nil)
-	ctrl.AddNotificationHandler(rulermethods.ControllerNextTurn{}, ctrl.ControllerNextTurn, nil)
-	ctrl.AddNotificationHandler(rulermethods.BattleStart{}, ctrl.BattleStart, nil)
-	ctrl.AddNotificationHandler(rulermethods.BattleEnd{}, ctrl.BattleEnd, nil)
-	ctrl.AddNotificationHandler(rulermethods.EntitiesStateChanged{}, ctrl.EntitiesStateChanged, nil)
-	ctrl.AddNotificationHandler(rulermethods.ControllerAttacked{}, ctrl.ControllerAttacked, nil)
-	ctrl.AddNotificationHandler(rulermethods.ControllerPassed{}, ctrl.NoOp, nil)
-	ctrl.AddNotificationHandler(rulermethods.ControllerMoved{}, ctrl.NoOp, nil)
-
-	ctrl.AddReplyHandler(rulermethods.GetStateReply{}, ctrl.GetStateReply, nil)
-	ctrl.AddReplyHandler(rulermethods.GetGridStateReply{}, ctrl.GetGridStateReply, nil)
-	ctrl.AddReplyHandler(rulermethods.GetEntitiesStateReply{}, ctrl.GetEntitiesStateReply, nil)
-	ctrl.AddReplyHandler(rulermethods.ControllerMoveReply{}, ctrl.ControllerMoveReply, nil)
-	ctrl.AddReplyHandler(rulermethods.ControllerAttackReply{}, ctrl.ControllerAttackReply, nil)
-	ctrl.AddReplyHandler(rulermethods.EndOfTurn{}, ctrl.EndOfTurnReply, nil)
-
-	ctrl.Start()
-
-	return ctrl
-}
-
-func getMessageTypeName(msg *message.Message) string {
-	if msg.TargetMethod != nil {
-		return reflect.TypeOf(msg.TargetMethod).String()
-	}
-	if msg.Content != nil {
-		return reflect.TypeOf(msg.Content).String()
-	}
-	return ""
-}
-
-func (c *FakeController) ExpectMessage(t *testing.T, expectedType interface{}, timeout time.Duration) *message.Message {
-	t.Helper()
-	expectedTypeName := reflect.TypeOf(expectedType).String()
-
-	for i, msg := range c.History {
-		if getMessageTypeName(msg) == expectedTypeName {
-			c.History = append(c.History[:i], c.History[i+1:]...)
-			return msg
-		}
-	}
-
-	start := time.Now()
-	for {
-		select {
-		case msg := <-c.Inbox:
-			if getMessageTypeName(msg) == expectedTypeName {
-				return msg
-			}
-			c.History = append(c.History, msg)
-		case <-time.After(timeout - time.Since(start)):
-			t.Fatalf("Timeout waiting for message of type %s on %s", expectedTypeName, c.Name())
-			return nil
-		}
-	}
-}
-
-func (c *FakeController) Close() {
-	// Not needed for Inbox approach
-}
-
-func (c *FakeController) triggerStopper(msg *message.Message) {
-	logrus.WithFields(logrus.Fields{
-		"controller": c.Name(),
-		"msgType":    getMessageTypeName(msg),
-	}).Info("FakeController received message")
-	c.Inbox <- msg
-}
-
-func (c *FakeController) SetQueue(ctx actor.NotificationContext) {
-	c.triggerStopper(ctx.Msg)
-	m := ctx.Msg.TargetMethod.(controllermethods.SetQueue)
-	c.ID = m.ControllerID
-	c.ruler = m.Ruler
-	c.ruler.SendActor(message.Create(nil, rulermethods.GetGridState{}, rulermethods.GetGridStateReply{}), c.GetCallbackChan())
-	c.ruler.SendActor(message.Create(nil, rulermethods.GetEntitiesState{}, rulermethods.GetEntitiesStateReply{}), c.GetCallbackChan())
-}
-
-func (c *FakeController) Send(ctx actor.NotificationContext) {
-	c.triggerStopper(ctx.Msg)
-}
-
-func (c *FakeController) ReceiveAPIMessage(ctx actor.NotificationContext) {
-	c.triggerStopper(ctx.Msg)
-}
-
-func (c *FakeController) ControllerNextTurn(ctx actor.NotificationContext) {
-	m := ctx.Msg.TargetMethod.(rulermethods.ControllerNextTurn)
-	if m.Entity.ControllerID == c.ID {
-		c.triggerStopper(ctx.Msg)
-	}
-}
-
-func (c *FakeController) BattleStart(ctx actor.NotificationContext) {
-	c.triggerStopper(ctx.Msg)
-}
-
-func (c *FakeController) BattleEnd(ctx actor.NotificationContext) {
-	c.triggerStopper(ctx.Msg)
-}
-
-func (c *FakeController) ControllerAttacked(ctx actor.NotificationContext) {
-	c.triggerStopper(ctx.Msg)
-}
-
-func (c *FakeController) EntitiesStateChanged(ctx actor.NotificationContext) {
-	c.triggerStopper(ctx.Msg)
-	c.RequestLogger.WithFields(logrus.Fields{
-		"Turn": ctx.Msg.TargetMethod.(rulermethods.EntitiesStateChanged).Turn.String()}).Info("New Turn Received")
-	c.KnownEntities = make(map[uuid.UUID]entity.Entity)
-	for _, e := range ctx.Msg.TargetMethod.(rulermethods.EntitiesStateChanged).Entities {
-		c.KnownEntities[e.ID] = e
-	}
-}
-
-func (c *FakeController) GetStateReply(ctx actor.ReplyContext) {
-	c.triggerStopper(ctx.Msg)
-}
-
-func (c *FakeController) checkReadiness() {
-	if c.receivedGrid && c.receivedEntities && !c.battleready && c.ruler != nil {
-		c.battleready = true
-		c.ruler.NotifyActor(message.Create(nil, rulermethods.ControllerBattleReady{
-			ControllerID: c.ID,
-		}, nil))
-	}
-}
-
-func (c *FakeController) GetGridStateReply(ctx actor.ReplyContext) {
-	c.triggerStopper(ctx.Msg)
-	c.receivedGrid = true
-	c.checkReadiness()
-}
-
-func (c *FakeController) GetEntitiesStateReply(ctx actor.ReplyContext) {
-	c.triggerStopper(ctx.Msg)
-	c.receivedEntities = true
-	c.checkReadiness()
-}
-
-func (c *FakeController) ControllerMoveReply(ctx actor.ReplyContext) {
-	c.triggerStopper(ctx.Msg)
-}
-
-func (c *FakeController) ControllerAttackReply(ctx actor.ReplyContext) {
-	c.triggerStopper(ctx.Msg)
-}
-
-func (c *FakeController) EndOfTurnReply(ctx actor.ReplyContext) {
-	c.triggerStopper(ctx.Msg)
-}
-
-func (c *FakeController) NoOp(ctx actor.NotificationContext) {}
-
+// TestRulerBattleBegin verifies that the battle starts correctly when multiple controllers are added.
 func TestRulerBattleBegin(t *testing.T) {
 	ruler := NewCompleteRuler()
 	ctrl := NewFake("Fake1")
@@ -262,6 +90,7 @@ func TestRulerBattleBegin(t *testing.T) {
 	ctrl2.Stop()
 }
 
+// TestRulerBattleBeginNextTurn verifies that the ruler correctly transitions to the next turn after starting.
 func TestRulerBattleBeginNextTurn(t *testing.T) {
 	ruler := NewCompleteRuler()
 	ctrl := NewFake("Fake1")
@@ -320,6 +149,7 @@ func TestRulerBattleBeginNextTurn(t *testing.T) {
 	ctrl2.Stop()
 }
 
+// TestRulerBattleBeginNextTurnFetchGridAndEntities ensures that controllers can successfully fetch the current grid and entity state after the battle starts.
 func TestRulerBattleBeginNextTurnFetchGridAndEntities(t *testing.T) {
 	ruler := NewCompleteRuler()
 	ctrl := NewFake("Fake1")
@@ -395,6 +225,7 @@ func TestRulerBattleBeginNextTurnFetchGridAndEntities(t *testing.T) {
 	ctrl2.Stop()
 }
 
+// TestRulerControllerCanMoveAttackAndEndTurn simulates a basic player turn sequence, including movement, combat, and turn finalization.
 func TestRulerControllerCanMoveAttackAndEndTurn(t *testing.T) {
 	ruler := NewCompleteRuler()
 	ctrl := NewFake("Fake1")

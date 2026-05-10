@@ -1,5 +1,5 @@
 // @test-link [[rule_turn_clock]]
-// @test-link [[rule_ruler_test_robustness]]
+// @test-link [[mechanic_mech_arena_lifecycle]]
 package ruler
 
 import (
@@ -88,8 +88,7 @@ func TestShotClockExpiry(t *testing.T) {
 	ctrl2.Stop()
 }
 
-// @test-link [[rule_turn_clock]]
-// @test-link [[rule_ruler_test_robustness]]
+// TestShotClockCancellation verifies that manually ending a turn cancels the active shot clock timer, preventing spurious timeouts.
 func TestShotClockCancellation(t *testing.T) {
 	ruler := NewCompleteRuler()
 	ruler.ShotClockDuration = 500 * time.Millisecond

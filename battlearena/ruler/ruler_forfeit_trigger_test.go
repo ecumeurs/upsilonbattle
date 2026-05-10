@@ -1,4 +1,6 @@
 package ruler
+// @test-link [[mechanic_mech_arena_lifecycle]]
+// @test-link [[rule_forfeit_battle]]
 
 import (
 	"testing"
@@ -11,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestRulerForfeitTriggersWinnerID verifies that a controller's forfeiture correctly triggers a battle end and assigns the winner.
 func TestRulerForfeitTriggersWinnerID(t *testing.T) {
 	ruler := NewCompleteRuler()
 	ctrl1 := NewFake("P1")
