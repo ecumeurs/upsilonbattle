@@ -5,6 +5,7 @@ import (
 
 	"github.com/ecumeurs/upsilontypes/entity"
 	"github.com/ecumeurs/upsilontypes/property"
+	"github.com/ecumeurs/upsilontypes/property/def"
 	"github.com/ecumeurs/upsilontypes/property/defaultproperty"
 	"github.com/ecumeurs/upsilontypes/property/effect"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
@@ -13,32 +14,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// stringProperty is a simple implementation of property.Property for test purposes.
-type stringProperty struct {
-	property.Property
-	name  string
-	value string
-}
 
-// Name returns the property identifier.
-func (s stringProperty) Name(i property.InformationLevel) string { return s.name }
-// Get returns the raw string value of the property.
-func (s stringProperty) Get() interface{}                        { return s.value }
-// Set updates the raw string value of the property.
-func (s stringProperty) Set(p interface{})                       { s.value = p.(string) }
-// GetType returns the property type (defaulting to Skill for tests).
-func (s stringProperty) GetType() property.PropertyType          { return property.Skill }
-// UserFriendlyGet returns the property value formatted for user-facing display.
-// Intent: Provide a display-friendly version of the property value.
-// Input: property.InformationLevel (the level of detail to return).
-// Output: interface{} (the formatted value).
-func (s stringProperty) UserFriendlyGet(i property.InformationLevel) interface{} {
-	return s.value
-}
-// Duplicate creates a deep copy of the string property.
-func (s stringProperty) Duplicate() property.Property {
-	return stringProperty{name: s.name, value: s.value}
-}
 
 // TestRuleTrapTriggerOnEnter verifies that an entity entering a cell with an OnEnter trap triggers it.
 // @test-link [[mech_trigger_system]]
@@ -55,8 +31,8 @@ func TestRuleTrapTriggerOnEnter(t *testing.T) {
 		Properties: []property.Property{
 			defaultproperty.MakeIntProperty(property.PoisonPower, 10, property.GameMaster, property.Skill),
 			defaultproperty.MakeIntProperty(property.PoisonChance, 100, property.GameMaster, property.Skill),
-			stringProperty{name: string(property.TriggerType), value: string(property.TriggerOnEnter)},
-			defaultproperty.MakeBoolProperty(property.RemoveOnTrigger, true, property.GameMaster, property.Skill),
+			def.TriggerType(property.TriggerOnEnter),
+			def.RemoveOnTrigger(true),
 		},
 	}
 	effectID := uuid.New()
@@ -137,7 +113,7 @@ func TestRuleExpiresWithCaster(t *testing.T) {
 		CasterID: casterID,
 		Properties: []property.Property{
 			defaultproperty.MakeBoolProperty(property.ExpiresWithCaster, true, property.GameMaster, property.Skill),
-			stringProperty{name: string(property.TriggerType), value: string(property.TriggerOnTurn)},
+			def.TriggerType(property.TriggerOnTurn),
 		},
 	}
 	effectID := uuid.New()
@@ -168,7 +144,7 @@ func TestRuleTrapTriggerOnExit(t *testing.T) {
 		CasterID: uuid.Nil,
 		Properties: []property.Property{
 			defaultproperty.MakeIntProperty(property.Damage, 50, property.GameMaster, property.Skill),
-			stringProperty{name: string(property.TriggerType), value: string(property.TriggerOnExit)},
+			def.TriggerType(property.TriggerOnExit),
 		},
 	}
 	effectID := uuid.New()
@@ -211,7 +187,7 @@ func TestRuleTrapTriggerOnTurn(t *testing.T) {
 		Properties: []property.Property{
 			defaultproperty.MakeIntProperty(property.PoisonPower, 5, property.GameMaster, property.Skill),
 			defaultproperty.MakeIntProperty(property.PoisonChance, 100, property.GameMaster, property.Skill),
-			stringProperty{name: string(property.TriggerType), value: string(property.TriggerOnTurn)},
+			def.TriggerType(property.TriggerOnTurn),
 		},
 	}
 	effectID := uuid.New()
