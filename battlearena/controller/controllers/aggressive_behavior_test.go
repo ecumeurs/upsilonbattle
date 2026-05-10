@@ -1,4 +1,7 @@
 package controllers
+// @test-link [[mechanic_mech_arena_lifecycle]]
+// @test-link [[rule_team_mechanics]]
+// @test-link [[uc_combat_turn]]
 
 import (
 	"testing"
@@ -19,6 +22,7 @@ type MockRuler struct {
 	ReceivedMessages chan *message.Message
 }
 
+// NewMockRuler creates a new MockRuler for testing purposes.
 func NewMockRuler() *MockRuler {
 	m := &MockRuler{
 		Actor:            actor.New("MockRuler"),
@@ -28,14 +32,17 @@ func NewMockRuler() *MockRuler {
 	return m
 }
 
+// SendActor is a mock implementation for sending messages to the ruler actor.
 func (m *MockRuler) SendActor(msg *message.Message, replyChan chan *message.Message) {
 	m.ReceivedMessages <- msg
 }
 
+// NotifyActor is a mock implementation for notifying the ruler actor.
 func (m *MockRuler) NotifyActor(msg *message.Message) {
 	m.ReceivedMessages <- msg
 }
 
+// TestAggressiveControllerStall verifies that the AI controller correctly finds a path around blockers instead of stalling.
 func TestAggressiveControllerStall(t *testing.T) {
 	// Setup environment
 	ruler := NewMockRuler()

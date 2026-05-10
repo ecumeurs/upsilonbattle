@@ -289,6 +289,7 @@ func (ctl *AggressiveController) GetEntitiesStateReply(ctx actor.ReplyContext) {
 	}
 }
 
+// ControllerMoveReply handles the response from a movement request.
 func (ctl *AggressiveController) ControllerMoveReply(ctx actor.ReplyContext) {
 	if ctx.Msg.HasError {
 		ctl.RequestLogger.WithFields(logrus.Fields{
@@ -350,6 +351,7 @@ func (ctl *AggressiveController) ControllerMoveReply(ctx actor.ReplyContext) {
 	}
 }
 
+// ControllerAttackReply handles the response from an attack request.
 func (ctl *AggressiveController) ControllerAttackReply(ctx actor.ReplyContext) {
 	ctl.RequestLogger.WithFields(logrus.Fields{
 		"Error":   ctx.Msg.HasError,
@@ -434,8 +436,10 @@ func (ctl *AggressiveController) preparePathToEntity(pos position.Position, grd 
 	return path, found
 }
 
+// EndOfTurnReply is a reply handler for the end-of-turn signal.
 func (ctl *AggressiveController) EndOfTurnReply(ctx actor.ReplyContext) {}
 
+// NoOp is an empty notification handler for ignored events.
 func (ctl *AggressiveController) NoOp(ctx actor.NotificationContext) {}
 
 func (ctl *AggressiveController) isPathStepBlocked(pos position.Position, selfID uuid.UUID) bool {
