@@ -9,6 +9,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// EndOfTurn handles the completion of an entity's turn.
+// It processes turn-end costs (delays, penalties), status effects (poison),
+// resets movement credits, decrements temporary entity durations, and advances the global turn counter.
+// @spec-link [[rule_turn_clock]]
 // @spec-link [[mech_action_economy_action_cost_rules]]
 func (gs *GameState) EndOfTurn(msg *message.Message, req rulermethods.EndOfTurn, ent entity.Entity) (ok bool, reply *message.Message) {
 	loclog := gs.Logger.WithFields(logrus.Fields{

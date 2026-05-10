@@ -22,20 +22,19 @@ type GameState struct {
 	// @spec-link [[rule_team_mechanics]]
 	WinnerTeamID int
 	// @spec-link [[mech_game_state_versioning]]
-	// @spec-link [[mech_version_bit_packing]]
 	Version     int64
 	TurnIndex   uint32
 	ActionIndex uint32
 
-	// @spec-link [[mech_positional_effects]]
 	// PositionalEffects maps grid positions to the effect IDs active at that cell.
 	// Actual effect data is stored in Effects for single-source-of-truth.
 	PositionalEffects map[position.Position][]uuid.UUID
-	// @spec-link [[mech_positional_effects]]
 	// Effects is the central store of all positional effect data, keyed by effect ID.
 	Effects map[uuid.UUID]effect.Effect
 }
 
+// New initializes a new GameState instance with the given ruler ID.
+// It sets up the logger, versioning, and internal maps for entities and effects.
 func New(rulerID uuid.UUID) *GameState {
 	gs := &GameState{
 		RulerID:           rulerID,
@@ -54,6 +53,8 @@ func New(rulerID uuid.UUID) *GameState {
 	return gs
 }
 
+// CheckControllerForEntity verifies if a given controller ID is authorized to command an entity.
+// Returns true if authorized, false otherwise.
 func (gs *GameState) CheckControllerForEntity(controllerID uuid.UUID, entityID uuid.UUID) bool {
 	for _, e := range gs.Entities {
 		if e.ID == entityID {
@@ -63,29 +64,36 @@ func (gs *GameState) CheckControllerForEntity(controllerID uuid.UUID, entityID u
 	return false
 }
 
+// UpdateVersion synchronizes the bit-packed version counter with current turn and action indices.
+// @spec-link [[mech_version_bit_packing]]
 func (gs *GameState) UpdateVersion() {
 	gs.Version = (int64(gs.TurnIndex) << 32) | int64(gs.ActionIndex)
 }
 
+// IncVersion is a wrapper that increments the action index and updates the packed version.
 func (gs *GameState) IncVersion() {
 	gs.IncAction()
 }
 
+// IncAction increments the action index for the current turn and updates the packed version.
 func (gs *GameState) IncAction() {
 	gs.ActionIndex++
 	gs.UpdateVersion()
 }
 
+// IncTurn increments the global turn index, resets the action index, and updates the packed version.
 func (gs *GameState) IncTurn() {
 	gs.TurnIndex++
 	gs.ActionIndex = 0
 	gs.UpdateVersion()
 }
 
+// GetTurn extracts the 32-bit turn index from the bit-packed Version field.
 func (gs *GameState) GetTurn() uint32 {
 	return uint32(gs.Version >> 32)
 }
 
+// GetAction extracts the 32-bit action index from the bit-packed Version field.
 func (gs *GameState) GetAction() uint32 {
 	return uint32(gs.Version & 0xFFFFFFFF)
 }
@@ -149,7 +157,6 @@ func (gs *GameState) FindEffectsByCaster(casterID uuid.UUID) map[uuid.UUID]effec
 // any positional effects owned by this entity (where ExpiresWithCaster is true).
 //
 // @spec-link [[mech_entity_expiration]]
-// @spec-link [[mechanic_effect_caster_tracking]]
 func (gs *GameState) RemoveEntity(entityID uuid.UUID) {
 	gs.Logger.WithFields(logrus.Fields{
 		"entityID": entityID.String()[0:8],
@@ -168,14 +175,9 @@ func (gs *GameState) RemoveEntity(entityID uuid.UUID) {
 	for pos, effectIDs := range gs.PositionalEffects {
 		surviving := effectIDs[:0]
 		for _, effectID := range effectIDs {
-			if eff, exists := gs.Effects[effectID]; exists {
-				if eff.CasterID == entityID {
-					// Check ExpiresWithCaster flag on the effect
-					if eff.HasProperty(property.ExpiresWithCaster) {
-						delete(gs.Effects, effectID)
-						continue // drop this effectID
-					}
-				}
+			if gs.shouldEffectExpireWithCaster(effectID, entityID) {
+				delete(gs.Effects, effectID)
+				continue
 			}
 			surviving = append(surviving, effectID)
 		}
@@ -188,6 +190,13 @@ func (gs *GameState) RemoveEntity(entityID uuid.UUID) {
 
 	// Remove from Entities map
 	delete(gs.Entities, entityID)
+}
+
+// shouldEffectExpireWithCaster determines if an effect should be removed because its caster was deleted.
+// @spec-link [[mechanic_effect_caster_tracking]]
+func (gs *GameState) shouldEffectExpireWithCaster(effectID uuid.UUID, entityID uuid.UUID) bool {
+	eff, exists := gs.Effects[effectID]
+	return exists && eff.CasterID == entityID && eff.HasProperty(property.ExpiresWithCaster)
 }
 
 // RemovePositionalEffect removes a single positional effect from a cell and the Effects store.
@@ -216,14 +225,17 @@ func (gs *GameState) RemovePositionalEffect(effectID uuid.UUID, pos position.Pos
 	}
 }
 
+// GetEntities returns the map of all active entities in the game state.
 func (gs *GameState) GetEntities() map[uuid.UUID]entity.Entity {
 	return gs.Entities
 }
 
+// GetGrid returns the underlying grid structure.
 func (gs *GameState) GetGrid() *grid.Grid {
 	return gs.Grid
 }
 
+// GetLogger returns the GameState's logger instance.
 func (gs *GameState) GetLogger() *logrus.Entry {
 	return gs.Logger
 }

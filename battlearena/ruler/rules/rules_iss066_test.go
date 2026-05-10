@@ -20,13 +20,22 @@ type stringProperty struct {
 	value string
 }
 
+// Name returns the property identifier.
 func (s stringProperty) Name(i property.InformationLevel) string { return s.name }
+// Get returns the raw string value of the property.
 func (s stringProperty) Get() interface{}                        { return s.value }
+// Set updates the raw string value of the property.
 func (s stringProperty) Set(p interface{})                       { s.value = p.(string) }
+// GetType returns the property type (defaulting to Skill for tests).
 func (s stringProperty) GetType() property.PropertyType          { return property.Skill }
+// UserFriendlyGet returns the property value formatted for user-facing display.
+// Intent: Provide a display-friendly version of the property value.
+// Input: property.InformationLevel (the level of detail to return).
+// Output: interface{} (the formatted value).
 func (s stringProperty) UserFriendlyGet(i property.InformationLevel) interface{} {
 	return s.value
 }
+// Duplicate creates a deep copy of the string property.
 func (s stringProperty) Duplicate() property.Property {
 	return stringProperty{name: s.name, value: s.value}
 }

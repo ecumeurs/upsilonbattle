@@ -134,6 +134,7 @@ func (t *Turner) NextTurn() uuid.UUID {
 	return turn.EntityId
 }
 
+// String returns a human-readable representation of the initiative queue.
 func (t Turner) String() string {
 	s := t.CurrentEntityTurn.String()[0:8] + " 0,"
 	for i := range t.Turns {
@@ -153,6 +154,7 @@ func (t Turner) GetTurnState() TurnState {
 	}
 }
 
+// String returns a human-readable representation of the turn state snapshot.
 func (st TurnState) String() string {
 	s := st.CurrentEntityTurn.String()[0:8] + " 0,"
 	for i := range st.RemainingTurns {

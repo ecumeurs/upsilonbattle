@@ -8,6 +8,10 @@ import (
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 )
 
+// TestVersioningAudit verifies that the GameState version is correctly incremented 
+// and propagated in notifications for all major controller actions (Move, Attack, Pass).
+// @test-link [[mech_game_state_versioning]]
+// @test-link [[mech_version_bit_packing]]
 func TestVersioningAudit(t *testing.T) {
 	gs, fake := makeGameStateForTwo()
 	gs.Turner.ForceTurn(fake.Entity1)

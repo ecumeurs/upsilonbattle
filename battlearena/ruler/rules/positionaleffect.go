@@ -32,46 +32,51 @@ func (gs *GameState) ProcessPositionalEffects(ent entity.Entity, pos position.Po
 	copy(toProcess, effectIDs)
 
 	for _, effectID := range toProcess {
-		eff, exists := gs.Effects[effectID]
-		if !exists {
-			continue
-		}
+		gs.processSinglePositionalEffect(log, ent, pos, effectID, trigger)
+	}
+}
 
-		// Check trigger type matches
-		triggerProp := eff.GetProperty(property.TriggerType)
-		if triggerProp == nil {
-			continue
-		}
-		effectTrigger := property.TriggerTypeValue(triggerProp.Get().(string))
-		if effectTrigger != trigger {
-			continue
-		}
+// processSinglePositionalEffect handles the validation and application of a single positional effect.
+func (gs *GameState) processSinglePositionalEffect(log *logrus.Entry, ent entity.Entity, pos position.Position, effectID uuid.UUID, trigger property.TriggerTypeValue) {
+	eff, exists := gs.Effects[effectID]
+	if !exists {
+		return
+	}
 
-		log.WithField("effectID", effectID.String()[0:8]).Info("Positional effect triggered")
+	// Check trigger type matches
+	triggerProp := eff.GetProperty(property.TriggerType)
+	if triggerProp == nil {
+		return
+	}
+	effectTrigger := property.TriggerTypeValue(triggerProp.Get().(string))
+	if effectTrigger != trigger {
+		return
+	}
 
-		// Check TriggerCount (0 = unlimited)
-		removeAfter := false
-		triggerCountProp := eff.GetProperty(property.TriggerCount)
-		if triggerCountProp != nil {
-			remaining := triggerCountProp.Get().(int)
-			if remaining > 0 {
-				remaining--
-				triggerCountProp.Set(remaining)
-				gs.Effects[effectID] = eff
-				if remaining <= 0 {
-					removeAfter = true
-				}
+	log.WithField("effectID", effectID.String()[0:8]).Info("Positional effect triggered")
+
+	// Check TriggerCount (0 = unlimited)
+	removeAfter := false
+	triggerCountProp := eff.GetProperty(property.TriggerCount)
+	if triggerCountProp != nil {
+		remaining := triggerCountProp.Get().(int)
+		if remaining > 0 {
+			remaining--
+			triggerCountProp.Set(remaining)
+			gs.Effects[effectID] = eff
+			if remaining <= 0 {
+				removeAfter = true
 			}
 		}
+	}
 
-		// Apply the effect
-		gs.applyPositionalEffect(log, ent, eff)
+	// Apply the effect
+	gs.applyPositionalEffect(log, ent, eff)
 
-		// RemoveOnTrigger: consume after one application
-		removeOnTriggerProp := eff.GetProperty(property.RemoveOnTrigger)
-		if removeAfter || (removeOnTriggerProp != nil && removeOnTriggerProp.Get().(bool)) {
-			gs.RemovePositionalEffect(effectID, pos)
-		}
+	// RemoveOnTrigger: consume after one application
+	removeOnTriggerProp := eff.GetProperty(property.RemoveOnTrigger)
+	if removeAfter || (removeOnTriggerProp != nil && removeOnTriggerProp.Get().(bool)) {
+		gs.RemovePositionalEffect(effectID, pos)
 	}
 }
 

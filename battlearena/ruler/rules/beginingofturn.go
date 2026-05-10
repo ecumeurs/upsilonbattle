@@ -6,6 +6,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// BeginingOfTurn handles start-of-turn logic for an entity.
+// It resolves stun status (halving stun value or setting 'acted' state)
+// and fires OnTurn positional triggers.
+// @spec-link [[rule_turn_clock]]
+// @spec-link [[rule_turn_atomic_selection]]
 func (gs *GameState) BeginingOfTurn(ent entity.Entity) {
 	loclog := gs.Logger.WithFields(logrus.Fields{
 		"entityID": ent.ID.String()[0:8],

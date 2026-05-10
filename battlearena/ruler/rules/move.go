@@ -15,6 +15,10 @@ type localMoveCtx struct {
 	log *logrus.Entry
 }
 
+// Move executes a movement request for an entity.
+// It validates the path, fires positional triggers (OnExit/OnEnter),
+// updates the game state, and notifies all controllers.
+// @spec-link [[rule_turn_clock]]
 // @spec-link [[mech_action_economy_action_cost_rules]]
 func (gs *GameState) Move(msg *message.Message, req rulermethods.ControllerMove) (reply *message.Message) {
 	ctx := localMoveCtx{
@@ -98,6 +102,9 @@ func (gs *GameState) Move(msg *message.Message, req rulermethods.ControllerMove)
 	return reply
 }
 
+// preMoveChecks performs a suite of validations for a move request:
+// entity existence, controller authorization, turn synchronization, path validity,
+// jump height constraints, cell blocking, and movement credit availability.
 func (ctx *localMoveCtx) preMoveChecks(msg *message.Message, req rulermethods.ControllerMove) (ok bool, reply *message.Message) {
 	// Check if the entity exists.
 

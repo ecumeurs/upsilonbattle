@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestBackstabDetection verifies the spatial logic for determining if an attacker is behind a target.
 // @test-link [[mechanic_backstab_detection_algorithm]]
 func TestBackstabDetection(t *testing.T) {
 	attacker := entity.New()
@@ -41,6 +42,8 @@ func TestBackstabDetection(t *testing.T) {
 	}
 }
 
+// TestBackstabDamageCalculationLogic verifies the mathematical application of backstab multipliers (1.5x) 
+// and defense reductions (50%) in damage calculations.
 // @test-link [[mec_backstabbing_mechanic]]
 func TestBackstabDamageCalculationLogic(t *testing.T) {
 
