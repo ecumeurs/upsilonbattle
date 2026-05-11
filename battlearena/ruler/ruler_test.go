@@ -29,18 +29,14 @@ package ruler
 // @test-link [[uc_combat_turn]]
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
-	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
 	"github.com/ecumeurs/upsilontypes/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/ecumeurs/upsilontools/tools"
-	"github.com/ecumeurs/upsilontools/tools/actor"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
-	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
