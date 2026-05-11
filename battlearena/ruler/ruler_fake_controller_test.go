@@ -61,6 +61,7 @@ func NewFake(name string) *FakeController {
 	return ctrl
 }
 
+// getMessageTypeName returns the string representation of the message's method type.
 func getMessageTypeName(msg *message.Message) string {
 	if msg.TargetMethod != nil {
 		return reflect.TypeOf(msg.TargetMethod).String()
@@ -103,6 +104,7 @@ func (c *FakeController) Close() {
 	// Not needed for Inbox approach
 }
 
+// triggerStopper is an internal helper to log and enqueue incoming messages.
 func (c *FakeController) triggerStopper(msg *message.Message) {
 	logrus.WithFields(logrus.Fields{
 		"controller": c.Name(),
@@ -170,6 +172,7 @@ func (c *FakeController) GetStateReply(ctx actor.ReplyContext) {
 	c.triggerStopper(ctx.Msg)
 }
 
+// checkReadiness verifies if the controller has received all necessary data to start.
 func (c *FakeController) checkReadiness() {
 	if c.receivedGrid && c.receivedEntities && !c.battleready && c.ruler != nil {
 		c.battleready = true

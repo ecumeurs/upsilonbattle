@@ -3,6 +3,7 @@ package rules
 import (
 	"github.com/ecumeurs/upsilontypes/property"
 	"github.com/ecumeurs/upsilontypes/property/defaultproperty"
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/gamestate"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonmapdata/grid/cell"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
@@ -11,7 +12,7 @@ import (
 
 
 type localMoveCtx struct {
-	*GameState
+	*gamestate.GameState
 	log *logrus.Entry
 }
 
@@ -20,7 +21,7 @@ type localMoveCtx struct {
 // updates the game state, and notifies all controllers.
 // @spec-link [[rule_turn_clock]]
 // @spec-link [[mech_action_economy_action_cost_rules]]
-func (gs *GameState) Move(msg *message.Message, req rulermethods.ControllerMove) (reply *message.Message) {
+func Move(gs *gamestate.GameState, msg *message.Message, req rulermethods.ControllerMove) (reply *message.Message) {
 	ctx := localMoveCtx{
 		GameState: gs,
 		log: gs.Logger.WithFields(logrus.Fields{
@@ -44,7 +45,7 @@ func (gs *GameState) Move(msg *message.Message, req rulermethods.ControllerMove)
 
 	// @spec-link [[mech_trigger_system]]
 	// Fire OnExit for the cell the entity is leaving.
-	ctx.ProcessPositionalEffects(ent, fromPos, property.TriggerOnExit)
+	ProcessPositionalEffects(ctx.GameState, ent, fromPos, property.TriggerOnExit)
 
 	// Move the entity
 	err := ctx.Grid.MoveEntity(fromPos, destPos, ent.ID)
@@ -63,7 +64,7 @@ func (gs *GameState) Move(msg *message.Message, req rulermethods.ControllerMove)
 
 	// @spec-link [[mech_trigger_system]]
 	// Fire OnEnter for the cell the entity just entered.
-	ctx.ProcessPositionalEffects(ent, destPos, property.TriggerOnEnter)
+	ProcessPositionalEffects(ctx.GameState, ent, destPos, property.TriggerOnEnter)
 
 	// Reload entity in case OnEnter positional effects modified it (e.g. applied poison).
 	ent = ctx.Entities[req.EntityID]

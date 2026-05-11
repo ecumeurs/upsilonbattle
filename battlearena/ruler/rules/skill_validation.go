@@ -6,6 +6,7 @@ import (
 	"github.com/ecumeurs/upsilontypes/property"
 	"github.com/ecumeurs/upsilontypes/property/def"
 	"github.com/ecumeurs/upsilontypes/property/defaultproperty"
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/gamestate"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/ecumeurs/upsilontools/tools"
@@ -14,7 +15,7 @@ import (
 )
 
 type localSkillCtx struct {
-	*GameState
+	*gamestate.GameState
 	log              *logrus.Entry
 	targetedTiles    []position.Position
 	targetedEntities []entity.Entity

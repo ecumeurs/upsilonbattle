@@ -3,6 +3,7 @@ package rules
 import (
 	"github.com/ecumeurs/upsilontypes/entity"
 	"github.com/ecumeurs/upsilontypes/property"
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/gamestate"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
@@ -14,7 +15,7 @@ import (
 // resets movement credits, decrements temporary entity durations, and advances the global turn counter.
 // @spec-link [[rule_turn_clock]]
 // @spec-link [[mech_action_economy_action_cost_rules]]
-func (gs *GameState) EndOfTurn(msg *message.Message, req rulermethods.EndOfTurn, ent entity.Entity) (ok bool, reply *message.Message) {
+func EndOfTurn(gs *gamestate.GameState, msg *message.Message, req rulermethods.EndOfTurn, ent entity.Entity) (ok bool, reply *message.Message) {
 	loclog := gs.Logger.WithFields(logrus.Fields{
 		"RequestID":    msg.RequestId.String()[0:8],
 		"controllerID": req.ControllerID.String()[0:8],

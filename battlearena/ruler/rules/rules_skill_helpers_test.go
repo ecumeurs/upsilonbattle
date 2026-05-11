@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/gamestate"
 	"github.com/ecumeurs/upsilontypes/entity/skill"
 	"github.com/google/uuid"
 )
@@ -16,14 +17,14 @@ type FakeStateSkill struct {
 }
 
 // addSkillToEntity is a test helper to inject a skill into an entity's skill set.
-func (gs *GameState) addSkillToEntity(entityID uuid.UUID, skill skill.Skill) {
+func addSkillToEntity(gs *gamestate.GameState, entityID uuid.UUID, skill skill.Skill) {
 	e := gs.Entities[entityID]
 	e.Skills[skill.ID] = skill
 	gs.Entities[entityID] = e
 }
 
 // makeGameStateForTwoSkill creates a test scenario with two entities and a default skill assigned to the attacker.
-func makeGameStateForTwoSkill() (*GameState, FakeStateSkill) {
+func makeGameStateForTwoSkill() (*gamestate.GameState, FakeStateSkill) {
 	// attacker is at (5,5,3), foe is at (5,6,3) and they are facing each other.
 	gs, f := makeGameStateForTwoAttack()
 	fake := FakeStateSkill{
@@ -40,7 +41,7 @@ func makeGameStateForTwoSkill() (*GameState, FakeStateSkill) {
 	// default target is entity (any)
 
 	// assign skill to attacker.
-	gs.addSkillToEntity(fake.Attacker, fake.Skill)
+	addSkillToEntity(gs, fake.Attacker, fake.Skill)
 
 	return gs, fake
 }

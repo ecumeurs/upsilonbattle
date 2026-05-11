@@ -25,7 +25,7 @@ func TestVersioningAudit(t *testing.T) {
 		ControllerID: fake.Controller1,
 		Path:         []position.Position{{X: 0, Y: 1, Z: 3}},
 	}, nil)
-	gs.Move(moveMsg, moveMsg.TargetMethod.(rulermethods.ControllerMove))
+	Move(gs, moveMsg, moveMsg.TargetMethod.(rulermethods.ControllerMove))
 
 	if gs.Version <= v0 {
 		t.Errorf("Version not bumped after Move. Got %d, want > %d", gs.Version, v0)
@@ -65,7 +65,7 @@ func TestVersioningAudit(t *testing.T) {
 		ControllerID: fake.Controller1,
 		Target:       position.Position{X: 1, Y: 0, Z: 3},
 	}, nil)
-	gs.Attack(attackMsg, attackMsg.TargetMethod.(rulermethods.ControllerAttack))
+	Attack(gs, attackMsg, attackMsg.TargetMethod.(rulermethods.ControllerAttack))
 
 	if gs.Version <= v1 {
 		t.Errorf("Version not bumped after Attack. Got %d, want > %d", gs.Version, v1)
@@ -93,7 +93,7 @@ func TestVersioningAudit(t *testing.T) {
 		ControllerID: fake.Controller1,
 	}, nil)
 	ent1 = gs.Entities[fake.Entity1]
-	gs.EndOfTurn(passMsg, passMsg.TargetMethod.(rulermethods.EndOfTurn), ent1)
+	EndOfTurn(gs, passMsg, passMsg.TargetMethod.(rulermethods.EndOfTurn), ent1)
 
 	if gs.Version <= v2 {
 		t.Errorf("Version not bumped after Pass. Got %d, want > %d", gs.Version, v2)

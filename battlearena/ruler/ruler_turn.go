@@ -1,13 +1,14 @@
 package ruler
 
 import (
-	"fmt"
+
 	"time"
 
 	"github.com/ecumeurs/upsilontypes/entity"
 	"github.com/ecumeurs/upsilontypes/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/behavior"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rules"
 	"github.com/ecumeurs/upsilontools/tools/actor"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
@@ -142,7 +143,7 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 
 	r.stopShotClock()
 
-	ok, reply := r.GameState.EndOfTurn(ctx.Msg, req, r.GameState.Entities[req.EntityID])
+	ok, reply := rules.EndOfTurn(r.GameState, ctx.Msg, req, r.GameState.Entities[req.EntityID])
 	if !ok {
 		ctx.Reply(reply)
 		return
@@ -165,7 +166,7 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 		r.RequestLogger.Info("##### END OF BATTLE! (WEIRD) #####")
 	} else {
 		if beg, found := r.GameState.Entities[nextTurnEnt]; found {
-			r.GameState.BeginingOfTurn(beg)
+			rules.BeginingOfTurn(r.GameState, beg)
 		}
 	}
 
@@ -203,87 +204,6 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 	ctx.Reply(ctx.Msg.Reply())
 }
 
-// evaluateVictory checks if a win condition is met and transitions the state if necessary.
-func (r *Ruler) evaluateVictory(nextTurnEnt uuid.UUID) {
-	remainingTeams := make(map[int]bool)
-	winningTeamID := 0
-	for _, ent := range r.GameState.Entities {
-		remainingTeams[ent.GetPropertyI(property.TeamID).I()] = true
-		winningTeamID = ent.GetPropertyI(property.TeamID).I()
-	}
 
-	if len(remainingTeams) <= 1 || nextTurnEnt == uuid.Nil {
-		// @spec-link [[rule_team_mechanics]]
-		r.RequestLogger.Info("##### END OF BATTLE! #####")
-		r.CurrentState = Finished
-		r.GameState.WinnerTeamID = winningTeamID
-		for _, ctrl := range r.GameState.Controllers {
-			ctrl.NotifyActor(message.Create(nil, rulermethods.BattleEnd{
-				WinnerTeamID: winningTeamID,
-				Version:      r.GameState.Version,
-			}, nil))
-		}
-	}
-}
 
-// startShotClock initializes and starts the turn timer.
-// @spec-link [[rule_turn_clock]]
-func (r *Ruler) startShotClock() {
-	r.stopShotClock()
 
-	if r.ShotClockDuration <= 0 {
-		return
-	}
-
-	turn := uint32(r.GameState.GetTurn())
-
-	r.logger.WithFields(logrus.Fields{
-		"turn":    turn,
-		"version": fmt.Sprintf("%d.%d", turn, r.GameState.GetAction()),
-		"timeout": r.ShotClockDuration.String()}).Info("Starting turn shot clock")
-
-	r.shotClock = time.AfterFunc(r.ShotClockDuration, func() {
-		r.NotifyActor(message.Create(nil, rulermethods.Timeout{TurnIndex: turn}, nil))
-	})
-}
-
-// timeout handles the turn expiration safely within the actor loop.
-func (r *Ruler) timeout(ctx actor.NotificationContext) {
-	req := ctx.Msg.TargetMethod.(rulermethods.Timeout)
-
-	if uint32(r.GameState.GetTurn()) != req.TurnIndex {
-		r.logger.WithFields(logrus.Fields{
-			"capturedTurn": req.TurnIndex,
-			"currentTurn":  r.GameState.GetTurn()}).Debug("Shot clock expired but turn already progressed, ignoring.")
-		return
-	}
-
-	r.logger.Warn("Turn timeout detected! Forcing EndOfTurn.")
-
-	currentEntityID := r.GameState.Turner.CurrentEntityTurn
-	if currentEntityID == uuid.Nil {
-		return
-	}
-
-	ent, found := r.GameState.Entities[currentEntityID]
-	if !found {
-		return
-	}
-
-	r.endOfTurn(actor.CallContext{
-		Msg: message.Create(nil, rulermethods.EndOfTurn{
-			ControllerID: ent.ControllerID,
-			EntityID:     currentEntityID,
-			IsTimeout:    true,
-			TurnIndex:    uint32(r.GameState.GetTurn()),
-		}, nil),
-	})
-}
-
-// stopShotClock stops the active shot clock timer.
-func (r *Ruler) stopShotClock() {
-	if r.shotClock != nil {
-		r.shotClock.Stop()
-		r.shotClock = nil
-	}
-}

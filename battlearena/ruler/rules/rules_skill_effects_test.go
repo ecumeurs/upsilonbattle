@@ -26,7 +26,7 @@ func TestRuleSkillEffectDamage(t *testing.T) {
 	// Add 100% accuracy to ensure it hits
 	fake.Skill.Targeting[property.Accuracy.String()] = defaultproperty.MakeIntProperty(property.Accuracy, 100, property.Public, property.Skill)
 	
-	gs.addSkillToEntity(fake.Attacker, fake.Skill)
+	addSkillToEntity(gs, fake.Attacker, fake.Skill)
 
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
@@ -36,7 +36,7 @@ func TestRuleSkillEffectDamage(t *testing.T) {
 			SkillID:      fake.SkillID,
 		}, nil)
 
-	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ := UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if reply.HasError {
 		t.Fatalf("Expected no error, got '%s'", reply.ErrorKey)
@@ -70,7 +70,7 @@ func TestRuleSkillEffectHeal(t *testing.T) {
 	rng := defaultproperty.MakeIntCounterProperty(property.Range, 0, 1, property.Public, property.Skill)
 	fake.Skill.Targeting[property.Range.String()] = rng
 	
-	gs.addSkillToEntity(fake.Attacker, fake.Skill)
+	addSkillToEntity(gs, fake.Attacker, fake.Skill)
 
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
@@ -80,7 +80,7 @@ func TestRuleSkillEffectHeal(t *testing.T) {
 			SkillID:      fake.SkillID,
 		}, nil)
 
-	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ := UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if reply.HasError {
 		t.Fatalf("Expected no error, got '%s'", reply.ErrorKey)
@@ -107,7 +107,7 @@ func TestRuleSkillEffectPoisonCounter(t *testing.T) {
 	// Add 100% accuracy to ensure it hits
 	fake.Skill.Targeting[property.Accuracy.String()] = defaultproperty.MakeIntProperty(property.Accuracy, 100, property.Public, property.Skill)
 	
-	gs.addSkillToEntity(fake.Attacker, fake.Skill)
+	addSkillToEntity(gs, fake.Attacker, fake.Skill)
 
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
@@ -117,7 +117,7 @@ func TestRuleSkillEffectPoisonCounter(t *testing.T) {
 			SkillID:      fake.SkillID,
 		}, nil)
 
-	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ := UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if reply.HasError {
 		t.Fatalf("Expected no error, got '%s'", reply.ErrorKey)
@@ -148,7 +148,7 @@ func TestRuleSkillEffectShield(t *testing.T) {
 	rng := defaultproperty.MakeIntCounterProperty(property.Range, 0, 1, property.Public, property.Skill)
 	fake.Skill.Targeting[property.Range.String()] = rng
 	
-	gs.addSkillToEntity(fake.Attacker, fake.Skill)
+	addSkillToEntity(gs, fake.Attacker, fake.Skill)
 
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
@@ -158,7 +158,7 @@ func TestRuleSkillEffectShield(t *testing.T) {
 			SkillID:      fake.SkillID,
 		}, nil)
 
-	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ := UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if reply.HasError {
 		t.Fatalf("Expected no error, got '%s'", reply.ErrorKey)

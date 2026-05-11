@@ -49,7 +49,7 @@ func TestRuleTrapTriggerOnEnter(t *testing.T) {
 			},
 		}, nil)
 
-	gs.Move(msg, msg.TargetMethod.(rulermethods.ControllerMove))
+	Move(gs, msg, msg.TargetMethod.(rulermethods.ControllerMove))
 
 	// Verify entity 1 is poisoned
 	ent1 := gs.Entities[fake.Entity1]
@@ -91,7 +91,7 @@ func TestRuleEntityExpiration(t *testing.T) {
 		ControllerID: fake.Controller1,
 	}, nil)
 
-	gs.EndOfTurn(msg, msg.TargetMethod.(rulermethods.EndOfTurn), tempEnt)
+	EndOfTurn(gs, msg, msg.TargetMethod.(rulermethods.EndOfTurn), tempEnt)
 
 	// Verify entity is removed
 	if _, ok := gs.Entities[tempEnt.ID]; ok {
@@ -161,7 +161,7 @@ func TestRuleTrapTriggerOnExit(t *testing.T) {
 			},
 		}, nil)
 
-	gs.Move(msg, msg.TargetMethod.(rulermethods.ControllerMove))
+	Move(gs, msg, msg.TargetMethod.(rulermethods.ControllerMove))
 
 	// Verify entity 1 took damage (Default HP is 10, but MakeGameStateForTwo uses 10. Damage is 50% of attack? No, ApplyDirectEffect uses (attack*damage/100)-defense)
 	// ent1 attack is 3. 3 * 50 / 100 = 1. Defense is 0. 1 - 0 = 1 damage.
@@ -195,7 +195,7 @@ func TestRuleTrapTriggerOnTurn(t *testing.T) {
 	gs.PositionalEffects[pos] = append(gs.PositionalEffects[pos], effectID)
 
 	// Begin turn
-	gs.BeginingOfTurn(ent1)
+	BeginingOfTurn(gs, ent1)
 
 	// Verify entity 1 is poisoned
 	ent1 = gs.Entities[fake.Entity1]

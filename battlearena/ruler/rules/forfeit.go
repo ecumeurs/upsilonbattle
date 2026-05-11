@@ -2,6 +2,7 @@ package rules
 
 import (
 	"github.com/ecumeurs/upsilontypes/property"
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/gamestate"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -12,7 +13,7 @@ import (
 // Forfeit handles the forfeiture of a controller.
 // It determines the team of the forfeiting controller and declares all team entities defeated.
 // It returns the winner controller ID (if any), the winner team ID (if any) and whether the battle is finished.
-func (gs *GameState) Forfeit(controllerID uuid.UUID) (uuid.UUID, int, bool) {
+func Forfeit(gs *gamestate.GameState, controllerID uuid.UUID) (uuid.UUID, int, bool) {
 	gs.Logger.WithFields(logrus.Fields{
 		"controllerID": controllerID.String()[0:8]}).Info("GameState.Forfeit")
 

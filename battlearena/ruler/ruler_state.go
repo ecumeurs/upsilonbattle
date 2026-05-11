@@ -77,6 +77,7 @@ func (r *Ruler) getEntitiesState(ctx actor.CallContext) {
 	ctx.Reply(reply)
 }
 
+// testingDeleteEntity removes an entity for test synchronization.
 func (r *Ruler) testingDeleteEntity(ctx actor.NotificationContext) {
 	msg := ctx.Msg.TargetMethod.(rulermethods.TestingDeleteEntity)
 	r.logger.WithField("entityID", msg.EntityID.String()[0:8]).Info("Testing-only removal of entity")
@@ -84,6 +85,7 @@ func (r *Ruler) testingDeleteEntity(ctx actor.NotificationContext) {
 	r.GameState.Turner.RemoveEntity(msg.EntityID)
 }
 
+// testingGetState returns the game state for test verification.
 func (r *Ruler) testingGetState(ctx actor.CallContext) {
 	ctx.Reply(message.Create(nil, rulermethods.TestingGetStateReply{
 		CurrentEntityTurn: r.GameState.Turner.CurrentEntityTurn,

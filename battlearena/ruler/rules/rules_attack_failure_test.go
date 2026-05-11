@@ -1,6 +1,7 @@
 package rules
 
 import (
+
 	"testing"
 
 	"github.com/ecumeurs/upsilontypes/property"
@@ -27,7 +28,7 @@ func TestRuleAttackFailOutOfTurn(t *testing.T) {
 			Target:       fake.FoePosition,
 		}, nil)
 
-	reply := gs.Attack(msg, msg.TargetMethod.(rulermethods.ControllerAttack))
+	reply := Attack(gs, msg, msg.TargetMethod.(rulermethods.ControllerAttack))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -50,7 +51,7 @@ func TestRuleAttackFailWrongController(t *testing.T) {
 			Target:       fake.FoePosition,
 		}, nil)
 
-	reply := gs.Attack(msg, msg.TargetMethod.(rulermethods.ControllerAttack))
+	reply := Attack(gs, msg, msg.TargetMethod.(rulermethods.ControllerAttack))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -73,7 +74,7 @@ func TestRuleAttackFailUnknownEntity(t *testing.T) {
 			Target:       fake.FoePosition,
 		}, nil)
 
-	reply := gs.Attack(msg, msg.TargetMethod.(rulermethods.ControllerAttack))
+	reply := Attack(gs, msg, msg.TargetMethod.(rulermethods.ControllerAttack))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -96,7 +97,7 @@ func TestRuleAttackFailTargetNotFound(t *testing.T) {
 			Target:       position.New(11, 11, 3), // board is 10x10
 		}, nil)
 
-	reply := gs.Attack(msg, msg.TargetMethod.(rulermethods.ControllerAttack))
+	reply := Attack(gs, msg, msg.TargetMethod.(rulermethods.ControllerAttack))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -120,7 +121,7 @@ func TestRuleAttackFailTargetNotGround(t *testing.T) {
 			Target:       fake.FoePosition,
 		}, nil)
 
-	reply := gs.Attack(msg, msg.TargetMethod.(rulermethods.ControllerAttack))
+	reply := Attack(gs, msg, msg.TargetMethod.(rulermethods.ControllerAttack))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -144,7 +145,7 @@ func TestRuleAttackFailTargetNotEntity(t *testing.T) {
 			Target:       fake.FoePosition,
 		}, nil)
 
-	reply := gs.Attack(msg, msg.TargetMethod.(rulermethods.ControllerAttack))
+	reply := Attack(gs, msg, msg.TargetMethod.(rulermethods.ControllerAttack))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -169,7 +170,7 @@ func TestRuleAttackFailTargetNotInRange(t *testing.T) {
 			Target:       foeTempPosition,
 		}, nil)
 
-	reply := gs.Attack(msg, msg.TargetMethod.(rulermethods.ControllerAttack))
+	reply := Attack(gs, msg, msg.TargetMethod.(rulermethods.ControllerAttack))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -199,7 +200,7 @@ func TestRuleAttackFailAlreadyActed(t *testing.T) {
 			Target:       fake.FoePosition,
 		}, nil)
 
-	reply := gs.Attack(msg, msg.TargetMethod.(rulermethods.ControllerAttack))
+	reply := Attack(gs, msg, msg.TargetMethod.(rulermethods.ControllerAttack))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -237,7 +238,7 @@ func TestRuleAttackFailFriendlyFire(t *testing.T) {
 			Target:       fake.FoePosition,
 		}, nil)
 
-	reply := gs.Attack(msg, msg.TargetMethod.(rulermethods.ControllerAttack))
+	reply := Attack(gs, msg, msg.TargetMethod.(rulermethods.ControllerAttack))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")

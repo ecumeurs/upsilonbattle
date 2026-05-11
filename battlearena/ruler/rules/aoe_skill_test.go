@@ -1,6 +1,7 @@
 package rules
 
 import (
+
 	"testing"
 
 	"github.com/ecumeurs/upsilontypes/entity"
@@ -60,7 +61,7 @@ func TestRuleSkill_AOE_ZoneProperty(t *testing.T) {
 	// Set Effect to deal Damage
 	sk.Effect.Properties = append(sk.Effect.Properties, defaultproperty.MakeIntProperty(property.Damage, 50, property.FriendlyController, property.Skill))
 	
-	gs.addSkillToEntity(fake.Attacker, sk)
+	addSkillToEntity(gs, fake.Attacker, sk)
 
 	// Execute skill targeting Foe 1 at (5,6,3)
 	msg := message.Create(nil,
@@ -71,7 +72,7 @@ func TestRuleSkill_AOE_ZoneProperty(t *testing.T) {
 			SkillID:      sk.ID,
 		}, nil)
 
-	reply, damaged, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, damaged, _ := UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	// Verification
 	assert.False(t, reply.HasError, "Skill should not return an error")

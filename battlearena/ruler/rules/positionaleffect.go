@@ -5,6 +5,7 @@ import (
 	"github.com/ecumeurs/upsilontypes/property"
 	"github.com/ecumeurs/upsilontypes/property/effect"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/effect/effectapplicator"
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/gamestate"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -15,7 +16,7 @@ import (
 //
 // @spec-link [[mech_trigger_system]]
 // @spec-link [[mech_positional_effects]]
-func (gs *GameState) ProcessPositionalEffects(ent entity.Entity, pos position.Position, trigger property.TriggerTypeValue) {
+func ProcessPositionalEffects(gs *gamestate.GameState, ent entity.Entity, pos position.Position, trigger property.TriggerTypeValue) {
 	effectIDs, ok := gs.PositionalEffects[pos]
 	if !ok || len(effectIDs) == 0 {
 		return
@@ -32,12 +33,12 @@ func (gs *GameState) ProcessPositionalEffects(ent entity.Entity, pos position.Po
 	copy(toProcess, effectIDs)
 
 	for _, effectID := range toProcess {
-		gs.processSinglePositionalEffect(log, ent, pos, effectID, trigger)
+		processSinglePositionalEffect(gs, log, ent, pos, effectID, trigger)
 	}
 }
 
 // processSinglePositionalEffect handles the validation and application of a single positional effect.
-func (gs *GameState) processSinglePositionalEffect(log *logrus.Entry, ent entity.Entity, pos position.Position, effectID uuid.UUID, trigger property.TriggerTypeValue) {
+func processSinglePositionalEffect(gs *gamestate.GameState, log *logrus.Entry, ent entity.Entity, pos position.Position, effectID uuid.UUID, trigger property.TriggerTypeValue) {
 	eff, exists := gs.Effects[effectID]
 	if !exists {
 		return
@@ -71,7 +72,7 @@ func (gs *GameState) processSinglePositionalEffect(log *logrus.Entry, ent entity
 	}
 
 	// Apply the effect
-	gs.applyPositionalEffect(log, ent, eff)
+	applyPositionalEffect(gs, log, ent, eff)
 
 	// RemoveOnTrigger: consume after one application
 	removeOnTriggerProp := eff.GetProperty(property.RemoveOnTrigger)
@@ -85,7 +86,7 @@ func (gs *GameState) processSinglePositionalEffect(log *logrus.Entry, ent entity
 // (the entity that stepped on/occupies the cell). We use effectapplicator in single-target mode.
 //
 // @spec-link [[mech_positional_effects]]
-func (gs *GameState) applyPositionalEffect(log *logrus.Entry, target entity.Entity, eff effect.Effect) {
+func applyPositionalEffect(gs *gamestate.GameState, log *logrus.Entry, target entity.Entity, eff effect.Effect) {
 	log.WithFields(logrus.Fields{
 		"targetID": target.ID.String()[0:8],
 		"effect":   eff.Name,

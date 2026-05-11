@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/gamestate"
 	"testing"
 	"github.com/google/uuid"
 )
@@ -11,7 +12,7 @@ import (
 // TestVersioningBitPacking verifies the internal bit-packing logic for game state versioning.
 // It ensures that turn indices and action indices are correctly encoded into a single 64-bit version integer.
 func TestVersioningBitPacking(t *testing.T) {
-	gs := New(uuid.New())
+	gs := gamestate.New(uuid.New())
 
 	// Initial State
 	if gs.Version != 0 {

@@ -25,7 +25,7 @@ func TestRuleSkillFailOutOfTurn(t *testing.T) {
 		}, nil)
 
 	// Attempt to use a skill when it is not the attacker's turn.
-	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ := UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -50,7 +50,7 @@ func TestRuleSkillFailWrongController(t *testing.T) {
 		}, nil)
 
 	// Attempt to use a skill with an authorized controller.
-	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ := UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -75,7 +75,7 @@ func TestRuleSkillFailUnknownEntity(t *testing.T) {
 		}, nil)
 
 	// Attempt to use a skill for a non-existent entity.
-	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ := UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -100,7 +100,7 @@ func TestRuleSkillFailUnknownSkill(t *testing.T) {
 		}, nil)
 
 	// Attempt to use a skill that the entity does not possess.
-	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ := UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -132,7 +132,7 @@ func TestRuleSkillFailAlreadyActed(t *testing.T) {
 		}, nil)
 
 	// Attempt to use a skill when the entity is already in 'acted' state.
-	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ := UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")

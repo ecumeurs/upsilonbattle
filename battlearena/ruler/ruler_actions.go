@@ -7,6 +7,7 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
 	"github.com/ecumeurs/upsilontypes/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rules"
 	"github.com/ecumeurs/upsilontools/tools/actor"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/sirupsen/logrus"
@@ -75,7 +76,7 @@ func (r *Ruler) controllerMove(ctx actor.CallContext) {
 		return
 	}
 
-	reply := r.GameState.Move(ctx.Msg, req)
+	reply := rules.Move(r.GameState, ctx.Msg, req)
 	ctx.Reply(reply)
 
 	if !reply.HasError {
@@ -103,7 +104,7 @@ func (r *Ruler) controllerAttack(ctx actor.CallContext) {
 		return
 	}
 
-	reply := r.GameState.Attack(ctx.Msg, req)
+	reply := rules.Attack(r.GameState, ctx.Msg, req)
 	ctx.Reply(reply)
 
 	if !reply.HasError {
@@ -130,7 +131,7 @@ func (r *Ruler) controllerUseSkill(ctx actor.CallContext) {
 		return
 	}
 
-	reply, damaged, affected := r.GameState.UseSkill(ctx.Msg, req)
+	reply, damaged, affected := rules.UseSkill(r.GameState, ctx.Msg, req)
 	ctx.Reply(reply)
 
 	for _, d := range damaged {
@@ -184,7 +185,7 @@ func (r *Ruler) controllerForfeit(ctx actor.CallContext) {
 		return
 	}
 
-	_, winnerTeamID, finished := r.GameState.Forfeit(req.ControllerID)
+	_, winnerTeamID, finished := rules.Forfeit(r.GameState, req.ControllerID)
 
 	if finished {
 		r.CurrentState = Finished

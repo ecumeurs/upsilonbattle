@@ -33,7 +33,7 @@ func TestRuleMoveSucceed(t *testing.T) {
 			},
 		}, nil)
 
-	reply := gs.Move(msg, msg.TargetMethod.(rulermethods.ControllerMove))
+	reply := Move(gs, msg, msg.TargetMethod.(rulermethods.ControllerMove))
 
 	if reply.HasError {
 		t.Errorf("Expected no error, got '%s'", reply.ErrorKey)

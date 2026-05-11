@@ -26,7 +26,7 @@ func TestRuleSkillFailTargetOutOfRange(t *testing.T) {
 		}, nil)
 
 	// Attempt to use a skill on an out-of-range target.
-	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ := UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -59,7 +59,7 @@ func TestRuleSkillFailTargetOutOfGrid(t *testing.T) {
 		}, nil)
 
 	// Attempt to use a skill on a target outside grid boundaries.
-	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ := UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -91,7 +91,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Entity(t *testing.T) {
 		}, nil)
 
 	// Attempt to use a skill on an empty cell when an entity target is required.
-	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ := UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -114,7 +114,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Self(t *testing.T) {
 	rng := fake.Skill.GetProperty(property.Range).(*defaultproperty.DefaultIntCounterProperty)
 	rng.Value = 0
 	fake.Skill.Targeting[rng.Name(property.GameMaster)] = rng
-	gs.addSkillToEntity(fake.Attacker, fake.Skill) 
+	addSkillToEntity(gs, fake.Attacker, fake.Skill) 
 
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
@@ -125,7 +125,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Self(t *testing.T) {
 		}, nil)
 
 	// Verify that targeting another entity fails.
-	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ := UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -144,7 +144,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Self(t *testing.T) {
 			SkillID:      fake.SkillID,
 		}, nil)
 
-	reply, _, _ = gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ = UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if reply.HasError {
 		t.Errorf("Didn't expect and error but got one: %s", reply.ErrorKey)
@@ -160,7 +160,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Ennemy(t *testing.T) {
 	prop := def.SkillProperty(property.TargetType)
 	prop.Set(string(def.TargetTypeEnemyOnly))
 	fake.Skill.Targeting[property.TargetType.String()] = prop
-	gs.addSkillToEntity(fake.Attacker, fake.Skill) 
+	addSkillToEntity(gs, fake.Attacker, fake.Skill) 
 
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
@@ -171,7 +171,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Ennemy(t *testing.T) {
 		}, nil)
 
 	// Verify that targeting an empty cell fails.
-	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ := UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -196,7 +196,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Ennemy(t *testing.T) {
 		}, nil)
 
 	// Verify that targeting an ally fails for an 'EnemyOnly' skill.
-	reply, _, _ = gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ = UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -215,7 +215,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Ennemy(t *testing.T) {
 		}, nil)
 
 	// Verify that targeting an actual enemy succeeds.
-	reply, _, _ = gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ = UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if reply.HasError {
 		t.Errorf("Didn't expect and error but got one: %s", reply.ErrorKey)
@@ -231,7 +231,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Ally(t *testing.T) {
 	prop := def.SkillProperty(property.TargetType)
 	prop.Set(string(def.TargetTypeFriendOnly))
 	fake.Skill.Targeting[property.TargetType.String()] = prop
-	gs.addSkillToEntity(fake.Attacker, fake.Skill) 
+	addSkillToEntity(gs, fake.Attacker, fake.Skill) 
 
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
@@ -242,7 +242,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Ally(t *testing.T) {
 		}, nil)
 
 	// Verify that targeting an empty cell fails.
-	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ := UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -262,7 +262,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Ally(t *testing.T) {
 		}, nil)
 
 	// Verify that targeting an enemy fails for a 'FriendOnly' skill.
-	reply, _, _ = gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ = UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -287,7 +287,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Ally(t *testing.T) {
 		}, nil)
 
 	// Verify that targeting an actual ally succeeds.
-	reply, _, _ = gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ = UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if reply.HasError {
 		t.Errorf("Didn't expect and error but got one: %s", reply.ErrorKey)
@@ -303,7 +303,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Cell(t *testing.T) {
 	prop := def.SkillProperty(property.TargetType)
 	prop.Set(string(def.TargetTypeTile))
 	fake.Skill.Targeting[property.TargetType.String()] = prop
-	gs.addSkillToEntity(fake.Attacker, fake.Skill) 
+	addSkillToEntity(gs, fake.Attacker, fake.Skill) 
 
 	msg := message.Create(nil,
 		rulermethods.ControllerUseSkill{
@@ -314,7 +314,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Cell(t *testing.T) {
 		}, nil)
 
 	// Verify that targeting an occupied cell fails for a 'Tile' only skill.
-	reply, _, _ := gs.UseSkill(msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
+	reply, _, _ := UseSkill(gs, msg, msg.TargetMethod.(rulermethods.ControllerUseSkill))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")

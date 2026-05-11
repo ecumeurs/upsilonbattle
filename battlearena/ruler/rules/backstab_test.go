@@ -1,6 +1,7 @@
 package rules
 
 import (
+
 	"testing"
 
 	"github.com/ecumeurs/upsilontypes/entity"

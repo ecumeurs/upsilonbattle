@@ -31,7 +31,7 @@ func TestRuleMoveFailOutOfTurn(t *testing.T) {
 			},
 		}, nil)
 
-	reply := gs.Move(msg, msg.TargetMethod.(rulermethods.ControllerMove))
+	reply := Move(gs, msg, msg.TargetMethod.(rulermethods.ControllerMove))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -59,7 +59,7 @@ func TestRuleMoveFailWrongController(t *testing.T) {
 			},
 		}, nil)
 
-	reply := gs.Move(msg, msg.TargetMethod.(rulermethods.ControllerMove))
+	reply := Move(gs, msg, msg.TargetMethod.(rulermethods.ControllerMove))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -87,7 +87,7 @@ func TestRuleMoveFailUnknownEntity(t *testing.T) {
 			},
 		}, nil)
 
-	reply := gs.Move(msg, msg.TargetMethod.(rulermethods.ControllerMove))
+	reply := Move(gs, msg, msg.TargetMethod.(rulermethods.ControllerMove))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -116,7 +116,7 @@ func TestRuleMoveFailOccupied(t *testing.T) {
 			},
 		}, nil)
 
-	reply := gs.Move(msg, msg.TargetMethod.(rulermethods.ControllerMove))
+	reply := Move(gs, msg, msg.TargetMethod.(rulermethods.ControllerMove))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -153,7 +153,7 @@ func TestRuleMoveFailObstacle(t *testing.T) {
 			},
 		}, nil)
 
-	reply := gs.Move(msg, msg.TargetMethod.(rulermethods.ControllerMove))
+	reply := Move(gs, msg, msg.TargetMethod.(rulermethods.ControllerMove))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -188,7 +188,7 @@ func TestRuleMoveFailMovementPropertyNotEnoughForPath(t *testing.T) {
 			},
 		}, nil)
 
-	reply := gs.Move(msg, msg.TargetMethod.(rulermethods.ControllerMove))
+	reply := Move(gs, msg, msg.TargetMethod.(rulermethods.ControllerMove))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -216,7 +216,7 @@ func TestRuleMoveFailNotAdjascent(t *testing.T) {
 			},
 		}, nil)
 
-	reply := gs.Move(msg, msg.TargetMethod.(rulermethods.ControllerMove))
+	reply := Move(gs, msg, msg.TargetMethod.(rulermethods.ControllerMove))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -244,7 +244,7 @@ func TestRuleMoveFailStartNotAdjascent(t *testing.T) {
 			},
 		}, nil)
 
-	reply := gs.Move(msg, msg.TargetMethod.(rulermethods.ControllerMove))
+	reply := Move(gs, msg, msg.TargetMethod.(rulermethods.ControllerMove))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -277,7 +277,7 @@ func TestRuleMoveFailNoMovementCredits(t *testing.T) {
 			},
 		}, nil)
 
-	reply := gs.Move(msg, msg.TargetMethod.(rulermethods.ControllerMove))
+	reply := Move(gs, msg, msg.TargetMethod.(rulermethods.ControllerMove))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -310,7 +310,7 @@ func TestRuleMoveFailNotEnoughMovementCredits(t *testing.T) {
 			},
 		}, nil)
 
-	reply := gs.Move(msg, msg.TargetMethod.(rulermethods.ControllerMove))
+	reply := Move(gs, msg, msg.TargetMethod.(rulermethods.ControllerMove))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -341,7 +341,7 @@ func TestRuleMoveFailNotAdjascentJumpHeight(t *testing.T) {
 			},
 		}, nil)
 
-	reply := gs.Move(msg, msg.TargetMethod.(rulermethods.ControllerMove))
+	reply := Move(gs, msg, msg.TargetMethod.(rulermethods.ControllerMove))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")
@@ -376,7 +376,7 @@ func TestRuleMoveFailAlreadyMoved(t *testing.T) {
 			},
 		}, nil)
 
-	reply := gs.Move(msg, msg.TargetMethod.(rulermethods.ControllerMove))
+	reply := Move(gs, msg, msg.TargetMethod.(rulermethods.ControllerMove))
 
 	if !reply.HasError {
 		t.Errorf("Expected error, got none.")

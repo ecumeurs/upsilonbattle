@@ -240,6 +240,7 @@ func (ctl *AggressiveController) BattleEnd(ctx actor.NotificationContext) {
 	}
 }
 
+// ControllerAttacked handles notifications when an entity is attacked.
 func (ctl *AggressiveController) ControllerAttacked(ctx actor.NotificationContext) {
 	attacked := ctx.Msg.TargetMethod.(rulermethods.ControllerAttacked)
 
@@ -256,6 +257,7 @@ func (ctl *AggressiveController) ControllerAttacked(ctx actor.NotificationContex
 
 }
 
+// EntitiesStateChanged handles updates to the general state of all entities.
 func (ctl *AggressiveController) EntitiesStateChanged(ctx actor.NotificationContext) {
 	ctl.RequestLogger.WithFields(logrus.Fields{
 		"Turn": ctx.Msg.TargetMethod.(rulermethods.EntitiesStateChanged).Turn.String()}).Info("New Turn Received")
@@ -266,9 +268,11 @@ func (ctl *AggressiveController) EntitiesStateChanged(ctx actor.NotificationCont
 	}
 }
 
+// GetStateReply handles the response for a state request.
 func (ctl *AggressiveController) GetStateReply(ctx actor.ReplyContext) {
 }
 
+// GetGridStateReply handles the response for a grid state request and marks the controller as ready.
 func (ctl *AggressiveController) GetGridStateReply(ctx actor.ReplyContext) {
 	ctl.Grid = ctx.Msg.Content.(rulermethods.GetGridStateReply).Grid
 	if !ctl.battleready {
@@ -279,6 +283,7 @@ func (ctl *AggressiveController) GetGridStateReply(ctx actor.ReplyContext) {
 	}
 }
 
+// GetEntitiesStateReply handles the response for an entities state request.
 func (ctl *AggressiveController) GetEntitiesStateReply(ctx actor.ReplyContext) {
 	ctl.RequestLogger.WithFields(logrus.Fields{
 		"Turn": ctx.Msg.Content.(rulermethods.GetEntitiesStateReply).Turn.String()}).Info("New Turn Info Received")
@@ -442,6 +447,7 @@ func (ctl *AggressiveController) EndOfTurnReply(ctx actor.ReplyContext) {}
 // NoOp is an empty notification handler for ignored events.
 func (ctl *AggressiveController) NoOp(ctx actor.NotificationContext) {}
 
+// isPathStepBlocked determines if a specific grid position is blocked by an entity or obstacle.
 func (ctl *AggressiveController) isPathStepBlocked(pos position.Position, selfID uuid.UUID) bool {
 	// 1. Check if occupied by another ALIVE entity in KnownEntities.
 	// This is the primary source for dynamic occupancy since ctl.Grid is static.

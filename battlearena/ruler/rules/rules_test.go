@@ -4,6 +4,7 @@ import (
 	"github.com/ecumeurs/upsilontypes/entity"
 	"github.com/ecumeurs/upsilontypes/property"
 	"github.com/ecumeurs/upsilontypes/property/def"
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/gamestate"
 	"github.com/ecumeurs/upsilonmapdata/grid"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
@@ -54,9 +55,9 @@ type FakeState struct {
 
 // makeGameStateForTwo initializes a test GameState with two controllers and four entities.
 // It sets up a 10x10x3 grid and populates it with characters for both teams.
-func makeGameStateForTwo() (*GameState, FakeState) {
+func makeGameStateForTwo() (*gamestate.GameState, FakeState) {
 
-	gs := New(uuid.New())
+	gs := gamestate.New(uuid.New())
 	ctrl := newFakeController()
 	gs.Controllers[ctrl.ID] = ctrl
 	ctrl2 := newFakeController()

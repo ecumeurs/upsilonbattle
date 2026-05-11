@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/gamestate"
 	"testing"
 
 	"github.com/ecumeurs/upsilontypes/property"
@@ -12,7 +13,7 @@ import (
 // @test-link [[uc_match_resolution]]
 
 // setTeam is a test helper to assign an entity to a specific team.
-func setTeam(gs *GameState, entityID uuid.UUID, teamID int) {
+func setTeam(gs *gamestate.GameState, entityID uuid.UUID, teamID int) {
 	ent := gs.Entities[entityID]
 	ent.RepsertPropertyValue(property.TeamID, teamID)
 	gs.Entities[entityID] = ent
@@ -31,7 +32,7 @@ func TestRuleForfeitPvP(t *testing.T) {
 	setTeam(gs, fake.Entity3, 2)
 	setTeam(gs, fake.Entity4, 2)
 
-	_, winnerTeamID, finished := gs.Forfeit(fake.Controller1)
+	_, winnerTeamID, finished := Forfeit(gs, fake.Controller1)
 
 	if !finished {
 		t.Errorf("Expected battle to be finished")
@@ -65,7 +66,7 @@ func TestRuleForfeitNoEntities(t *testing.T) {
 	gs, _ := makeGameStateForTwo()
 	
 	// Try forfeiting for a controller with no entities
-	_, _, finished := gs.Forfeit(uuid.New())
+	_, _, finished := Forfeit(gs, uuid.New())
 	
 	if finished {
 		t.Errorf("Expected battle to NOT be finished")

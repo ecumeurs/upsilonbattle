@@ -3,6 +3,7 @@ package rules
 import (
 	"github.com/ecumeurs/upsilontypes/entity"
 	"github.com/ecumeurs/upsilontypes/property"
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/gamestate"
 	"github.com/sirupsen/logrus"
 )
 
@@ -11,7 +12,7 @@ import (
 // and fires OnTurn positional triggers.
 // @spec-link [[rule_turn_clock]]
 // @spec-link [[rule_turn_atomic_selection]]
-func (gs *GameState) BeginingOfTurn(ent entity.Entity) {
+func BeginingOfTurn(gs *gamestate.GameState, ent entity.Entity) {
 	loclog := gs.Logger.WithFields(logrus.Fields{
 		"entityID": ent.ID.String()[0:8],
 		"rule":     "BeginingOfTurn",
@@ -49,7 +50,7 @@ func (gs *GameState) BeginingOfTurn(ent entity.Entity) {
 	// @spec-link [[mech_trigger_system]]
 	// Fire OnTurn positional effects for the entity's current cell.
 	// This runs after stun resolution so the entity's final state is used.
-	gs.ProcessPositionalEffects(ent, ent.Position, property.TriggerOnTurn)
+	ProcessPositionalEffects(gs, ent, ent.Position, property.TriggerOnTurn)
 
 	// Reload entity in case positional effects modified it
 	ent = gs.Entities[ent.ID]

@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/gamestate"
 	"testing"
 
 	"github.com/ecumeurs/upsilontypes/property"
@@ -26,7 +27,7 @@ type FakeStateAttack struct {
 
 // makeGameStateForTwoAttack initializes a GameState with two entities (attacker and foe)
 // positioned for combat testing. It sets the current turn to the attacker.
-func makeGameStateForTwoAttack() (*GameState, FakeStateAttack) {
+func makeGameStateForTwoAttack() (*gamestate.GameState, FakeStateAttack) {
 	gs, f := makeGameStateForTwo()
 	fake := FakeStateAttack{
 		FakeState:            f,
@@ -75,7 +76,7 @@ func TestRuleAttackSucceed(t *testing.T) {
 			Target:       fake.FoePosition,
 		}, nil)
 
-	reply := gs.Attack(msg, msg.TargetMethod.(rulermethods.ControllerAttack))
+	reply := Attack(gs, msg, msg.TargetMethod.(rulermethods.ControllerAttack))
 
 	if reply.HasError {
 		t.Errorf("Expected no error, got '%s'", reply.ErrorKey)
@@ -167,7 +168,7 @@ func TestRuleAttackCredits(t *testing.T) {
 			Target:       fake.FoePosition,
 		}, nil)
 
-	reply := gs.Attack(msg, msg.TargetMethod.(rulermethods.ControllerAttack))
+	reply := Attack(gs, msg, msg.TargetMethod.(rulermethods.ControllerAttack))
 
 	if reply.HasError {
 		t.Errorf("Expected no error, got '%s'", reply.ErrorKey)

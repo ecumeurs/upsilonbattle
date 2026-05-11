@@ -4,6 +4,7 @@ import (
 	"github.com/ecumeurs/upsilontypes/entity/skill/skillweight"
 	"github.com/ecumeurs/upsilontypes/property"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/effect/effectapplicator"
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/gamestate"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/sirupsen/logrus"
@@ -20,7 +21,7 @@ import (
 // Intent: Provide a unified entry point for all skill-based interactions in the battle arena.
 // Inputs: msg (*message.Message) - the incoming request message, req (rulermethods.ControllerUseSkill) - the skill usage parameters.
 // Outputs: reply (*message.Message) - the outcome message, damaged ([]rulermethods.ControllerAttacked) - list of entities that took damage, affected ([]rulermethods.ControllerSkillUsed) - list of entities affected by status changes.
-func (gs *GameState) UseSkill(msg *message.Message, req rulermethods.ControllerUseSkill) (reply *message.Message, damaged []rulermethods.ControllerAttacked, affected []rulermethods.ControllerSkillUsed) {
+func UseSkill(gs *gamestate.GameState, msg *message.Message, req rulermethods.ControllerUseSkill) (reply *message.Message, damaged []rulermethods.ControllerAttacked, affected []rulermethods.ControllerSkillUsed) {
 	ctx := localSkillCtx{
 		GameState: gs,
 		log: gs.Logger.WithFields(logrus.Fields{

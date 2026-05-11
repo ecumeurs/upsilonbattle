@@ -7,8 +7,9 @@ import (
 	"github.com/ecumeurs/upsilontypes/entity"
 	"github.com/ecumeurs/upsilontypes/entity/entitygenerator"
 	"github.com/ecumeurs/upsilontypes/property"
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/gamestate"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
-	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rules"
+
 	"github.com/ecumeurs/upsilonmapdata/grid"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/ecumeurs/upsilonmapmaker/gridgenerator"
@@ -45,7 +46,7 @@ func (g ArenaState) String() string {
 type Ruler struct {
 	ID uuid.UUID
 	*actor.Actor
-	GameState    *rules.GameState
+	GameState    *gamestate.GameState
 	CurrentState ArenaState
 	logger       *logrus.Entry
 
@@ -91,7 +92,7 @@ func NewCompleteRuler() *Ruler {
 		SetQueueAcks:          make(map[uuid.UUID]bool),
 		ShotClockDuration:     30 * time.Second,
 	}
-	r.GameState = rules.New(r.ID)
+	r.GameState = gamestate.New(r.ID)
 	r.logger = logrus.WithFields(logrus.Fields{
 		"component": "Ruler",
 		"name":      r.Name()})
@@ -156,7 +157,7 @@ func NewRuler(id uuid.UUID) *Ruler {
 		SetQueueAcks:          make(map[uuid.UUID]bool),
 		ShotClockDuration:     30 * time.Second,
 	}
-	r.GameState = rules.New(r.ID)
+	r.GameState = gamestate.New(r.ID)
 	r.logger = logrus.WithFields(logrus.Fields{
 		"component": "Ruler",
 		"name":      r.Name()})
@@ -193,6 +194,7 @@ func (r *Ruler) AddEntity(e entity.Entity) {
 	r.GameState.Turner.AddEntity(e.ID, e.CurrentDelay)
 }
 
+// init binds all internal message handlers to the Ruler actor.
 func (r *Ruler) init() {
 	r.AddCallHandler(rulermethods.AddController{}, r.addController, nil)
 	r.AddCallHandler(rulermethods.GetState{}, r.getState, nil)
