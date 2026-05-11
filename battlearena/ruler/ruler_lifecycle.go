@@ -117,8 +117,13 @@ func (r *Ruler) resurrect(ctx actor.NotificationContext) {
 func (r *Ruler) actorAboutToStop(ctx actor.NotificationContext) {
 	r.logger.Info("Ruler is about to stop, stopping all controllers and timers")
 	r.stopShotClock()
+	stopped := make(map[actor.Communication]bool)
 	for id, ctrl := range r.GameState.Controllers {
+		if stopped[ctrl] {
+			continue
+		}
 		r.logger.Infof("Stopping controller %s", id)
 		ctrl.NotifyActor(message.Create(nil, actor.ActorStop{}, nil))
+		stopped[ctrl] = true
 	}
 }
