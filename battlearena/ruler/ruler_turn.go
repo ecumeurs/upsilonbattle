@@ -80,7 +80,7 @@ func (r *Ruler) handTurn(entID uuid.UUID) {
 	ent.CurrentDelay = 0
 	r.GameState.Entities[entID] = ent
 
-	// @spec-link [[mech_behavior_system]]
+	// @spec-link [[mech_ruler_behavior]]
 	behaviorProp := ent.GetProperty(property.AIBehavior)
 	behaviorSlug := "none"
 	if behaviorProp != nil {

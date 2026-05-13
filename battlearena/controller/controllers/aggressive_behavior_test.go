@@ -42,9 +42,9 @@ func (m *MockRuler) NotifyActor(msg *message.Message) {
 	m.ReceivedMessages <- msg
 }
 
-// TestAggressiveControllerStall verifies that the AI controller correctly finds a path around blockers instead of stalling.
+// TestAggressiveControllerStall verifies that the AI controller finds a path around
+// blockers rather than stalling or moving through allied entities.
 func TestAggressiveControllerStall(t *testing.T) {
-	// Setup environment
 	ruler := NewMockRuler()
 	defer ruler.Stop()
 
@@ -54,67 +54,49 @@ func TestAggressiveControllerStall(t *testing.T) {
 	ctl.Start()
 	defer ctl.Stop()
 
-	grd := grid.NewGrid(5, 5, 1)
-	ctl.Grid = grd
+	ctl.Grid = grid.NewGrid(5, 5, 1)
 
-	// Entities
-	aiEnt := entity.Entity{
-		ID:           uuid.New(),
-		ControllerID: aiID,
-		Position:     position.Position{X: 0, Y: 0, Z: 1},
-	}
-	aiEnt.Properties = make(map[string]property.Property)
-	aiEnt.RepsertPropertyValue(property.TeamID, 1)
+	aiEnt := makeTestEntity(aiID, position.Position{X: 0, Y: 0, Z: 1}, 1)
 	aiEnt.RepsertPropertyValue(property.AttackRange, 1)
+	foeEnt := makeTestEntity(uuid.New(), position.Position{X: 2, Y: 0, Z: 1}, 2)
+	blockEnt := makeTestEntity(aiID, position.Position{X: 1, Y: 0, Z: 1}, 1) // ally blocker
 
-	foeEnt := entity.Entity{
-		ID:           uuid.New(),
-		ControllerID: uuid.New(),
-		Position:     position.Position{X: 2, Y: 0, Z: 1},
-	}
-	foeEnt.Properties = make(map[string]property.Property)
-	foeEnt.RepsertPropertyValue(property.TeamID, 2)
-
-	blockEnt := entity.Entity{
-		ID:           uuid.New(),
-		ControllerID: aiID, // Ally blocker
-		Position:     position.Position{X: 1, Y: 0, Z: 1},
-	}
-	blockEnt.Properties = make(map[string]property.Property)
-	blockEnt.RepsertPropertyValue(property.TeamID, 1)
-
-	// Populate KnownEntities
 	ctl.KnownEntities[aiEnt.ID] = aiEnt
 	ctl.KnownEntities[foeEnt.ID] = foeEnt
 	ctl.KnownEntities[blockEnt.ID] = blockEnt
 
-	// Trigger Turn
-	ctl.NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{
-		Entity: aiEnt,
-	}, nil))
+	ctl.NotifyActor(message.Create(nil, rulermethods.ControllerNextTurn{Entity: aiEnt}, nil))
 
-	// Expectation: AI should attempt to find a path AROUND the blocker.
-	// In a 5x5 grid, it should find plenty of space.
-	
 	select {
 	case msg := <-ruler.ReceivedMessages:
-		switch m := msg.TargetMethod.(type) {
-		case rulermethods.ControllerMove:
-			t.Logf("AI correctly attempted to move: %v", m.Path)
-			// Verify that the path does NOT contain (1,0)
-			for _, p := range m.Path {
-				if p.X == 1 && p.Y == 0 {
-					t.Errorf("AI attempted to move THROUGH blocker at (1,0)!")
-				}
-			}
-		case rulermethods.ControllerAttack:
-			t.Errorf("AI attempted to attack from current position while target is out of range! Target: %v, AI: %v", m.Target, aiEnt.Position)
-		case rulermethods.EndOfTurn:
-			t.Errorf("AI passed turn immediately without moving or attacking")
-		default:
-			t.Errorf("AI sent unexpected message: %T", m)
-		}
+		assertStallAction(t, msg, aiEnt)
 	case <-time.After(5 * time.Second):
-		t.Errorf("Timeout: AI didn't send any action to Ruler")
+		t.Error("Timeout: AI didn't send any action to Ruler")
+	}
+}
+
+func makeTestEntity(controllerID uuid.UUID, pos position.Position, teamID int) entity.Entity {
+	e := entity.Entity{ID: uuid.New(), ControllerID: controllerID, Position: pos}
+	e.Properties = make(map[string]property.Property)
+	e.RepsertPropertyValue(property.TeamID, teamID)
+	return e
+}
+
+func assertStallAction(t *testing.T, msg *message.Message, aiEnt entity.Entity) {
+	t.Helper()
+	switch m := msg.TargetMethod.(type) {
+	case rulermethods.ControllerMove:
+		t.Logf("AI correctly attempted to move: %v", m.Path)
+		for _, p := range m.Path {
+			if p.X == 1 && p.Y == 0 {
+				t.Error("AI moved THROUGH blocker at (1,0)")
+			}
+		}
+	case rulermethods.ControllerAttack:
+		t.Errorf("AI attacked from out-of-range position: target=%v ai=%v", m.Target, aiEnt.Position)
+	case rulermethods.EndOfTurn:
+		t.Error("AI passed turn immediately without moving or attacking")
+	default:
+		t.Errorf("AI sent unexpected message: %T", m)
 	}
 }

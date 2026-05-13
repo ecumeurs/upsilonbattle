@@ -20,8 +20,16 @@ type GameState interface {
 }
 
 // Behavior defines how an automated entity (Trap, TimeBased, etc.) decides its action.
-// @spec-link [[mech_behavior_system]]
+//
+// CONTEXT: This interface is for SYNCHRONOUS execution within the Ruler's main goroutine.
+// It is intended for simple "non-actor" entities that do not have their own Controller.
+//
+// DIFFERENCE: Unlike controller/behavior (which returns a semantic Decision), this
+// returns a raw *message.Message which is directly processed by the engine.
+//
+// @spec-link [[mech_ruler_behavior]]
 type Behavior interface {
+	// Decide calculates the next message to be processed for the entity.
 	Decide(gs GameState, ent entity.Entity) *message.Message
 }
 
@@ -39,7 +47,7 @@ func (b *ExpirationBehavior) Decide(gs GameState, ent entity.Entity) *message.Me
 }
 
 // AggressiveBehavior finds the nearest enemy and moves toward them.
-// @spec-link [[mech_behavior_system]]
+// @spec-link [[mech_ruler_behavior]]
 type AggressiveBehavior struct{}
 
 // Decide selects an action (Move or Attack) based on the proximity of the nearest enemy entity.

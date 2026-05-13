@@ -1,48 +1,74 @@
 package controllers
 
 import (
-	"errors"
+	"fmt"
 	"time"
 
+	"github.com/ecumeurs/upsilonbattle/battlearena/controller/behavior"
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
 	"github.com/ecumeurs/upsilontypes/entity"
 	"github.com/ecumeurs/upsilontypes/property"
-	"github.com/ecumeurs/upsilontypes/property/defaultproperty"
 	"github.com/ecumeurs/upsilonmapdata/grid"
-	"github.com/ecumeurs/upsilonmapdata/grid/cell"
 	"github.com/ecumeurs/upsilonmapdata/grid/position"
+	"github.com/ecumeurs/upsilontools/tools"
 
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
-	"github.com/ecumeurs/upsilontools/tools"
 	"github.com/ecumeurs/upsilontools/tools/actor"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
-type AggressiveController struct {
+// AIController is an actor-based controller that runs an entity's turn through a
+// LayeredBehavior pipeline, emitting one EngineCommand per tick.
+//
+// AggressiveController is retained as an alias for backward compatibility.
+//
+// @spec-link [[mechanic_mech_behavior_layered]]
+type AIController struct {
 	*actor.Actor
 	ID             uuid.UUID
 	KnownEntities  map[uuid.UUID]entity.Entity
 	Grid           *grid.Grid
 	ruler          actor.Communication
-	latestTarget   entity.Entity
 	BattleFinished chan bool
 	battleready    bool
+
+	pipeline *behavior.LayeredBehavior
+	memory   *behavior.DecisionMemory
+	gradeIdx int
+
+	// per-turn transient state (reset each ControllerNextTurn)
+	currentEntityID uuid.UUID
+	turnCtx         *controllerGameContext
+	lastSentPath    []position.Position
 }
 
-func NewRdAggressiveController(name string) *AggressiveController {
+// AggressiveController is kept as a type alias so existing call sites compile unchanged.
+type AggressiveController = AIController
+
+// NewAggressiveController returns an AIController with the baseline-only stack.
+// Use NewAIController to supply an archetype-specific pipeline.
+func NewAggressiveController(id uuid.UUID, name string) *AIController {
+	return NewAIController(id, name, behavior.NewLayeredBehavior(&behavior.AggressiveBehavior{}))
+}
+
+// NewRdAggressiveController creates a baseline AIController with a random UUID.
+func NewRdAggressiveController(name string) *AIController {
 	return NewAggressiveController(uuid.New(), name)
 }
 
-// New
-func NewAggressiveController(id uuid.UUID, name string) *AggressiveController {
-	ctrl := &AggressiveController{
+// NewAIController creates an AIController driven by the supplied pipeline.
+func NewAIController(id uuid.UUID, name string, pipeline *behavior.LayeredBehavior) *AIController {
+	ctrl := &AIController{
 		ID:             id,
 		Actor:          actor.New(name),
 		KnownEntities:  make(map[uuid.UUID]entity.Entity),
 		BattleFinished: make(chan bool, 1),
 		battleready:    false,
+		pipeline:       pipeline,
+		memory:         behavior.NewDecisionMemory(),
+		gradeIdx:       0,
 	}
 	ctrl.Logger = ctrl.Logger.WithFields(logrus.Fields{
 		"ControllerID": id.String()[0:8],
@@ -67,172 +93,79 @@ func NewAggressiveController(id uuid.UUID, name string) *AggressiveController {
 	ctrl.AddReplyHandler(rulermethods.GetEntitiesStateReply{}, ctrl.GetEntitiesStateReply, nil)
 	ctrl.AddReplyHandler(rulermethods.ControllerMoveReply{}, ctrl.ControllerMoveReply, nil)
 	ctrl.AddReplyHandler(rulermethods.ControllerAttackReply{}, ctrl.ControllerAttackReply, nil)
+	ctrl.AddReplyHandler(rulermethods.ControllerUseSkillReply{}, ctrl.ControllerUseSkillReply, nil)
 	ctrl.AddReplyHandler(rulermethods.EndOfTurn{}, ctrl.EndOfTurnReply, nil)
 
 	return ctrl
 }
 
-// implement actor.Manageable
-
-func (ctl *AggressiveController) PrintStack() {
+// PrintStack implements actor.Manageable.
+func (ctl *AIController) PrintStack() {
 	ctl.GetQueue().PrintStack()
 }
 
-// implement all AggressiveController methods handlers.
+// ── Notification handlers ─────────────────────────────────────────────────────
 
 // @spec-link [[mech_controller_handshake]]
-func (ctl *AggressiveController) SetQueue(ctx actor.NotificationContext) {
+func (ctl *AIController) SetQueue(ctx actor.NotificationContext) {
 	m := ctx.Msg.TargetMethod.(controllermethods.SetQueue)
 	ctl.ruler = m.Ruler
 	ctl.ruler.SendActor(message.Create(nil, rulermethods.GetGridState{}, rulermethods.GetGridStateReply{}), ctl.GetCallbackChan())
 	ctl.ruler.SendActor(message.Create(nil, rulermethods.GetEntitiesState{}, rulermethods.GetEntitiesStateReply{}), ctl.GetCallbackChan())
 }
 
-func (ctl *AggressiveController) Send(ctx actor.NotificationContext) {
-
+// Send is a no-op — AI controllers do not send API messages.
+func (ctl *AIController) Send(ctx actor.NotificationContext) {
 }
 
-func (ctl *AggressiveController) ReceiveAPIMessage(ctx actor.NotificationContext) {
-
+// ReceiveAPIMessage is a no-op — AI controllers do not process external API messages.
+func (ctl *AIController) ReceiveAPIMessage(ctx actor.NotificationContext) {
 }
 
-func (ctl *AggressiveController) ControllerNextTurn(ctx actor.NotificationContext) {
+// ControllerNextTurn starts a new entity turn. It initialises the per-turn context
+// and runs the first pipeline tick, dispatching the resulting EngineCommand.
+func (ctl *AIController) ControllerNextTurn(ctx actor.NotificationContext) {
 	controllerData := ctx.Msg.TargetMethod.(rulermethods.ControllerNextTurn)
 
-	// GUARD: Since ControllerNextTurn is now broadcasted to all controllers, 
-	// we must only take action if the entity belongs to US.
+	// GUARD: broadcasted to all controllers — only handle our own entity.
 	if controllerData.Entity.ControllerID != ctl.ID {
 		return
 	}
 
 	ctl.RequestLogger.WithFields(logrus.Fields{
 		"Turn":     controllerData.Turn.String(),
-		"EntityID": controllerData.Entity.String()}).Info("##### Turn BEGIN #####")
+		"EntityID": controllerData.Entity.String(),
+	}).Info("##### Turn BEGIN #####")
 	time.Sleep(100 * time.Millisecond)
-	target, err := ctl.selectNearestFoe(controllerData.Entity, ctl.KnownEntities)
-	if err != nil {
-		ctl.RequestLogger.Debug("Nothing to attack, ending turn")
-		// No target ... Might have won the game!
-		ctl.ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
-			EntityID:     controllerData.Entity.ID,
-			ControllerID: ctl.ID,
-		}, rulermethods.EndOfTurn{}), ctl.GetCallbackChan())
 
-		return
+	ent := ctl.KnownEntities[controllerData.Entity.ID]
+	ctl.memory.AdvanceTurn()
+	ctl.currentEntityID = ent.ID
+	ctl.turnCtx = &controllerGameContext{
+		self:         ent,
+		entities:     ctl.KnownEntities,
+		grd:          ctl.Grid,
+		hasActed:     false,
+		remainingMvt: ent.GetPropertyC(property.Movement).GetValue(),
+		lastOutcome:  behavior.TickNone,
+		mem:          ctl.memory,
+		gradeIdx:     ctl.gradeIdx,
 	}
-	ctl.latestTarget = target
-	ctl.RequestLogger.Debug("Moving To Attack")
-	jumpHeight := ctl.KnownEntities[controllerData.Entity.ID].GetPropertyI(property.JumpHeight).I()
 
-	path, found := ctl.preparePathToEntity(controllerData.Entity.Position, ctl.Grid, target, jumpHeight, controllerData.Entity.ID)
-	// can't be on the same cell as target.
-	if found && len(path) > 1 {
-		movement := ctl.KnownEntities[controllerData.Entity.ID].GetProperty(property.Movement)
-		mvt := movement.(*defaultproperty.DefaultIntCounterProperty).Value
-		atkrng := ctl.KnownEntities[controllerData.Entity.ID].GetPropertyI(property.AttackRange).I()
-		// 1. Determine how far we WANT to go to be in range
-		// atkrng 1 means we stop 1 cell before the target.
-		// AStarPath returns [p1, p2, ..., target], so len(path) includes target.
-		limit := len(path) - atkrng
-		if limit < 0 {
-			limit = 0
-		}
-
-		// 2. Determine how far we CAN go based on movement
-		if limit > mvt {
-			limit = mvt
-		}
-
-		// 3. Determine how far we CAN go based on occupancy and obstacles
-		// We must stop before the first blocked cell in the path.
-		actualLimit := 0
-		for i := 0; i < limit; i++ {
-			// AStarPath now avoids entities, but we check again for extra safety or intermediate changes
-			if ctl.isPathStepBlocked(path[i], controllerData.Entity.ID) {
-				ctl.RequestLogger.WithFields(logrus.Fields{
-					"blockedAt": path[i].String(),
-					"step":      i,
-				}).Debug("Path step blocked by entity, truncating movement")
-				break
-			}
-			actualLimit = i + 1
-		}
-
-		if actualLimit > 1 {
-			// Path includes start position at path[0]. actualLimit=1 means only start is reached.
-			// actualLimit=2 means [start, next]. We move to next (path[1]).
-			movePath := path[1:actualLimit]
-			ctl.RequestLogger.WithFields(logrus.Fields{
-				"actualLimit": actualLimit,
-				"pathLen":     len(path),
-				"movingTo":    movePath[len(movePath)-1].String(),
-			}).Info("Moving toward target")
-
-			ctl.ruler.SendActor(message.Create(nil, rulermethods.ControllerMove{
-				ControllerID: ctl.ID,
-				EntityID:     controllerData.Entity.ID,
-				Path:         movePath,
-			}, rulermethods.ControllerMoveReply{}), ctl.GetCallbackChan())
-		} else {
-			// Cannot move closer or already at range. 
-			// If we are precisely at reach (len(path) <= atkrng + 1), attempt attack.
-			if len(path) > 0 && len(path) <= atkrng+1 {
-				ctl.RequestLogger.Info("Target in range, initiating attack")
-				ctl.ruler.SendActor(message.Create(nil, rulermethods.ControllerAttack{
-					ControllerID: ctl.ID,
-					EntityID:     controllerData.Entity.ID,
-					Target:       target.Position,
-				}, rulermethods.ControllerAttackReply{}), ctl.GetCallbackChan())
-			} else {
-				ctl.RequestLogger.WithFields(logrus.Fields{
-					"atRange": len(path) <= atkrng+1,
-					"path":    len(path),
-				}).Warn("Target unreachable or blocked, passing turn")
-				ctl.ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
-					EntityID:     controllerData.Entity.ID,
-					ControllerID: ctl.ID,
-				}, rulermethods.EndOfTurn{}), ctl.GetCallbackChan())
-			}
-		}
-	} else {
-		// it is already in place. Send attack
-
-		if !found || len(path) == 0 {
-			// Unable to find a path to target ...
-			ctl.RequestLogger.WithFields(logrus.Fields{
-				"EntityID": controllerData.Entity.ID.String()[0:8],
-				"Position": controllerData.Entity.Position,
-				"Expected": target.Position}).Debug("Unable to find path, ending turn")
-			ctl.ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
-				EntityID:     controllerData.Entity.ID,
-				ControllerID: ctl.ID,
-			}, rulermethods.EndOfTurn{}), ctl.GetCallbackChan())
-		} else {
-			// right next to target.
-			ctl.RequestLogger.WithFields(logrus.Fields{
-				"EntityID":       controllerData.Entity.ID.String()[0:8],
-				"Position":       controllerData.Entity.Position,
-				"TargetPosition": target.Position,
-				"TargetEntity":   target.ID.String()[0:8]}).Info("Attacking")
-			ctl.ruler.SendActor(message.Create(nil, rulermethods.ControllerAttack{
-				EntityID:     controllerData.Entity.ID,
-				Target:       target.Position,
-				ControllerID: ctl.ID,
-			}, rulermethods.ControllerAttackReply{
-				Attacker: controllerData.Entity,
-			}), ctl.GetCallbackChan())
-		}
-	}
+	ctl.dispatchTick()
 }
 
-func (ctl *AggressiveController) BattleStart(ctx actor.NotificationContext) {
+// BattleStart fetches the initial grid and entity snapshots so the AI is ready for its first turn.
+func (ctl *AIController) BattleStart(ctx actor.NotificationContext) {
 	ctl.RequestLogger.Info("##### BattleStart #####")
 	ctl.ruler.SendActor(message.Create(nil, rulermethods.GetEntitiesState{}, rulermethods.GetEntitiesStateReply{}), ctl.GetCallbackChan())
 	ctl.ruler.SendActor(message.Create(nil, rulermethods.GetGridState{}, rulermethods.GetGridStateReply{}), ctl.GetCallbackChan())
 }
 
+// BattleEnd signals the battle is over and unblocks any caller waiting on BattleFinished.
+//
 // @spec-link [[mechanic_mech_ai_termination]]
-func (ctl *AggressiveController) BattleEnd(ctx actor.NotificationContext) {
+func (ctl *AIController) BattleEnd(ctx actor.NotificationContext) {
 	ctl.RequestLogger.Info("##### BattleEnd #####")
 	select {
 	case ctl.BattleFinished <- true:
@@ -240,40 +173,44 @@ func (ctl *AggressiveController) BattleEnd(ctx actor.NotificationContext) {
 	}
 }
 
-// ControllerAttacked handles notifications when an entity is attacked.
-func (ctl *AggressiveController) ControllerAttacked(ctx actor.NotificationContext) {
+// ControllerAttacked removes dead entities from KnownEntities.
+func (ctl *AIController) ControllerAttacked(ctx actor.NotificationContext) {
 	attacked := ctx.Msg.TargetMethod.(rulermethods.ControllerAttacked)
-
 	ctl.RequestLogger.WithFields(logrus.Fields{
 		"EntityID":   attacked.Entity.ID.String()[0:8],
 		"AttackerID": attacked.Attacker.ID.String()[0:8],
-		"Position":   attacked.Entity.Position}).Debug("ControllerAttacked")
-	// nothing to do post attack
-
+		"Position":   attacked.Entity.Position,
+	}).Debug("ControllerAttacked")
 	if attacked.Dead {
-		// remove it from the known entities.
 		delete(ctl.KnownEntities, attacked.Entity.ID)
 	}
-
 }
 
-// EntitiesStateChanged handles updates to the general state of all entities.
-func (ctl *AggressiveController) EntitiesStateChanged(ctx actor.NotificationContext) {
+// EntitiesStateChanged refreshes the full entity snapshot.
+func (ctl *AIController) EntitiesStateChanged(ctx actor.NotificationContext) {
 	ctl.RequestLogger.WithFields(logrus.Fields{
-		"Turn": ctx.Msg.TargetMethod.(rulermethods.EntitiesStateChanged).Turn.String()}).Info("New Turn Received")
-	// fill in known entities (clear them beforehand.)
+		"Turn": ctx.Msg.TargetMethod.(rulermethods.EntitiesStateChanged).Turn.String(),
+	}).Info("New Turn Received")
 	ctl.KnownEntities = make(map[uuid.UUID]entity.Entity)
 	for _, e := range ctx.Msg.TargetMethod.(rulermethods.EntitiesStateChanged).Entities {
 		ctl.KnownEntities[e.ID] = e
 	}
 }
 
-// GetStateReply handles the response for a state request.
-func (ctl *AggressiveController) GetStateReply(ctx actor.ReplyContext) {
+// NoOp is an empty handler for events this controller doesn't need to act on.
+func (ctl *AIController) NoOp(ctx actor.NotificationContext) {
 }
 
-// GetGridStateReply handles the response for a grid state request and marks the controller as ready.
-func (ctl *AggressiveController) GetGridStateReply(ctx actor.ReplyContext) {
+// ── Reply handlers ────────────────────────────────────────────────────────────
+
+// GetStateReply is a no-op — state is fetched through the entities/grid-specific replies.
+func (ctl *AIController) GetStateReply(ctx actor.ReplyContext) {
+}
+
+// GetGridStateReply stores the received grid and marks the controller as battle-ready.
+//
+// @spec-link [[mech_controller_handshake]]
+func (ctl *AIController) GetGridStateReply(ctx actor.ReplyContext) {
 	ctl.Grid = ctx.Msg.Content.(rulermethods.GetGridStateReply).Grid
 	if !ctl.battleready {
 		ctl.battleready = true
@@ -283,203 +220,211 @@ func (ctl *AggressiveController) GetGridStateReply(ctx actor.ReplyContext) {
 	}
 }
 
-// GetEntitiesStateReply handles the response for an entities state request.
-func (ctl *AggressiveController) GetEntitiesStateReply(ctx actor.ReplyContext) {
+// GetEntitiesStateReply refreshes the full entity snapshot from the ruler.
+func (ctl *AIController) GetEntitiesStateReply(ctx actor.ReplyContext) {
 	ctl.RequestLogger.WithFields(logrus.Fields{
-		"Turn": ctx.Msg.Content.(rulermethods.GetEntitiesStateReply).Turn.String()}).Info("New Turn Info Received")
-	// fill in known entities (clear them beforehand.)
+		"Turn": ctx.Msg.Content.(rulermethods.GetEntitiesStateReply).Turn.String(),
+	}).Info("New Turn Info Received")
 	ctl.KnownEntities = make(map[uuid.UUID]entity.Entity)
 	for _, e := range ctx.Msg.Content.(rulermethods.GetEntitiesStateReply).Entities {
 		ctl.KnownEntities[e.ID] = e
 	}
 }
 
-// ControllerMoveReply handles the response from a movement request.
-func (ctl *AggressiveController) ControllerMoveReply(ctx actor.ReplyContext) {
+// ControllerMoveReply updates turn state after a move and runs the next pipeline tick.
+func (ctl *AIController) ControllerMoveReply(ctx actor.ReplyContext) {
+	if ctl.turnCtx == nil {
+		return
+	}
 	if ctx.Msg.HasError {
 		ctl.RequestLogger.WithFields(logrus.Fields{
 			"error": ctx.Msg.ErrorMessage,
 		}).Error("Move failed, ending turn")
-		// If move fails, we don't have the updated entity state in the reply.
-		// We should have it in KnownEntities though.
-		// However, without a valid Entity in the reply, we might not know which entity was moving
-		// if multiple were active (not the case for AggressiveController but good practice).
+		ctl.endTurn()
 		return
 	}
-
-	ControllerData, ok := ctx.Msg.Content.(rulermethods.ControllerMoveReply)
+	reply, ok := ctx.Msg.Content.(rulermethods.ControllerMoveReply)
 	if !ok {
 		ctl.RequestLogger.Error("Invalid MoveReply content type")
+		ctl.endTurn()
 		return
 	}
-	target := ctl.latestTarget
+
+	// Update entity position in KnownEntities and turn context.
+	ctl.KnownEntities[reply.Entity.ID] = reply.Entity
+	ctl.turnCtx.self = reply.Entity
+	ctl.turnCtx.entities = ctl.KnownEntities
+	ctl.turnCtx.remainingMvt -= len(ctl.lastSentPath)
+	if ctl.turnCtx.remainingMvt < 0 {
+		ctl.turnCtx.remainingMvt = 0
+	}
+	ctl.turnCtx.lastOutcome = behavior.TickSuccess
 
 	ctl.RequestLogger.WithFields(logrus.Fields{
-		"EntityID": ControllerData.Entity.ID.String()[0:8],
-		"Position": ControllerData.Entity.Position,
-		"Expected": target.Position}).Debug("Move Succesfull")
+		"EntityID":     reply.Entity.ID.String()[0:8],
+		"Position":     reply.Entity.Position,
+		"RemainingMvt": ctl.turnCtx.remainingMvt,
+	}).Debug("Move successful")
+
 	time.Sleep(100 * time.Millisecond)
-
-	attacker := ctl.KnownEntities[ControllerData.Entity.ID]
-
-	ctl.RequestLogger.Info(" Attacker: ", attacker.PrettyString())
-
-	atkrng := attacker.GetPropertyI(property.AttackRange).I()
-	if ControllerData.Entity.Position.Distance(target.Position) <= atkrng {
-
-		// it is already in place. Send attack
-		ctl.RequestLogger.WithFields(logrus.Fields{
-			"EntityID":       ControllerData.Entity.ID.String()[0:8],
-			"Position":       ControllerData.Entity.Position,
-			"TargetPosition": target.Position,
-			"AttackRange":    atkrng,
-			"TargetEntity":   target.ID.String()[0:8]}).Info("Attacking")
-		ctl.ruler.SendActor(message.Create(nil, rulermethods.ControllerAttack{
-			EntityID:     ControllerData.Entity.ID,
-			Target:       target.Position,
-			ControllerID: ctl.ID,
-		}, rulermethods.ControllerAttackReply{
-			Attacker: ControllerData.Entity,
-		}), ctl.GetCallbackChan())
-	} else {
-		// end of turn
-
-		ctl.RequestLogger.WithFields(logrus.Fields{
-			"EntityID": ControllerData.Entity.ID.String()[0:8],
-			"Position": ControllerData.Entity.Position,
-			"Expected": target.Position}).Debug("Too far away from target, ending turn")
-
-		ctl.ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
-			EntityID:     ControllerData.Entity.ID,
-			ControllerID: ctl.ID,
-		}, rulermethods.EndOfTurn{}), ctl.GetCallbackChan())
-	}
+	ctl.dispatchTick()
 }
 
-// ControllerAttackReply handles the response from an attack request.
-func (ctl *AggressiveController) ControllerAttackReply(ctx actor.ReplyContext) {
+// ControllerAttackReply updates turn state after an attack and runs the next pipeline tick.
+func (ctl *AIController) ControllerAttackReply(ctx actor.ReplyContext) {
+	if ctl.turnCtx == nil {
+		return
+	}
 	ctl.RequestLogger.WithFields(logrus.Fields{
 		"Error":   ctx.Msg.HasError,
 		"Message": ctx.Msg.ErrorMessage,
-	}).Info("Attack done, ending turn")
-	
+	}).Info("Attack done")
+
 	if ctx.Msg.HasError {
-		// Just end turn if attack failed
+		ctl.endTurn()
 		return
 	}
-
 	reply, ok := ctx.Msg.Content.(rulermethods.ControllerAttackReply)
 	if !ok {
 		ctl.RequestLogger.Error("Invalid AttackReply content type")
+		ctl.endTurn()
 		return
 	}
+	ctl.KnownEntities[reply.Attacker.ID] = reply.Attacker
+	ctl.turnCtx.self = reply.Attacker
+	ctl.turnCtx.entities = ctl.KnownEntities
+	ctl.turnCtx.hasActed = true
+	ctl.turnCtx.lastOutcome = behavior.TickSuccess
 
 	time.Sleep(100 * time.Millisecond)
+	ctl.dispatchTick()
+}
+
+// ControllerUseSkillReply updates turn state after a skill and runs the next pipeline tick.
+func (ctl *AIController) ControllerUseSkillReply(ctx actor.ReplyContext) {
+	if ctl.turnCtx == nil {
+		return
+	}
+	ctl.RequestLogger.Info("Skill used")
+
+	if ctx.Msg.HasError {
+		ctl.endTurn()
+		return
+	}
+	reply, ok := ctx.Msg.Content.(rulermethods.ControllerUseSkillReply)
+	if !ok {
+		ctl.RequestLogger.Error("Invalid UseSkillReply content type")
+		ctl.endTurn()
+		return
+	}
+	ctl.KnownEntities[reply.Attacker.ID] = reply.Attacker
+	ctl.turnCtx.self = reply.Attacker
+	ctl.turnCtx.entities = ctl.KnownEntities
+	ctl.turnCtx.hasActed = true
+	ctl.turnCtx.lastOutcome = behavior.TickSuccess
+
+	time.Sleep(100 * time.Millisecond)
+	ctl.dispatchTick()
+}
+
+// EndOfTurnReply acknowledges the ruler's confirmation that the turn has ended.
+func (ctl *AIController) EndOfTurnReply(ctx actor.ReplyContext) {
+}
+
+// ── Internal helpers ──────────────────────────────────────────────────────────
+
+// dispatchTick runs one pipeline tick and sends the resulting command to the ruler.
+func (ctl *AIController) dispatchTick() {
+	cmd := ctl.pipeline.Tick(ctl.turnCtx)
+	entityID := ctl.currentEntityID
+
+	switch cmd.Type {
+	case behavior.CmdMove:
+		ctl.lastSentPath = cmd.Path
+		ctl.RequestLogger.WithFields(logrus.Fields{
+			"EntityID": entityID.String()[0:8],
+			"PathLen":  len(cmd.Path),
+			"MovingTo": cmd.Path[len(cmd.Path)-1].String(),
+		}).Info("Moving toward target")
+		ctl.ruler.SendActor(message.Create(nil, rulermethods.ControllerMove{
+			ControllerID: ctl.ID,
+			EntityID:     entityID,
+			Path:         cmd.Path,
+		}, rulermethods.ControllerMoveReply{}), ctl.GetCallbackChan())
+
+	case behavior.CmdAttack:
+		ctl.RequestLogger.WithFields(logrus.Fields{
+			"EntityID": entityID.String()[0:8],
+			"Target":   cmd.Target.String(),
+		}).Info("Attacking")
+		ctl.ruler.SendActor(message.Create(nil, rulermethods.ControllerAttack{
+			ControllerID: ctl.ID,
+			EntityID:     entityID,
+			Target:       cmd.Target,
+		}, rulermethods.ControllerAttackReply{}), ctl.GetCallbackChan())
+
+	case behavior.CmdSkill:
+		ctl.RequestLogger.WithFields(logrus.Fields{
+			"EntityID": entityID.String()[0:8],
+			"SkillID":  cmd.SkillID.String()[0:8],
+			"Target":   cmd.Target.String(),
+		}).Info("Using skill")
+		ctl.ruler.SendActor(message.Create(nil, rulermethods.ControllerUseSkill{
+			ControllerID: ctl.ID,
+			EntityID:     entityID,
+			SkillID:      cmd.SkillID,
+			Target:       cmd.Target,
+		}, rulermethods.ControllerUseSkillReply{}), ctl.GetCallbackChan())
+
+	default: // CmdEndOfTurn
+		ctl.endTurn()
+	}
+}
+
+// endTurn sends EndOfTurn to the ruler and clears the turn context.
+func (ctl *AIController) endTurn() {
+	ctl.RequestLogger.Debug("Ending turn")
 	ctl.ruler.SendActor(message.Create(nil, rulermethods.EndOfTurn{
-		EntityID:     reply.Attacker.ID,
+		EntityID:     ctl.currentEntityID,
 		ControllerID: ctl.ID,
 	}, rulermethods.EndOfTurn{}), ctl.GetCallbackChan())
+	ctl.turnCtx = nil
+	ctl.lastSentPath = nil
 }
 
+// SetGrade configures the AI grade index (0 = Grade I, 8 = Grade V) that scales
+// each behavior layer's activation rate.
+func (ctl *AIController) SetGrade(gradeIdx int) {
+	ctl.gradeIdx = gradeIdx
+}
+
+// selectNearestFoe returns the living enemy closest to currentEntity by Manhattan distance.
 // @spec-link [[rule_team_mechanics]]
-// selectNearestFoe find nearest foe, based on team id.
-// We rely on ctl.KnownEntities for dynamic status (life/death) and positions, 
-// as ctl.Grid is a static snapshot of the map layout.
-func (ctl *AggressiveController) selectNearestFoe(currentEntity entity.Entity, entities map[uuid.UUID]entity.Entity) (entity.Entity, error) {
-	nearestid := uuid.Nil
-	minDist := 10000
-	pos := currentEntity.Position
+func (ctl *AIController) selectNearestFoe(currentEntity entity.Entity, entities map[uuid.UUID]entity.Entity) (entity.Entity, error) {
+	var nearest entity.Entity
+	found := false
+	bestDist := int(^uint(0) >> 1)
 	currentTeam := currentEntity.GetPropertyI(property.TeamID).I()
 
-	ctl.RequestLogger.WithFields(logrus.Fields{
-		"pos":     pos,
-		"entity":  currentEntity.ID.String()[0:8],
-		"team_id": currentTeam,
-	}).Info("selectNearestFoe")
-
-	for id, ent := range entities {
-		hp := ent.GetPropertyI(property.HP).I()
-		if ent.GetPropertyI(property.TeamID).I() != currentTeam && hp > 0 {
-			if currentEntity.ID != ent.ID {
-				ctl.RequestLogger.WithFields(logrus.Fields{
-					"candidate_pos":    ent.Position,
-					"candidate_entity": ent.ID.String()[0:8],
-					"candidate_team":   ent.GetPropertyI(property.TeamID).I()}).Info("candidate")
-
-				dist := tools.Distance(pos.X, pos.Y, ent.Position.X, ent.Position.Y)
-				if nearestid == uuid.Nil || dist < minDist {
-					ctl.RequestLogger.WithFields(logrus.Fields{
-						"selected_pos":    ent.Position,
-						"selected_entity": ent.ID.String()[0:8],
-						"selected_team":   ent.GetPropertyI(property.TeamID).I()}).Info("selected")
-					nearestid = id
-					minDist = dist
-				}
-			}
+	for _, ent := range entities {
+		if ent.ID == currentEntity.ID {
+			continue
+		}
+		if ent.GetPropertyI(property.TeamID).I() == currentTeam {
+			continue
+		}
+		if ent.GetPropertyI(property.HP).I() <= 0 {
+			continue
+		}
+		d := tools.Distance(currentEntity.Position.X, currentEntity.Position.Y, ent.Position.X, ent.Position.Y)
+		if !found || d < bestDist {
+			bestDist = d
+			nearest = ent
+			found = true
 		}
 	}
-
-	if nearestid != uuid.Nil {
-		nearest := entities[nearestid]
-		ctl.RequestLogger.WithFields(logrus.Fields{
-			"nearest_pos":        nearest.Position,
-			"nearest_entity":     nearest.ID.String()[0:8],
-			"nearest_controller": nearest.ControllerID.String()[0:8]}).Info("nearest")
-		return nearest, nil
-	} else {
-		return entity.Entity{}, errors.New("no nearest entity")
+	if !found {
+		return entity.Entity{}, fmt.Errorf("no living enemy found")
 	}
+	return nearest, nil
 }
-
-// preparePathToEntity calculates a path using A* that avoids blocked cells.
-// NOTE: ctl.Grid provides static map geometry, while the exclusion callback 
-// utilizes ctl.KnownEntities to identify dynamic obstacles (other players).
-func (ctl *AggressiveController) preparePathToEntity(pos position.Position, grd *grid.Grid, ent entity.Entity, jumpHeight int, selfID uuid.UUID) ([]position.Position, bool) {
-	path, found := grd.AStarPath(pos, ent.Position, jumpHeight, func(p position.Position) bool {
-		return ctl.isPathStepBlocked(p, selfID)
-	})
-	return path, found
-}
-
-// EndOfTurnReply is a reply handler for the end-of-turn signal.
-func (ctl *AggressiveController) EndOfTurnReply(ctx actor.ReplyContext) {}
-
-// NoOp is an empty notification handler for ignored events.
-func (ctl *AggressiveController) NoOp(ctx actor.NotificationContext) {}
-
-// isPathStepBlocked determines if a specific grid position is blocked by an entity or obstacle.
-func (ctl *AggressiveController) isPathStepBlocked(pos position.Position, selfID uuid.UUID) bool {
-	// 1. Check if occupied by another ALIVE entity in KnownEntities.
-	// This is the primary source for dynamic occupancy since ctl.Grid is static.
-	for _, ent := range ctl.KnownEntities {
-		hp := ent.GetPropertyI(property.HP).I()
-		if ent.ID != selfID && ent.Position.X == pos.X && ent.Position.Y == pos.Y && hp > 0 {
-			return true
-		}
-	}
-
-	// 2. Check Grid for obstacles or occupancy
-	// @spec-link [[mechanic_multi_entity_cell_system]]
-	if ctl.Grid != nil {
-		cells := ctl.Grid.CellsForPositions([]position.Position{pos})
-		if len(cells) > 0 {
-			c := cells[0]
-			if c.Type != cell.Ground {
-				return true
-			}
-
-			// Multi-entity: check all EntityIDs for non-self occupants known in KnownEntities
-			for _, entID := range c.EntityIDs {
-				if entID == selfID {
-					continue
-				}
-				if _, present := ctl.KnownEntities[entID]; present {
-					return true
-				}
-			}
-		}
-	}
-
-	return false
-}
-
