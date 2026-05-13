@@ -1,6 +1,6 @@
 ---
 id: mechanic_mech_behavior_layered
-status: DRAFT
+status: STABLE
 parents:
   - [[mech_behavior_system]]
 dependents: []
@@ -8,7 +8,7 @@ human_name: Layered Behavior Pipeline
 type: MECHANIC
 layer: IMPLEMENTATION
 priority: 4
-version: 1.0
+version: 1.1
 tags: [ai, behavior, pipeline, archetypes]
 ---
 

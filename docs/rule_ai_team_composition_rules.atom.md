@@ -1,11 +1,14 @@
 ---
 id: rule_ai_team_composition_rules
-status: DRAFT
+status: STABLE
 version: 1.0
 parents: []
 dependents: []
 type: RULE
 layer: BUSINESS
+human_name: AI Team Composition Rules
+tags: [ai,matchmaking,team,composition]
+priority: 4
 ---
 
 # New Atom
@@ -14,40 +17,24 @@ layer: BUSINESS
 To implement AI team composition rules that enforce maximum limits on archetype variety per AI team, ensuring balanced team composition with appropriate support and specialist limitations.
 
 ## THE RULE / LOGIC
-**AI Team Composition Rules:**
+**Constraint:** Per AI team — maximum **1 Support**, maximum **1 Sneak**. Fighter and Ranger are uncapped.
 
-**Core Principle:**
-AI team structures are governed by strict archetype constraints to ensure tactical variety and prevent unbalanced combat encounters.
+**PHP enforcement** (`MatchMakingController::assignAIArchetypes(int $count): array`):
+Iterates slots. Once `support` is picked it is removed from the available pool; same for `sneak`. Fighter and Ranger remain available throughout. Result: any 3-entity AI team always satisfies the constraint.
 
-**Archetype Constraints:**
-- **Maximum Limits:** Each AI team is restricted to a maximum of **one Support** and **one Sneak**.
-- **Flexible Slots:** No maximum limit is enforced for **Fighter** or **Ranger** archetypes.
-- **Team Size Cap:** An AI team cannot exceed a total of 5 members.
+**Go enforcement** (`upsilonapi/bridge/validateTeamComposition(players []api.Player) error`):
+Counts support and sneak archetypes per team across all entities in `AutoGen=true` players. Returns an error if either count exceeds 1 on the same team. Called during `StartArena` before entity generation.
 
-**Team Generation Hierarchy:**
-The system populates teams sequentially based on total size:
-1. **1v1:** Any archetype allowed (no constraints).
-2. **2v2:** Prioritizes 1 Fighter and 1 Ranger.
-3. **3v3:** Adds 1 Support to the base 2v2 composition.
-4. **4v4:** Adds 1 Sneak to the base 3v3 composition.
-5. **5v5:** Fills the final slot with an additional Fighter or Ranger.
-
-**Composition Validation Logic:**
-- **Mandatory Check:** Before match start, the team must be validated against the archetype maximums.
-- **Fallback:** If a generated team violates limits, the selection algorithm must re-run until a valid composition is achieved.
-
-**Difficulty and Scaling Integration:**
-- **Level Sync:** All AI team members are scaled to the average level of the player team.
-- **Dynamic Aggression:** AI behavior (targeting precision, risk tolerance) scales based on the player's recent win rate.
-- **Archetype Synergy:** Advanced generation algorithms prioritize templates that maximize combat synergy (e.g., combining a frontline Fighter with a protective Support).
-
-**Matchmaking and Substituted Roles:**
-- **Strategic Variety:** Matchmaking uses multiple pre-defined templates (Balanced, Aggressive, Tactical, Ranged Focus) to keep encounters unpredictable.
-- **Loss Adaptation:** If a specialized AI (Support/Sneak) is eliminated, the remaining team members adjust their tactical priorities rather than attempting to fill the vacant role.
+**Violation response:** Go returns a 400-envelope error; StartArena is rejected. The PHP layer prevents this from ever being reached through normal matchmaking.
 
 ## TECHNICAL INTERFACE
-- **Code Tag:** `@spec-link [[ai_team_composition_rules]]`
-- **Related Files:** `upsilonbattle/battlearena/controller/teamcomposition.go`, matchmaking logic
-- **Integration:** Works with `ai_controller_archetypes`, `mec_ai_archetype_system`, `ai_progression_matching`
+- **Code Tag:** `@spec-link [[rule_team_composition]]`
+- **PHP:** `battleui/app/Http/Controllers/API/MatchMakingController.php` `assignAIArchetypes()`
+- **Go:** `upsilonapi/bridge/bridge_start.go` `validateTeamComposition()`
+- **Tests (PHP):** `PVEMatchmakingTest::test_ai_entities_are_auto_gen_with_archetype`
+- **Tests (Go):** `bridge_start_archetype_test.go` `TestValidateTeamCompositionRejectsTwoSupports`, `TestValidateTeamCompositionRejectsTwoSneaks`
 
 ## EXPECTATION
+- A normal PVE match never generates two Supports or two Sneaks on the AI team.
+- A request with two Sneaks on the same team returns an error from `validateTeamComposition`.
+- The same constrained archetype is allowed on different teams (team 1 support + team 2 support is valid).

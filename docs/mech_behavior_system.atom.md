@@ -5,8 +5,10 @@ priority: 5
 version: 2.0
 parent: []
 dependents:
+  - [[mec_ai_archetype_system]]
   - [[mech_controller_behavior]]
   - [[mech_ruler_behavior]]
+  - [[mechanic_ai_progression_matching]]
   - [[mechanic_mech_behavior_layered]]
   - [[mechanic_mech_decision_memory]]
 type: MODULE

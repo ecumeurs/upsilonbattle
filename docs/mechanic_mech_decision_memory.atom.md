@@ -1,13 +1,13 @@
 ---
 id: mechanic_mech_decision_memory
-status: DRAFT
+status: STABLE
 parents:
   - [[mech_behavior_system]]
 dependents: []
 human_name: AI Decision Memory
 type: MECHANIC
 layer: IMPLEMENTATION
-version: 1.0
+version: 1.1
 priority: 3
 tags: [ai, memory, behavior, state]
 ---
