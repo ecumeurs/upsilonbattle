@@ -9,8 +9,7 @@ priority: 3
 tags: [ai, names, aesthetic, generation]
 parents:
   - [[battleui:req_ui_look_and_feel]]
-dependents:
-  - [[mech_skill_name_generation]]
+dependents: []
 ---
 
 # AI Entity Name Generation

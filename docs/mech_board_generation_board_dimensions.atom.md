@@ -9,8 +9,7 @@ priority: 5
 tags: []
 parents:
   - [[mech_board_generation]]
-dependents:
-  - [[battleui:ui_iso_board]]
+dependents: []
 ---
 # Board Dimensions Mechanic
 

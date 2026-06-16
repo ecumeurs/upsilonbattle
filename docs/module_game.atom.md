@@ -7,9 +7,9 @@ version: 1.0
 status: REVIEW
 priority: 5
 tags: [game, core]
-parents: []
-dependents:
-  - [[battleui:ui_board]]
+parents:
+  - [[req_tech_debt_backlog]]
+dependents: []
 ---
 # TRPG Game Module
 

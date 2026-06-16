@@ -7,9 +7,9 @@ version: 2.0
 status: DRAFT
 priority: 5
 tags: [equipment, inventory, progression]
-parents: []
+parents:
+  - [[req_tech_debt_backlog]]
 dependents:
-  - [[upsilonapi:api_equipment_management]]
   - [[entity_character_equipment]]
   - [[mec_equipment_stat_bonuses]]
   - [[mec_three_slot_equipment_system]]

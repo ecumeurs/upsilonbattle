@@ -5,9 +5,9 @@ priority: 5
 layer: ARCHITECTURE
 version: 2.0
 tags: ["credits", "communication", "api"]
-parents: []
-dependents:
-  - [[upsilonapi:mech_webhook_delivery]]
+parents:
+  - [[req_tech_debt_backlog]]
+dependents: []
 type: RULE
 ---
 

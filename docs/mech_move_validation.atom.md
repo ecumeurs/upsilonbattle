@@ -7,9 +7,9 @@ version: 1.0
 status: STABLE
 priority: 5
 tags: []
-parents: []
+parents:
+  - [[req_tech_debt_backlog]]
 dependents:
-  - [[upsilonapi:api_plan_travel_toward]]
   - [[mech_move_validation_move_validation_already_moved]]
   - [[mech_move_validation_move_validation_controller_mismatch]]
   - [[mech_move_validation_move_validation_entity_collision]]

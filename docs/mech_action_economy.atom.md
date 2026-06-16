@@ -7,10 +7,9 @@ version: 1.0
 status: STABLE
 priority: 5
 tags: []
-parents: []
+parents:
+  - [[req_tech_debt_backlog]]
 dependents:
-  - [[battleui:ui_action_panel]]
-  - [[battleui:ui_initiative_timeline]]
   - [[mech_action_economy_action_cost_rules]]
   - [[mech_action_economy_time_constraint_rules]]
   - [[mech_action_economy_timeout_penalty_rules]]
