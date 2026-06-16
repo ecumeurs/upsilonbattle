@@ -34,8 +34,8 @@ func TestRuleAttackFailOutOfTurn(t *testing.T) {
 		t.Errorf("Expected error, got none.")
 	}
 
-	if reply.ErrorKey != "entity.turn.missmatch" {
-		t.Errorf("Expected error 'entity.turn.missmatch', got '%s'", reply.ErrorKey)
+	if reply.ErrorKey != "entity.turn.mismatch" {
+		t.Errorf("Expected error 'entity.turn.mismatch', got '%s'", reply.ErrorKey)
 	}
 }
 
@@ -57,8 +57,8 @@ func TestRuleAttackFailWrongController(t *testing.T) {
 		t.Errorf("Expected error, got none.")
 	}
 
-	if reply.ErrorKey != "entity.controller.missmatch" {
-		t.Errorf("Expected error 'entity.controller.missmatch', got '%s'", reply.ErrorKey)
+	if reply.ErrorKey != "entity.controller.mismatch" {
+		t.Errorf("Expected error 'entity.controller.mismatch', got '%s'", reply.ErrorKey)
 	}
 }
 

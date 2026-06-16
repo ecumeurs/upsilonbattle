@@ -36,12 +36,12 @@ func (ctx *localSkillCtx) preSkillChecks(msg *message.Message, req rulermethods.
 	// Check if the controller is allowed to use the entity
 	if !ctx.CheckControllerForEntity(req.ControllerID, req.EntityID) {
 		ctx.log.Error("Controller is not allowed to use this entity")
-		return false, msg.ReplyWithError("Controller is not allowed to use this entity", "entity.controller.missmatch")
+		return false, msg.ReplyWithError("Controller is not allowed to use this entity", "entity.controller.mismatch")
 	}
 
 	if ctx.Turner.CurrentEntityTurn != req.EntityID {
 		ctx.log.Error("It is not this entity turn")
-		return false, msg.ReplyWithError("It is not this entity turn", "entity.turn.missmatch")
+		return false, msg.ReplyWithError("It is not this entity turn", "entity.turn.mismatch")
 	}
 
 	// seek skill in entity

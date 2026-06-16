@@ -46,11 +46,11 @@ func EndOfTurn(gs *gamestate.GameState, msg *message.Message, req rulermethods.E
 			"entityID":           req.EntityID.String()[0:8],
 			"entityControllerID": gs.Entities[req.EntityID].ControllerID.String()[0:8],
 		}).Error("Controller is not allowed to use this entity")
-		return false, msg.ReplyWithError("Controller is not allowed to use this entity", "entity.controller.missmatch")
+		return false, msg.ReplyWithError("Controller is not allowed to use this entity", "entity.controller.mismatch")
 	}
 	if gs.Turner.CurrentEntityTurn != req.EntityID {
 		loclog.Error("It is not this entity turn")
-		return false, msg.ReplyWithError("It is not this entity turn", "entity.turn.missmatch")
+		return false, msg.ReplyWithError("It is not this entity turn", "entity.turn.mismatch")
 	}
 
 	loclog.WithFields(logrus.Fields{

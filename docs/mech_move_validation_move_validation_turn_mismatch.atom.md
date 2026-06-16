@@ -17,7 +17,7 @@ dependents: []
 A move command must match the currently active entity in the turn sequence.
 
 ## THE RULE / LOGIC
-entity.turn.missmatch
+entity.turn.mismatch
 
 ## TECHNICAL INTERFACE (The Bridge)
 - **Code Tag:** `@spec-link [[mech_move_validation_move_validation_turn_mismatch]]`
