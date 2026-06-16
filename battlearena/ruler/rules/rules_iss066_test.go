@@ -172,6 +172,43 @@ func TestRuleTrapTriggerOnExit(t *testing.T) {
 	}
 }
 
+// TestRulePositionalEffectMissingTriggerTypePanics verifies that a positional effect registered on the
+// grid without a TriggerType property causes a panic (Crash-Early / Fail-Fast doctrine, ISS-096).
+// A silent skip would make misconfigured traps undebuggable; a panic surfaces the configuration error
+// immediately.
+// @test-link [[mech_trigger_system]]
+func TestRulePositionalEffectMissingTriggerTypePanics(t *testing.T) {
+	gs, fake := makeGameStateForTwo()
+	gs.Turner.ForceTurn(fake.Entity1)
+
+	trapPos := position.Position{X: 0, Y: 1, Z: 3}
+
+	// Register an effect that deliberately omits the mandatory TriggerType property.
+	badEffect := effect.Effect{
+		Name:     "Misconfigured Trap",
+		CasterID: uuid.Nil,
+		Properties: []property.Property{
+			defaultproperty.MakeIntProperty(property.PoisonPower, 10, property.GameMaster, property.Skill),
+		},
+		// Note: no TriggerType property — this is the misconfiguration under test.
+	}
+	effectID := uuid.New()
+	gs.Effects[effectID] = badEffect
+	gs.PositionalEffects[trapPos] = append(gs.PositionalEffects[trapPos], effectID)
+
+	ent1 := gs.Entities[fake.Entity1]
+
+	// ProcessPositionalEffects must panic, not silently skip.
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Error("expected a panic for a positional effect missing TriggerType, got none (silent skip is not allowed)")
+		}
+	}()
+
+	ProcessPositionalEffects(gs, ent1, trapPos, property.TriggerOnEnter)
+}
+
 // TestRuleTrapTriggerOnTurn verifies that an entity starting its turn in a cell with an OnTurn trap triggers it.
 // @test-link [[mech_trigger_system]]
 func TestRuleTrapTriggerOnTurn(t *testing.T) {

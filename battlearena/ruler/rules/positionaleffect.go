@@ -44,10 +44,19 @@ func processSinglePositionalEffect(gs *gamestate.GameState, log *logrus.Entry, e
 		return
 	}
 
-	// Check trigger type matches
+	// Check trigger type matches.
+	// A missing TriggerType is a configuration/programming error: the effect was
+	// registered on the grid without the mandatory metadata. Logging before panicking
+	// ensures the corrupt effect's ID and position are captured in the arena log,
+	// then we crash-early so the misconfiguration cannot go unnoticed (Fail-Fast doctrine).
 	triggerProp := eff.GetProperty(property.TriggerType)
 	if triggerProp == nil {
-		return
+		log.WithFields(logrus.Fields{
+			"effectID": effectID.String()[0:8],
+			"effectName": eff.Name,
+			"pos":      pos,
+		}).Error("positional effect is missing TriggerType property — configuration error")
+		panic("positional effect missing TriggerType: effectID=" + effectID.String() + " name=" + eff.Name)
 	}
 	effectTrigger := property.TriggerTypeValue(triggerProp.Get().(string))
 	if effectTrigger != trigger {
