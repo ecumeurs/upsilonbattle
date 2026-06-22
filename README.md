@@ -2,6 +2,17 @@
 
 T RPG
 
+## Testing
+
+The engine is tested at two altitudes:
+
+* **Integration** — the `ruler` package tests (`NewRuler` / `Start` / `SendActor`) drive the full
+  actor/message protocol, turn & shot clock, match lifecycle, win detection, and races.
+* **Mechanics** — the [`battletest` scenario sandbox](battlearena/battletest/README.md) is a
+  deterministic, service-free harness over `GameState` for testing skills, movement, effects, and
+  traps directly against the rules layer (no actor, no clock, no network). Use it for new
+  mechanic tests. See its README for the full manual.
+
 # Version 0.0.4 (WIP)
 
 Buff & Curses
@@ -113,3 +124,5 @@ message the ruler expect to receive and struct he will respond with. It also can
 [Ruler Tests](battlearena/ruler/ruler_fullgame_test.go) This is the most appropriate test as of now. (valid v0.0.2)
 
 [Lesser Ruler Tests](battlearena/ruler/ruler_test.go) Stabilized and verified (v0.0.4)
+
+[Skill Scenario Sandbox](battlearena/battletest/README.md) Deterministic mechanic-level test harness (skills, movement, traps).
