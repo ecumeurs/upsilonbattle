@@ -1,8 +1,10 @@
 package rules
 
 import (
+	"github.com/ecumeurs/upsilontypes/entity"
 	"github.com/ecumeurs/upsilontypes/entity/skill/skillweight"
 	"github.com/ecumeurs/upsilontypes/property"
+	"github.com/ecumeurs/upsilontypes/property/def"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/effect/effectapplicator"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/gamestate"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
@@ -44,6 +46,14 @@ func UseSkill(gs *gamestate.GameState, msg *message.Message, req rulermethods.Co
 
 	ent := ctx.Entities[req.EntityID]
 	sk := ent.Skills[req.SkillID]
+
+	// Movement skills: a Self-subject reposition (dash/teleport) applies its co-located
+	// effects (e.g. a defensive buff — "retreat with def buffed") to the caster itself,
+	// since the aim target only indicates direction.
+	// @spec-link [[mech_movement_reposition]]
+	if isReposition(sk) && repositionSubjectOf(sk) == def.RepositionSubjectSelf {
+		ctx.targetedEntities = []entity.Entity{ent}
+	}
 
 	// now we have a target identifed! yata! For now only work on direct effect ... later :)
 	dds, aff, credits, err, errkey := effectapplicator.ApplyDirectEffect(ctx.log, &ent, sk.Effect, req.Target, ctx.targetedTiles, ctx.Grid, ctx.targetedEntities)
@@ -119,6 +129,11 @@ func UseSkill(gs *gamestate.GameState, msg *message.Message, req rulermethods.Co
 			Version:             gs.Version,
 		})
 	}
+
+	// Movement skills: displace the subject(s) now that effects have resolved. Only the
+	// landing tile fires positional triggers (fly-over semantics).
+	// @spec-link [[mech_movement_reposition]]
+	ent = ctx.applyReposition(ent, sk, req.Target)
 
 	// now user pay the cost
 	ent, sk = ctx.paySkillCost(ent, sk)

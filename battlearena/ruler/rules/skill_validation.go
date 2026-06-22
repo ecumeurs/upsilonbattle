@@ -74,6 +74,13 @@ func (ctx *localSkillCtx) preSkillChecks(msg *message.Message, req rulermethods.
 		return false, reply
 	}
 
+	// movement skills: ensure every reposition subject has a legal landing tile.
+	// @spec-link [[mech_movement_reposition]]
+	ok, reply = ctx.checkReposition(msg, ent, skill, req.Target)
+	if !ok {
+		return false, reply
+	}
+
 	return true, reply
 }
 
