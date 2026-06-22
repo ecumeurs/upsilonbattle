@@ -7,7 +7,8 @@ version: 2.0
 status: DRAFT
 priority: 5
 tags: [skills, progression, selection]
-parents: []
+parents:
+  - [[req_skill_generation]]
 dependents:
   - [[mech_skill_reforging_mechanic]]
 ---

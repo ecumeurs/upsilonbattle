@@ -1,5 +1,5 @@
 package controllers
-// @test-link [[mechanic_mech_arena_lifecycle]]
+// @test-link [[mechanic_arena_lifecycle]]
 // @test-link [[rule_team_mechanics]]
 // @test-link [[uc_combat_turn]]
 

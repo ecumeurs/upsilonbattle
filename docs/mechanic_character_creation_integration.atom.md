@@ -1,15 +1,17 @@
 ---
 id: mechanic_character_creation_integration
+human_name: "Character Creation Integration"
 status: DRAFT
 layer: IMPLEMENTATION
 priority: 5
 version: 2.0
-parents: []
+parents:
+  - [[module_game]]
 dependents: []
 type: MECHANIC
 ---
 
-# New Atom
+# Character Creation Integration
 
 ## INTENT
 To implement character creation and progression integration that bridges V1 legacy characters to V2 systems, handles data migration, and establishes new character creation flow with 100 CP point-buy allocation.
@@ -46,7 +48,7 @@ This mechanic establishes the standardized lifecycle for character data, encompa
 - **Migration Traceability:** The system maintains a reference to the original legacy character ID for auditing and migration bonus verification.
 
 ## TECHNICAL INTERFACE
-- **Code Tag:** `@spec-link [[character_creation_integration]]`
+- **Code Tag:** `@spec-link [[mechanic_character_creation_integration]]`
 - **Related Files:** Character creation API, migration scripts, database schema
 - **API Endpoints:** `POST /api/v1/character/create`, `GET /api/v1/character/migrate`
 - **UI Components:** Character creation wizard, migration notification interface

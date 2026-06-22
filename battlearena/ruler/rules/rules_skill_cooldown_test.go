@@ -8,7 +8,7 @@ import (
 )
 
 // TestRuleSkillFailCooldown ensures that a skill fails if it is currently on cooldown.
-// @test-link [[mech_skill_validation_economic_cost_verification_cooldown_check]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillFailCooldown(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -37,7 +37,7 @@ func TestRuleSkillFailCooldown(t *testing.T) {
 }
 
 // TestRuleSkillSetCooldown verifies that using a skill correctly applies its cooldown to the entity.
-// @test-link [[mech_skill_validation_economic_cost_verification_cooldown_check]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillSetCooldown(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 

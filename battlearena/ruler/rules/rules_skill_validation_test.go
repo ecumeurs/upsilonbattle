@@ -10,7 +10,7 @@ import (
 )
 
 // TestRuleSkillFailOutOfTurn ensures that a skill usage fails if it is not the entity's turn.
-// @test-link [[mech_skill_validation_turn_controller_identity_verification]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillFailOutOfTurn(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 	// Force the turn to another entity.
@@ -37,7 +37,7 @@ func TestRuleSkillFailOutOfTurn(t *testing.T) {
 }
 
 // TestRuleSkillFailWrongController ensures that a skill usage fails if the controller ID does not match the entity's controller.
-// @test-link [[mech_skill_validation_turn_controller_identity_verification]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillFailWrongController(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -62,7 +62,7 @@ func TestRuleSkillFailWrongController(t *testing.T) {
 }
 
 // TestRuleSkillFailUnknownEntity ensures that a skill usage fails if the entity ID is invalid.
-// @test-link [[mech_skill_validation_existence_verification]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillFailUnknownEntity(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -87,7 +87,7 @@ func TestRuleSkillFailUnknownEntity(t *testing.T) {
 }
 
 // TestRuleSkillFailUnknownSkill ensures that a skill usage fails if the skill ID is invalid for the entity.
-// @test-link [[mech_skill_validation_existence_verification]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillFailUnknownSkill(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -112,7 +112,7 @@ func TestRuleSkillFailUnknownSkill(t *testing.T) {
 }
 
 // TestRuleSkillFailAlreadyActed ensures that an entity cannot use a skill if it has already acted this turn.
-// @test-link [[mech_skill_validation_action_state_verification]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillFailAlreadyActed(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 

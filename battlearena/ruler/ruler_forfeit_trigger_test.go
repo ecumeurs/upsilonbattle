@@ -1,5 +1,5 @@
 package ruler
-// @test-link [[mechanic_mech_arena_lifecycle]]
+// @test-link [[mechanic_arena_lifecycle]]
 // @test-link [[rule_forfeit_battle]]
 
 import (

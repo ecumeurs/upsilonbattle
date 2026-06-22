@@ -11,7 +11,7 @@ tags: [ai,matchmaking,team,composition]
 priority: 4
 ---
 
-# New Atom
+# AI Team Composition Rules
 
 ## INTENT
 To implement AI team composition rules that enforce maximum limits on archetype variety per AI team, ensuring balanced team composition with appropriate support and specialist limitations.
@@ -28,7 +28,7 @@ Counts support and sneak archetypes per team across all entities in `AutoGen=tru
 **Violation response:** Go returns a 400-envelope error; StartArena is rejected. The PHP layer prevents this from ever being reached through normal matchmaking.
 
 ## TECHNICAL INTERFACE
-- **Code Tag:** `@spec-link [[rule_team_composition]]`
+- **Code Tag:** `@spec-link [[rule_ai_team_composition_rules]]`
 - **PHP:** `battleui/app/Http/Controllers/API/MatchMakingController.php` `assignAIArchetypes()`
 - **Go:** `upsilonapi/bridge/bridge_start.go` `validateTeamComposition()`
 - **Tests (PHP):** `PVEMatchmakingTest::test_ai_entities_are_auto_gen_with_archetype`

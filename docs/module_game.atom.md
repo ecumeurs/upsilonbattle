@@ -8,8 +8,11 @@ status: REVIEW
 priority: 5
 tags: [game, core]
 parents:
-  - [[req_tech_debt_backlog]]
-dependents: []
+  - [[shared:req_tech_debt_backlog]]
+dependents:
+  - [[battleui:ui_board]]
+  - [[mech_character_reroll]]
+  - [[mechanic_character_creation_integration]]
 ---
 # TRPG Game Module
 

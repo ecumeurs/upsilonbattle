@@ -18,7 +18,7 @@
 //	    layer.Propose(ctx, draft)    // first-writer-wins per slot
 //	  draft.Resolve(ctx)             // Action > Move > EndOfTurn
 //
-// @spec-link [[mechanic_mech_behavior_layered]]
+// @spec-link [[mechanic_behavior_layered]]
 package behavior
 
 import (
@@ -31,7 +31,7 @@ import (
 // The concrete implementation lives in the controllers package (controllerGameContext),
 // which owns the per-controller entity snapshot.
 //
-// @spec-link [[mechanic_mech_behavior_layered]]
+// @spec-link [[mechanic_behavior_layered]]
 type GameContext interface {
 	// SelfEntity returns a snapshot of the entity controlled by this behavior.
 	SelfEntity() entity.Entity
@@ -48,7 +48,7 @@ type GameContext interface {
 	LastTickOutcome() TickOutcome
 
 	// Memory returns the cross-tick/cross-turn decision history for this entity.
-	// @spec-link [[mechanic_mech_decision_memory]]
+	// @spec-link [[mechanic_decision_memory]]
 	Memory() *DecisionMemory
 	// Grade returns the AI grade index (0 = Grade I … 8 = Grade V).
 	// Used by LayeredBehavior to scale each layer's activation rate.
@@ -62,7 +62,7 @@ type GameContext interface {
 // sits at the bottom of every stack with BaseActivation 1.0, ensuring a decision
 // is always reached.
 //
-// @spec-link [[mechanic_mech_behavior_layered]]
+// @spec-link [[mechanic_behavior_layered]]
 type Behavior interface {
 	// Propose may set any unset slot on draft.
 	// Convention: check draft.Target == nil before proposing Target, etc.

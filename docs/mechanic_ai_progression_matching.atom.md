@@ -11,7 +11,7 @@ human_name: AI Grade Progression
 tags: [ai,grade,progression,cp]
 ---
 
-# New Atom
+# AI Grade Progression
 
 ## INTENT
 To implement AI progression matching system where AI characters follow the same point-buy progression rules as players, scaling stats, skills, and level according to player team averages.

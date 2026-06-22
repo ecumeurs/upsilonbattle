@@ -6,8 +6,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// @test-link [[mech_skill_validation_existence_verification]]
-// @test-link [[mech_skill_validation_turn_controller_identity_verification]]
+// @test-link [[mech_skill_validation]]
+// @test-link [[mech_skill_validation]]
 
 // FakeStateSkill extends FakeStateAttack with skill-specific context for testing.
 type FakeStateSkill struct {

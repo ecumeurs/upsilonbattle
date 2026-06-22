@@ -20,7 +20,7 @@ type localMoveCtx struct {
 // It validates the path, fires positional triggers (OnExit/OnEnter),
 // updates the game state, and notifies all controllers.
 // @spec-link [[rule_turn_clock]]
-// @spec-link [[mech_action_economy_action_cost_rules]]
+// @spec-link [[mech_action_economy]]
 func Move(gs *gamestate.GameState, msg *message.Message, req rulermethods.ControllerMove) (reply *message.Message) {
 	ctx := localMoveCtx{
 		GameState: gs,

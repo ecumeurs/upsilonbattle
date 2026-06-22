@@ -1,17 +1,19 @@
 ---
 id: rule_credit_action_communication_layer
+human_name: "Credit Action Communication Layer"
 status: STABLE
 priority: 5
 layer: ARCHITECTURE
 version: 2.0
 tags: ["credits", "communication", "api"]
 parents:
-  - [[req_tech_debt_backlog]]
-dependents: []
+  - [[shared:req_tech_debt_backlog]]
+dependents:
+  - [[upsilonapi:mech_webhook_delivery]]
 type: RULE
 ---
 
-# New Atom
+# Credit Action Communication Layer
 
 ## INTENT
 To establish the communication layer protocol for all combat-related actions, ensuring traceability through request IDs, version control for compatibility, effect feedback for result confirmation, and credit tracking association with player IDs.
@@ -51,5 +53,13 @@ This protocol defines the standardized bidirectional communication between the g
 5. **Persistence:** The calculated credits are committed to the player's permanent database record.
 
 ## TECHNICAL INTERFACE
+- **Code Tag:** `@spec-link [[rule_credit_action_communication_layer]]`
 
 ## EXPECTATION
+- Every action request carries a unique UUIDv7 `RequestID` and a version string; the response echoes the same `RequestID`.
+- A request whose `Version` mismatches the engine's expected version is rejected (no state change).
+- A resolution response includes a boolean `Success`, an `Error` string on failure, a `Modified` state-delta block, and the `Credits` earned with the recipient `PlayerID`.
+- Every value-generating action (damage, healing, utility) resolves with a credit award even when the value is zero.
+- Credits are attributed to the action creator's `PlayerID` and are awarded even if that character is removed from the grid before the credit-triggering event resolves.
+- Log entries for an action are prefixed with an 8-character `ref_id` derived from the `RequestID`.
+- Credits returned in the response are immediately reflected in the player's account balance and persisted.

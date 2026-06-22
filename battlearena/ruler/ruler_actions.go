@@ -67,7 +67,7 @@ func (r *Ruler) addController(ctx actor.CallContext) {
 }
 
 // controllerMove handles a movement request from a controller.
-// @spec-link [[mech_action_economy_action_cost_rules]]
+// @spec-link [[mech_action_economy]]
 func (r *Ruler) controllerMove(ctx actor.CallContext) {
 	req := ctx.Msg.TargetMethod.(rulermethods.ControllerMove)
 	if r.CurrentState != InProgress {
@@ -95,7 +95,7 @@ func (r *Ruler) controllerMove(ctx actor.CallContext) {
 }
 
 // controllerAttack handles an attack request from a controller.
-// @spec-link [[mech_action_economy_action_cost_rules]]
+// @spec-link [[mech_action_economy]]
 func (r *Ruler) controllerAttack(ctx actor.CallContext) {
 	req := ctx.Msg.TargetMethod.(rulermethods.ControllerAttack)
 	if r.CurrentState != InProgress {

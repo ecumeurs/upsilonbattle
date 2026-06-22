@@ -65,7 +65,7 @@ func (gs *GameState) FindEffectsByCaster(casterID uuid.UUID) map[uuid.UUID]effec
 // It removes the entity from the Turner, the Grid, the Entities map, and cleans up
 // any positional effects owned by this entity (where ExpiresWithCaster is true).
 //
-// @spec-link [[mech_entity_expiration]]
+// @spec-link [[mechanic_expiration_controller]]
 func (gs *GameState) RemoveEntity(entityID uuid.UUID) {
 	gs.Logger.WithFields(logrus.Fields{
 		"entityID": entityID.String()[0:8],

@@ -1,14 +1,16 @@
 ---
 id: mechanic_armor_penetration_system
+human_name: "Armor Penetration System"
 status: DRAFT
 version: 1.0
-parents: []
+parents:
+  - [[module_backend_combat_math]]
 dependents: []
 type: MECHANIC
 layer: IMPLEMENTATION
 ---
 
-# New Atom
+# Armor Penetration System
 
 ## INTENT
 To implement armor penetration system where certain attacks (like backstabs) can bypass partial armor protection, reducing damage mitigation effectiveness of target's defensive bonuses.
@@ -47,8 +49,14 @@ Armor penetration allows specific attacks to ignore a portion of the target's Ar
 - **Strategic Layer:** Creates a counter-play dynamic where heavy armor is effective against standard volleys but vulnerable to flanking and specialized piercing attacks.
 
 ## TECHNICAL INTERFACE
-- **Code Tag:** `@spec-link [[armor_penetration_system]]`
+- **Code Tag:** `@spec-link [[mechanic_armor_penetration_system]]`
 - **Related Files:** `upsilonbattle/battlearena/ruler/rules/attack.go`, `upsilonbattle/battlearena/entity/entity.go`
-- **Integration:** Works with `backstab_detection_algorithm`, `mec_backstabbing_mechanic`, `weapon_damage_computation_rework`
+- **Integration:** Works with `[[mechanic_backstab_detection_algorithm]]`
 
 ## EXPECTATION
+- Standard hit: `Damage = AttackPower - (Defense + ArmorRating) - Shield`, clamped to a minimum of 1.
+- Penetrating hit: `Damage = AttackPower - (Defense + ArmorRating*(1 - Pen%)) - Shield`, clamped to a minimum of 1; a backstab applies Pen% = 50%.
+- Penetration reduces only the Armor Rating term — Defense is subtracted first and is unaffected by penetration.
+- Standard armor penetration does NOT reduce a temporary Shield; the shield is depleted normally.
+- Multiple percentage-penetration sources do not stack additively — only the single highest Pen% applies.
+- A piercing weapon contributes its flat/base penetration (e.g. 25%) to the same highest-% resolution.

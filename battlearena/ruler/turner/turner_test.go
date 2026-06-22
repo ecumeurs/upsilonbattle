@@ -9,7 +9,7 @@ import (
 // TestTurner verifies the basic initiative sequencing logic.
 // It ensures entities are correctly queued by delay and that NextTurn advances the timeline.
 // @test-link [[mech_initiative]]
-// @test-link [[mech_initiative_requeue_calculation]]
+// @test-link [[mech_initiative]]
 func TestTurner(t *testing.T) {
 	// Initialize a new turner instance.
 	turn := NewTurner()

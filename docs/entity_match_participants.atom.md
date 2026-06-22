@@ -26,13 +26,13 @@ Defines the `match_participants` table, serving as the junction table between `u
 - `team` (Int, Not Null) - Team assignment: 1 or 2
 - `status` (Varchar, Nullable) - Match outcome: 'WIN' or 'LOSS'
   - Enforced by CHECK constraint
-  - Used for [[ui_leaderboard]] win/loss calculations
+  - Used for [[battleui:ui_leaderboard]] win/loss calculations
 
 ### Player Identification (Human vs AI/Bot)
 - `player_id` (UUID, Foreign Key → `users.id`, **Nullable**) - Reference to user account
   - **Critical:** Nullable to support AI/bot participants in PvE modes
   - When NULL, represents AI-controlled opponents or system-generated entities
-  - Required for human participant [[rule_progression]] calculations
+  - Required for human participant [[shared:rule_progression]] calculations
   - Optional for AI participants who don't need progression tracking
 
 ### Match Metadata
@@ -51,10 +51,10 @@ Defines the `match_participants` table, serving as the junction table between `u
 - **Code Tag:** `@spec-link [[entity_match_participants]]`
 - **Laravel Model:** `App\Models\MatchParticipant`
 - **Use Cases:**
-  - Track human player performance for [[rule_progression]]
+  - Track human player performance for [[shared:rule_progression]]
   - Support PvE modes with AI/bot opponents
-  - Enable [[uc_admin_history_management]] for match audit
-  - Power [[ui_leaderboard]] calculations
+  - Enable [[upsilonapi:uc_admin_history_management]] for match audit
+  - Power [[battleui:ui_leaderboard]] calculations
 
 ## INTEGRATION NOTES
 
@@ -63,9 +63,9 @@ The nullable `player_id` field enables flexible match participation:
 
 **Human Participants (player_id NOT NULL):**
 - Standard PvP and PvE matches
-- Eligible for [[rule_progression]] rewards
-- Contribute to [[ui_leaderboard]] rankings
-- Generate match history for [[uc_admin_history_management]]
+- Eligible for [[shared:rule_progression]] rewards
+- Contribute to [[battleui:ui_leaderboard]] rankings
+- Generate match history for [[upsilonapi:uc_admin_history_management]]
 
 **AI/Bot Participants (player_id NULL):**
 - PvE opponents controlled by game logic
@@ -76,24 +76,24 @@ The nullable `player_id` field enables flexible match participation:
 ### Match Lifecycle Integration
 
 **Match Start:**
-- Participants created when [[api_go_battle_start]] is invoked
+- Participants created when [[upsilonapi:api_go_battle_start]] is invoked
 - `status` is NULL initially
 - `team` assignment based on [[entity_game_match]] game mode
 
 **Match Completion:**
 - `status` updated to 'WIN' or 'LOSS' by battle engine
-- Triggers [[rule_progression]] calculations for human participants
+- Triggers [[shared:rule_progression]] calculations for human participants
 - Updates [[entity_users]] statistics via cascade operations
 
 **Match History:**
-- All participants retained for [[uc_admin_history_management]]
+- All participants retained for [[upsilonapi:uc_admin_history_management]]
 - AI participants included for completeness but excluded from player metrics
 
 ### Progression Validation
-- Human participants validate against [[rule_progression]] constraints
+- Human participants validate against [[shared:rule_progression]] constraints
 - Check for duplicate participation (anti-cheat)
 - Ensure proper win/loss attribution
-- Support [[us_win_progression_win_alloc_point]] logic
+- Support [[shared:us_win_progression]] logic
 
 ## TESTING CONSIDERATIONS
 - Verify NULL player_id behavior for AI/bot participants
@@ -104,7 +104,7 @@ The nullable `player_id` field enables flexible match participation:
 - Verify match history includes both human and AI participants
 
 ## BUSINESS RULE CONNECTIONS
-- Triggers [[rule_progression]] validation on match completion
-- Supports [[us_win_progression_win_alloc_point]] for human participants
-- Excludes AI participants from [[ui_leaderboard]] calculations
-- Enables [[uc_admin_history_management]] for match audit trails
+- Triggers [[shared:rule_progression]] validation on match completion
+- Supports [[shared:us_win_progression]] for human participants
+- Excludes AI participants from [[battleui:ui_leaderboard]] calculations
+- Enables [[upsilonapi:uc_admin_history_management]] for match audit trails

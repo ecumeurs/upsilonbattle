@@ -1,6 +1,6 @@
 package behavior
 
-// @test-link [[mechanic_mech_decision_memory]]
+// @test-link [[mechanic_decision_memory]]
 
 import (
 	"testing"

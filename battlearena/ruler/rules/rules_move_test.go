@@ -11,7 +11,7 @@ import (
 )
 
 // @test-link [[mech_move_validation]]
-// @test-link [[mech_move_validation_move_validation_already_moved]]
+// @test-link [[mech_move_validation]]
 
 
 

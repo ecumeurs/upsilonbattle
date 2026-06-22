@@ -10,8 +10,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// @test-link [[mechanic_mech_effect_stun]]
-// @test-link [[mechanic_mech_effect_poison]]
+// @test-link [[mechanic_effect_stun]]
+// @test-link [[mechanic_effect_poison]]
 
 // --- Stun pairing tests ---
 

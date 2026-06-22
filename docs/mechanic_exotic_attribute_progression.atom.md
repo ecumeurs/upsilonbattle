@@ -1,15 +1,17 @@
 ---
 id: mechanic_exotic_attribute_progression
+human_name: "Exotic Attribute Progression"
 status: DRAFT
 priority: 5
 version: 2.0
-parents: []
+parents:
+  - [[shared:rule_progression]]
 dependents: []
 type: MECHANIC
 layer: IMPLEMENTATION
 ---
 
-# New Atom
+# Exotic Attribute Progression
 
 ## INTENT
 To implement exotic attribute progression mechanics for V2 characters, defining how attributes like Critical Chance, Critical Multiplier, Dodge, Accuracy, and Jump Height increase through level-based progression and character point allocation.
@@ -50,7 +52,7 @@ Attribute increases are permitted according to the following temporal cadence:
 - **Build Archetyping:** By gating these stats, the system encourages distinct character archetypes (e.g., Evasive Scouts, Heavy Hitters, Precision Assassins) as players reach level milestones.
 
 ## TECHNICAL INTERFACE
-- **Code Tag:** `@spec-link [[exotic_attribute_progression]]`
+- **Code Tag:** `@spec-link [[mechanic_exotic_attribute_progression]]`
 - **Related Files:** Character progression system, stat validation logic
 - **UI Components:** Character sheet with exotic attributes display and upgrade buttons
 

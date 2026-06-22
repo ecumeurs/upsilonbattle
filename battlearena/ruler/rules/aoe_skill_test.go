@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// @test-link [[mech_skill_validation_grid_boundaries_verification]]
-// @test-link [[mech_skill_validation_range_limit_verification]]
+// @test-link [[mech_skill_validation]]
+// @test-link [[mech_skill_validation]]
 
 // TestRuleSkill_AOE_ZoneProperty verifies that a skill with a Neighbours zone correctly
 // targets multiple entities and that the effect applicator handles them.

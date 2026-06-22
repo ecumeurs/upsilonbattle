@@ -9,7 +9,8 @@ priority: 5
 tags: []
 parents:
   - [[module_backend]]
-dependents: []
+dependents:
+  - [[mech_board_generation]]
 ---
 # Board Generation Logic
 

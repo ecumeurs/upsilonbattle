@@ -3,7 +3,7 @@ id: mech_composite_behavior
 status: DRAFT
 priority: 5
 version: 2.0
-parent:
+parents:
   - [[mech_behavior_system]]
 dependents: []
 type: MECHANIC
@@ -120,3 +120,10 @@ Wrappers allow the same behavior instance to be used in multiple composites with
 - **Integration:** Depends on `mech_behavior_system`
 
 ## EXPECTATION
+- In OR mode, behaviors are evaluated highest-priority first and the first non-NoDecision result is returned; lower-priority behaviors are not consulted.
+- In OR mode where no behavior decides, the composite returns Pass.
+- In AND mode, all behaviors run highest-priority first and each non-NoDecision result overrides the prior final decision; the last (lowest-priority) decision wins.
+- `OnDamaged()` is propagated to every wrapped behavior in both modes, highest priority first.
+- Spooked(priority 10) + Aggressive(priority 5) in OR mode: below-threshold HP yields a Flee decision and Aggressive never runs; otherwise Aggressive attacks.
+- Expiration(5) + Aggressive(5) in AND mode: Expiration returns NoDecision, Aggressive's Attack becomes the final decision.
+- The same behavior instance can be wrapped in multiple composites with different priorities.

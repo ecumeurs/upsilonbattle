@@ -13,7 +13,7 @@ import "math/rand"
 // The last layer in the stack must be the always-active baseline (AggressiveBehavior,
 // BaseActivation = 1.0) to guarantee a decision is always reached.
 //
-// @spec-link [[mechanic_mech_behavior_layered]]
+// @spec-link [[mechanic_behavior_layered]]
 type LayeredBehavior struct {
 	Layers []Behavior
 }

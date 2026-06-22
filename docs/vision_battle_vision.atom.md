@@ -12,7 +12,7 @@ version: 1.0
 priority: 1
 ---
 
-# New Atom
+# Upsilon Battle Engine Vision
 
 ## INTENT
 Define the vision for the Upsilon Battle Engine as the uncompromising deterministic core of the TRPG.
@@ -26,7 +26,7 @@ Define the vision for the Upsilon Battle Engine as the uncompromising determinis
 - **Isolation:** The engine must remain agnostic of network protocols and persistence, focusing entirely on logic.
 
 ## TECHNICAL INTERFACE
-- **Code Tag:** `@spec-link [[battle_vision]]`
-- **Related Atoms:** `[[module_game]]`, `[[shared:upsilon_vision]]`
+- **Code Tag:** `@spec-link [[vision_battle_vision]]`
+- **Related Atoms:** `[[module_game]]`, `[[shared:vision_upsilon_vision]]`
 
 ## EXPECTATION

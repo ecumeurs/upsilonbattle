@@ -12,7 +12,7 @@ const packRadius = 3
 // StayWithPack proposes moving toward the nearest ally when the entity is isolated
 // (no ally within packRadius cells). Helps keep the team together.
 //
-// @spec-link [[mechanic_mech_behavior_layered]]
+// @spec-link [[mechanic_behavior_layered]]
 type StayWithPack struct{}
 
 // Name returns the stable identifier used in memory records and logs.

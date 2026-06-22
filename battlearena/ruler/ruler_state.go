@@ -8,7 +8,7 @@ import (
 )
 
 // @spec-link [[api_go_battle_start]]
-// @spec-link [[mechanic_mech_arena_lifecycle]]
+// @spec-link [[mechanic_arena_lifecycle]]
 
 // getState returns the high-level status of the battle arena.
 func (r *Ruler) getState(ctx actor.CallContext) {

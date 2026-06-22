@@ -21,7 +21,7 @@ type localAttackCtx struct {
 // Intent: Execute standard combat interactions between entities.
 // Inputs: msg (*message.Message) - the incoming request message, req (rulermethods.ControllerAttack) - the attack parameters.
 // Outputs: reply (*message.Message) - the attack results including damage dealt and credit awards.
-// @spec-link [[mech_action_economy_action_cost_rules]]
+// @spec-link [[mech_action_economy]]
 func Attack(gs *gamestate.GameState, msg *message.Message, req rulermethods.ControllerAttack) (reply *message.Message) {
 	ctx := localAttackCtx{
 		GameState: gs,
@@ -59,8 +59,8 @@ func Attack(gs *gamestate.GameState, msg *message.Message, req rulermethods.Cont
 	foeArmor := foe.GetPropertyI(property.ArmorRating)
 	foeHP := foe.GetPropertyI(property.HP)
 
-	// @spec-link [[mech_combat_standard_attack_computation]]
-	// @spec-link [[mec_backstabbing_mechanic]]
+	// @spec-link [[mech_combat_attack_computation]]
+	// @spec-link [[mechanic_backstab_detection_algorithm]]
 	multiplier := 1.0
 	effectiveDefense := foeDefense.I() + foeArmor.I()
 

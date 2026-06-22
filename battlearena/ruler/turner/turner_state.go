@@ -43,7 +43,7 @@ func (st TurnState) String() string {
 }
 
 // GetEntityDelay retrieves the delay for a specific entity from a static TurnState snapshot.
-// @spec-link [[mech_initiative_delay_costs]]
+// @spec-link [[mech_initiative]]
 func (st TurnState) GetEntityDelay(EntityId uuid.UUID) (int, error) {
 	for i := range st.RemainingTurns {
 		if st.RemainingTurns[i].EntityId == EntityId {

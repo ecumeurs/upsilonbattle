@@ -20,7 +20,7 @@ type BattleArena struct {
 // and controller maps. This function is the primary entry point for match instantiation
 // in the Go engine, orchestrating the creation of the core Ruler component.
 // @spec-link [[api_go_battle_start]]
-// @spec-link [[mechanic_mech_arena_lifecycle]]
+// @spec-link [[mechanic_arena_lifecycle]]
 func NewBattleArena(id uuid.UUID) *BattleArena {
 	ba := BattleArena{
 		Actor:       actor.New("BattleArena"),

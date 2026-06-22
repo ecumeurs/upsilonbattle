@@ -45,7 +45,7 @@ func TestBackstabDetection(t *testing.T) {
 
 // TestBackstabDamageCalculationLogic verifies the mathematical application of backstab multipliers (1.5x) 
 // and defense reductions (50%) in damage calculations.
-// @test-link [[mec_backstabbing_mechanic]]
+// @test-link [[mechanic_backstab_detection_algorithm]]
 func TestBackstabDamageCalculationLogic(t *testing.T) {
 
 	attacker := entity.New()

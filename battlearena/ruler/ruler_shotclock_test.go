@@ -1,5 +1,5 @@
 // @test-link [[rule_turn_clock]]
-// @test-link [[mechanic_mech_arena_lifecycle]]
+// @test-link [[mechanic_arena_lifecycle]]
 package ruler
 
 import (

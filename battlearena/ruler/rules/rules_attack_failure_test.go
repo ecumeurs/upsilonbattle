@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// @test-link [[mech_combat_standard_attack_computation]]
+// @test-link [[mech_combat_attack_computation]]
 // @test-link [[rule_friendly_fire]]
 
 // TestRuleAttackFailOutOfTurn verifies that an attack fails if it's not the entity's turn.

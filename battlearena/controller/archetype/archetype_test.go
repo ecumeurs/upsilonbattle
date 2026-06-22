@@ -1,6 +1,6 @@
 package archetype_test
 
-// @test-link [[mec_ai_archetype_system]]
+// @test-link [[mechanic_ai_controller_archetypes]]
 // @test-link [[rule_ai_team_composition_rules]]
 
 import (

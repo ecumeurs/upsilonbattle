@@ -14,7 +14,7 @@ import (
 // It processes turn-end costs (delays, penalties), status effects (poison),
 // resets movement credits, decrements temporary entity durations, and advances the global turn counter.
 // @spec-link [[rule_turn_clock]]
-// @spec-link [[mech_action_economy_action_cost_rules]]
+// @spec-link [[mech_action_economy]]
 func EndOfTurn(gs *gamestate.GameState, msg *message.Message, req rulermethods.EndOfTurn, ent entity.Entity) (ok bool, reply *message.Message) {
 	loclog := gs.Logger.WithFields(logrus.Fields{
 		"RequestID":    msg.RequestId.String()[0:8],
@@ -89,7 +89,7 @@ func EndOfTurn(gs *gamestate.GameState, msg *message.Message, req rulermethods.E
 	// update entity in state
 	gs.Entities[req.EntityID] = ent
 
-	// @spec-link [[mech_entity_expiration]]
+	// @spec-link [[mechanic_expiration_controller]]
 	// Decrement EntityDuration for temporary entities.
 	// EntityDuration == 0 means permanent (no expiry).
 	if durProp := ent.GetProperty(property.EntityDuration); durProp != nil {

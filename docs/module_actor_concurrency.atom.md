@@ -10,20 +10,22 @@ tags: concurrency,actor,message-passing,sequential-execution
 parents:
   - [[upsilonapi:domain_upsilon_engine]]
 dependents:
-  - [[mech_actor_pattern]]
   - [[mech_message_queue]]
+  - [[mechanic_ai_termination]]
+  - [[mechanic_arena_lifecycle]]
+  - [[upsilontools:mech_actor_pattern]]
 ---
 
-# New Atom
+# Actor Concurrency System
 
 ## INTENT
 Provide a robust, thread-safe execution environment for the Upsilon Engine by enforcing the Actor model across all stateful components.
 
 ## THE RULE / LOGIC
 - **Atomic Stimuli Processing**: Every state change must be triggered by a discrete stimulus (Message or Reply) processed sequentially [[mech_message_queue]].
-- **Unified Stimuli Redirector**: Asynchronous callbacks and side-channel replies must be redirected into the primary execution queue to prevent deadlocks [[mech_actor_dispatch_loop]].
-- **Strict Isolation**: Actors own their data; no direct cross-actor memory access is permitted [[mech_actor_pattern]].
-- **Lifecycle Management**: Actors must support controlled startup, graceful degradation, and synchronous termination to ensure no orphaned goroutines [[mech_actor_lifecycle]].
+- **Unified Stimuli Redirector**: Asynchronous callbacks and side-channel replies must be redirected into the primary execution queue to prevent deadlocks [[upsilontools:mech_actor_dispatch_loop]].
+- **Strict Isolation**: Actors own their data; no direct cross-actor memory access is permitted [[upsilontools:mech_actor_pattern]].
+- **Lifecycle Management**: Actors must support controlled startup, graceful degradation, and synchronous termination to ensure no orphaned goroutines [[upsilontools:mech_actor_lifecycle]].
 
 ## TECHNICAL INTERFACE
 - **Code Tag**: `@spec-link [[module_actor_concurrency]]`

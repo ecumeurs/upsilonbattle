@@ -9,7 +9,7 @@ priority: 4
 tags: [skills, names, generation, aesthetic]
 parents:
   - [[battleui:req_ui_look_and_feel]]
-  - [[upsilonbattle:mech_ai_name_generation]]
+  - [[mech_ai_name_generation]]
   - [[upsilontypes:module_skill_generator]]
 dependents: []
 ---

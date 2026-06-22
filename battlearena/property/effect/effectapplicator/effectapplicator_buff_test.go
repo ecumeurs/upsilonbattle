@@ -9,8 +9,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// @test-link [[mechanic_mech_effect_shield]]
-// @test-link [[mechanic_mech_effect_heal]]
+// @test-link [[mechanic_effect_shield]]
+// @test-link [[mechanic_effect_heal]]
 
 func TestShieldOvershield_CappedAt2xMaxHP(t *testing.T) {
 	fake := makeTestingEnvironment()

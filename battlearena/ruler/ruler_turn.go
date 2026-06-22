@@ -119,7 +119,7 @@ func (r *Ruler) handTurn(entID uuid.UUID) {
 }
 
 // endOfTurn finalizes the current entity's turn and picks the next one.
-// @spec-link [[mech_action_economy_action_cost_rules]]
+// @spec-link [[mech_action_economy]]
 func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 	req := ctx.Msg.TargetMethod.(rulermethods.EndOfTurn)
 	r.RequestLogger = r.RequestLogger.WithFields(logrus.Fields{
@@ -151,7 +151,7 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 
 	nextTurnEnt := r.GameState.Turner.NextTurn()
 
-	// @spec-link [[mech_initiative_active_state]]
+	// @spec-link [[mech_initiative]]
 	for nextTurnEnt != uuid.Nil {
 		if _, alive := r.GameState.Entities[nextTurnEnt]; alive {
 			break

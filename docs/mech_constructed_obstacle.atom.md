@@ -3,13 +3,16 @@ id: mech_constructed_obstacle
 status: DRAFT
 priority: 5
 version: 2.0
-parent:
-  - [[mech_entity_expiration]]
+parents:
+  - [[mechanic_expiration_controller]]
 dependents: []
 type: MECHANIC
 layer: IMPLEMENTATION
 tags: [entities, obstacles, walls]
 human_name: Constructed Obstacle
+---
+
+# Constructed Obstacle
 
 ## INTENT
 
@@ -122,3 +125,10 @@ Obstacles enable tactical zone control:
 - **Related Files:** `upsilonbattle/battlearena/ruler/rules/move.go`, `upsilonbattle/battlearena/ruler/rules/attack.go`, `upsilonmapdata/grid/grid.go`
 
 ## EXPECTATION
+- An Obstacle entity has Movement = 0, `WalkThrough = false`, and an HP value; it cannot move.
+- A movement path that includes a cell containing an obstacle (`WalkThrough = false`) is rejected.
+- A* pathfinding excludes cells occupied by an obstacle from generated paths.
+- Attacking an obstacle reduces its HP by computed damage; when HP ≤ 0 the obstacle is removed and credits are awarded to the attacker.
+- An obstacle with Duration > 0 decrements its Duration each EndOfTurn and is removed when Duration reaches 0; an obstacle with Duration = 0 persists until destroyed.
+- An obstacle without a controller needs no Turner entry and still expires via the EndOfTurn Duration check.
+- Obstacle variants match their specs (e.g. Stone Wall HP=50 Duration=0; Ice Wall HP=20 Duration=10; Force Field WalkThrough=true).

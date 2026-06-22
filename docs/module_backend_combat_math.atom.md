@@ -11,7 +11,7 @@ parents:
   - [[module_backend]]
 dependents:
   - [[mech_combat_attack_computation]]
-  - [[mech_combat_standard_attack_computation]]
+  - [[mechanic_armor_penetration_system]]
 ---
 # Combat Math Logic
 

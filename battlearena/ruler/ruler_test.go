@@ -25,7 +25,7 @@ This allows tests to deterministically simulate a multi-turn battle loop without
 race conditions or sleep timers.
 */
 package ruler
-// @test-link [[mechanic_mech_arena_lifecycle]]
+// @test-link [[mechanic_arena_lifecycle]]
 // @test-link [[uc_combat_turn]]
 
 import (

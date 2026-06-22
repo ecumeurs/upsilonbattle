@@ -12,7 +12,7 @@ import (
 )
 
 // @test-link [[mech_move_validation]]
-// @test-link [[mech_move_validation_move_validation_already_moved]]
+// @test-link [[mech_move_validation]]
 
 // TestRuleMoveFailOutOfTurn verifies that movement fails if it's not the entity's turn.
 func TestRuleMoveFailOutOfTurn(t *testing.T) {

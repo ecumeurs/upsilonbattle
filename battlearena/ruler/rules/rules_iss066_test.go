@@ -65,7 +65,7 @@ func TestRuleTrapTriggerOnEnter(t *testing.T) {
 }
 
 // TestRuleEntityExpiration verifies that a temporary entity is removed when its Duration reaches zero.
-// @test-link [[mech_entity_expiration]]
+// @test-link [[mechanic_expiration_controller]]
 func TestRuleEntityExpiration(t *testing.T) {
 	gs, fake := makeGameStateForTwo()
 

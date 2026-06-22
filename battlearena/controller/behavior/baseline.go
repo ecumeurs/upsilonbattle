@@ -18,7 +18,7 @@ import (
 // BaseActivation = 1.0 — it always runs and sits at the bottom of every archetype stack.
 // When a higher-priority layer has already set a slot, the baseline respects it.
 //
-// @spec-link [[mechanic_mech_behavior_layered]]
+// @spec-link [[mechanic_behavior_layered]]
 type AggressiveBehavior struct{}
 
 // Name returns the stable identifier used in memory records and logs.

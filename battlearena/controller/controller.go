@@ -13,7 +13,7 @@ import (
 // It handles actor plumbing (message routing, ruler communication) and optionally
 // delegates AI decision-making to a pluggable Behavior.
 //
-// @spec-link [[mechanic_mech_behavior_layered]]
+// @spec-link [[mechanic_behavior_layered]]
 type Controller struct {
 	*actor.Actor
 	ID             uuid.UUID
@@ -25,7 +25,7 @@ type Controller struct {
 	Ruler          actor.Communication
 	// Behavior is the optional pluggable AI decision system.
 	// When nil, the controller falls back to its own inline logic.
-	// @spec-link [[mechanic_mech_behavior_layered]]
+	// @spec-link [[mechanic_behavior_layered]]
 	Behavior       behavior.Behavior
 }
 

@@ -1,5 +1,5 @@
 package ruler
-// @test-link [[mechanic_mech_arena_lifecycle]]
+// @test-link [[mechanic_arena_lifecycle]]
 // @test-link [[spec_match_format_win_condition_rule]]
 
 import (

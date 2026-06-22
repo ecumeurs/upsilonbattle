@@ -10,7 +10,7 @@ import (
 )
 
 // TestRuleSkillFailMvt ensures that a skill fails if the entity does not have enough Movement points.
-// @test-link [[mech_skill_validation_economic_cost_verification_stat_leech]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillFailMvt(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -39,7 +39,7 @@ func TestRuleSkillFailMvt(t *testing.T) {
 }
 
 // TestRuleSkillFailHP ensures that a skill fails if the entity does not have enough Health Points (HP) to pay the cost.
-// @test-link [[mech_skill_validation_economic_cost_verification_stat_leech]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillFailHP(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -68,7 +68,7 @@ func TestRuleSkillFailHP(t *testing.T) {
 }
 
 // TestRuleSkillDeduceMvt verifies that using a skill correctly deducts the Movement point cost from the entity.
-// @test-link [[mech_skill_validation_economic_cost_verification_stat_leech]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillDeduceMvt(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -101,7 +101,7 @@ func TestRuleSkillDeduceMvt(t *testing.T) {
 }
 
 // TestRuleSkillDeduceHP verifies that using a skill correctly deducts the Health Point (HP) cost from the entity.
-// @test-link [[mech_skill_validation_economic_cost_verification_stat_leech]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillDeduceHP(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 

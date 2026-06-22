@@ -10,7 +10,7 @@ import (
 // controllerGameContext is the private concrete implementation of behavior.GameContext.
 // One instance is created per entity turn and mutated between ticks as the turn progresses.
 //
-// @spec-link [[mechanic_mech_behavior_layered]]
+// @spec-link [[mechanic_behavior_layered]]
 type controllerGameContext struct {
 	self         entity.Entity
 	entities     map[uuid.UUID]entity.Entity

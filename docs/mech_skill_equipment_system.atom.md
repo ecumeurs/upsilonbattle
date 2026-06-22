@@ -1,15 +1,18 @@
 ---
 id: mech_skill_equipment_system
+human_name: "Skill Equipment System"
 status: DRAFT
 layer: IMPLEMENTATION
 version: 2.0
 tags: ["skills", "equipment", "progression"]
-parents: []
+parents:
+  - [[req_skill_generation]]
 dependents: []
 priority: 5
+type: MECHANIC
 ---
 
-# New Atom
+# Skill Equipment System
 
 ## INTENT
 To implement the skill equipment system where players select which skills from their inventory are active during battle. This is the bridge between skill inventory and actual combat usage, enforcing slot limits and preparation decisions.

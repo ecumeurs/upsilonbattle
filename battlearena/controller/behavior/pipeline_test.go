@@ -1,6 +1,6 @@
 package behavior
 
-// @test-link [[mechanic_mech_behavior_layered]]
+// @test-link [[mechanic_behavior_layered]]
 
 import (
 	"testing"

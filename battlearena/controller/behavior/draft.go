@@ -7,7 +7,7 @@ import (
 
 // TickOutcome reports what happened when the previous EngineCommand was processed.
 //
-// @spec-link [[mechanic_mech_behavior_layered]]
+// @spec-link [[mechanic_behavior_layered]]
 type TickOutcome int
 
 const (
@@ -58,7 +58,7 @@ type ActionSlot struct {
 // "partial proposal" semantics (e.g. "(move, where?)" or "(target, A or B?)") without
 // changing the interface — out of scope for v1.
 //
-// @spec-link [[mechanic_mech_behavior_layered]]
+// @spec-link [[mechanic_behavior_layered]]
 type DecisionDraft struct {
 	Target *TargetSlot
 	Move   *MoveSlot
@@ -84,7 +84,7 @@ const (
 // The controller translates this into a ruler message (ControllerMove, ControllerAttack, etc.).
 // EntityID and ControllerID are injected by the controller, not the behavior.
 //
-// @spec-link [[mechanic_mech_behavior_layered]]
+// @spec-link [[mechanic_behavior_layered]]
 type EngineCommand struct {
 	Type    EngineCommandType
 	Path    []position.Position // CmdMove
@@ -96,7 +96,7 @@ type EngineCommand struct {
 //
 //	Action (if has-not-acted) → Move (if movement remaining) → EndOfTurn
 //
-// @spec-link [[mechanic_mech_behavior_layered]]
+// @spec-link [[mechanic_behavior_layered]]
 func (d *DecisionDraft) Resolve(ctx GameContext) EngineCommand {
 	if d.Action != nil && !ctx.HasActed() {
 		switch d.Action.Type {

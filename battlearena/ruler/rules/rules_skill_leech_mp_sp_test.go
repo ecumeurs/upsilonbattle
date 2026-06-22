@@ -10,7 +10,7 @@ import (
 )
 
 // TestRuleSkillFailMP ensures that a skill fails if the entity does not have enough Mana Points (MP).
-// @test-link [[mech_skill_validation_economic_cost_verification_stat_leech]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillFailMP(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -39,7 +39,7 @@ func TestRuleSkillFailMP(t *testing.T) {
 }
 
 // TestRuleSkillFailSP ensures that a skill fails if the entity does not have enough Stamina Points (SP).
-// @test-link [[mech_skill_validation_economic_cost_verification_stat_leech]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillFailSP(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -68,7 +68,7 @@ func TestRuleSkillFailSP(t *testing.T) {
 }
 
 // TestRuleSkillDeduceMP verifies that using a skill correctly deducts the Mana Point (MP) cost from the entity.
-// @test-link [[mech_skill_validation_economic_cost_verification_stat_leech]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillDeduceMP(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -101,7 +101,7 @@ func TestRuleSkillDeduceMP(t *testing.T) {
 }
 
 // TestRuleSkillDeduceSP verifies that using a skill correctly deducts the Stamina Point (SP) cost from the entity.
-// @test-link [[mech_skill_validation_economic_cost_verification_stat_leech]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillDeduceSP(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 

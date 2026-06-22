@@ -12,7 +12,7 @@ import (
 )
 
 // TestRuleSkillFailTargetOutOfRange ensures that a skill fails if the target is outside the skill's defined range.
-// @test-link [[mech_skill_validation_range_limit_verification]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillFailTargetOutOfRange(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -38,7 +38,7 @@ func TestRuleSkillFailTargetOutOfRange(t *testing.T) {
 }
 
 // TestRuleSkillFailTargetOutOfGrid ensures that a skill fails if the target coordinate is outside the board boundaries.
-// @test-link [[mech_skill_validation_grid_boundaries_verification]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillFailTargetOutOfGrid(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -71,7 +71,7 @@ func TestRuleSkillFailTargetOutOfGrid(t *testing.T) {
 }
 
 // TestRuleSkillFailTargetNoApplicableTarget_Entity ensures that a skill fails if no valid entity target is present at the target location.
-// @test-link [[mech_skill_validation_entity_targeting_rules_verification]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillFailTargetNoApplicableTarget_Entity(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -103,7 +103,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Entity(t *testing.T) {
 }
 
 // TestRuleSkillFailTargetNoApplicableTarget_Self ensures that a skill with 'Self' targeting fails if used on another entity.
-// @test-link [[mech_skill_validation_entity_targeting_rules_verification]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillFailTargetNoApplicableTarget_Self(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -152,7 +152,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Self(t *testing.T) {
 }
 
 // TestRuleSkillFailTargetNoApplicableTarget_Ennemy ensures that an 'EnemyOnly' skill fails if used on an ally or empty cell.
-// @test-link [[mech_skill_validation_entity_targeting_rules_verification]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillFailTargetNoApplicableTarget_Ennemy(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -223,7 +223,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Ennemy(t *testing.T) {
 }
 
 // TestRuleSkillFailTargetNoApplicableTarget_Ally ensures that a 'FriendOnly' skill fails if used on an enemy or empty cell.
-// @test-link [[mech_skill_validation_entity_targeting_rules_verification]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillFailTargetNoApplicableTarget_Ally(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
@@ -295,7 +295,7 @@ func TestRuleSkillFailTargetNoApplicableTarget_Ally(t *testing.T) {
 }
 
 // TestRuleSkillFailTargetNoApplicableTarget_Cell ensures that a 'Tile' target skill fails if used on a cell occupied by an entity.
-// @test-link [[mech_skill_validation_entity_targeting_rules_verification]]
+// @test-link [[mech_skill_validation]]
 func TestRuleSkillFailTargetNoApplicableTarget_Cell(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 

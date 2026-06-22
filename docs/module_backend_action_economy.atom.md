@@ -9,7 +9,9 @@ priority: 5
 tags: []
 parents:
   - [[module_backend]]
-dependents: []
+dependents:
+  - [[mechanic_pass_facing_choice]]
+  - [[mechanic_pre_post_execution_costs]]
 ---
 # Action Economy Logic
 

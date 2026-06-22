@@ -3,9 +3,9 @@ id: mech_turret_entity
 status: DRAFT
 priority: 5
 version: 2.0
-parent:
+parents:
   - [[mech_behavior_system]]
-  - [[mech_entity_expiration]]
+  - [[mechanic_expiration_controller]]
 dependents: []
 type: MECHANIC
 layer: IMPLEMENTATION

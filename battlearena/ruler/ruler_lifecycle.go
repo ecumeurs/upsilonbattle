@@ -113,7 +113,7 @@ func (r *Ruler) resurrect(ctx actor.NotificationContext) {
 }
 
 // actorAboutToStop handles the graceful shutdown of the ruler actor.
-// @spec-link [[mechanic_mech_arena_lifecycle]]
+// @spec-link [[mechanic_arena_lifecycle]]
 func (r *Ruler) actorAboutToStop(ctx actor.NotificationContext) {
 	r.logger.Info("Ruler is about to stop, stopping all controllers and timers")
 	r.stopShotClock()

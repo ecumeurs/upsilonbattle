@@ -10,10 +10,10 @@ import (
 )
 
 // @test-link [[mech_skill_validation]]
-// @test-link [[mechanic_mech_effect_damage]]
-// @test-link [[mechanic_mech_effect_heal]]
-// @test-link [[mechanic_mech_effect_poison]]
-// @test-link [[mechanic_mech_effect_shield]]
+// @test-link [[mechanic_effect_damage]]
+// @test-link [[mechanic_effect_heal]]
+// @test-link [[mechanic_effect_poison]]
+// @test-link [[mechanic_effect_shield]]
 
 // TestRuleSkillEffectDamage verifies that a skill with a damage effect correctly
 // reduces target HP and handles entity death.

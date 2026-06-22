@@ -80,7 +80,7 @@ func (ctx *localSkillCtx) preSkillChecks(msg *message.Message, req rulermethods.
 // checkSkillTarget validates the selected target position and entities against the skill's targeting rules.
 // It checks range, grid boundaries, and target type compatibility (Self, Tile, Entity, Friend, Enemy).
 // Intent: Enforce tactical constraints and targeting mechanics.
-// @spec-link [[mech_skill_validation_entity_targeting_rules_verification]]
+// @spec-link [[mech_skill_validation]]
 func (ctx *localSkillCtx) checkSkillTarget(msg *message.Message, user entity.Entity, target position.Position, sk skill.Skill) (bool, *message.Message) {
 	mech := sk.GetProperty(property.TargetingMechanics).(*defaultproperty.DefaultStringProperty)
 	targetype := sk.GetProperty(property.TargetType).(*defaultproperty.DefaultStringProperty)
@@ -193,8 +193,8 @@ func (ctx *localSkillCtx) checkSkillTarget(msg *message.Message, user entity.Ent
 // checkSkillCost verifies if the entity has sufficient resources (HP, MP, SP, Movement) to pay the skill's cost.
 // It also checks if the skill is currently on cooldown.
 // Intent: Maintain economic balance and prevent spamming of powerful abilities.
-// @spec-link [[mech_skill_validation_economic_cost_verification_stat_leech]]
-// @spec-link [[mech_skill_validation_economic_cost_verification_cooldown_check]]
+// @spec-link [[mech_skill_validation]]
+// @spec-link [[mech_skill_validation]]
 func (ctx *localSkillCtx) checkSkillCost(msg *message.Message, user entity.Entity, sk skill.Skill) (bool, *message.Message) {
 	// for all costs in skill check if the user has enough.
 	if sk.Cooldown > 0 {

@@ -11,7 +11,7 @@ const resourceThresholdPct = 25
 // It does this by writing a Pass action to the Action slot, overriding any queued skill.
 // Used across archetypes that rely heavily on skills.
 //
-// @spec-link [[mechanic_mech_behavior_layered]]
+// @spec-link [[mechanic_behavior_layered]]
 type PreserveResource struct{}
 
 // Name returns the stable identifier used in memory records and logs.

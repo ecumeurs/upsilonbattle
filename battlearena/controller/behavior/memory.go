@@ -6,7 +6,7 @@ const memorySize = 20
 
 // DecisionRecord captures what a single behavior layer did on a given tick.
 //
-// @spec-link [[mechanic_mech_decision_memory]]
+// @spec-link [[mechanic_decision_memory]]
 type DecisionRecord struct {
 	LayerName string
 	Skipped   bool      // true if the layer's activation roll failed
@@ -21,7 +21,7 @@ type DecisionRecord struct {
 // Layers use it to self-throttle (e.g. "don't Ambush again for 3 turns") and to
 // carry a sticky target across ticks within a turn.
 //
-// @spec-link [[mechanic_mech_decision_memory]]
+// @spec-link [[mechanic_decision_memory]]
 type DecisionMemory struct {
 	entries [memorySize]DecisionRecord
 	head    int

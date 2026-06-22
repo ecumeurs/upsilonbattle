@@ -35,7 +35,7 @@ type Behavior interface {
 
 // ExpirationBehavior is the default behavior for entities that just wait to die.
 // They always return EndOfTurn.
-// @spec-link [[mech_entity_expiration]]
+// @spec-link [[mechanic_expiration_controller]]
 type ExpirationBehavior struct{}
 
 // Decide returns an EndOfTurn message, as expiration behavior simply waits for the entity to expire.

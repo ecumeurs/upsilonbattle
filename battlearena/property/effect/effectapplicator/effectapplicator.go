@@ -15,7 +15,7 @@ import (
 )
 
 // @spec-link [[mech_combat_attack_computation]]
-// @spec-link [[mechanic_mech_ai_termination]]
+// @spec-link [[mechanic_ai_termination]]
 
 // getPropertyOrDefault retrieves a property from the provided effect. 
 // If the property is not found, it returns the global default value for that property type.

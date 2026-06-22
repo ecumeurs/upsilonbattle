@@ -58,7 +58,7 @@ func (t *Turner) ForceTurn(EntityId uuid.UUID) {
 
 // GetEntityDelay retrieves the accumulated delay for a specific entity in the queue.
 // Returns an error if the entity is not currently scheduled for a turn.
-// @spec-link [[mech_initiative_delay_costs]]
+// @spec-link [[mech_initiative]]
 func (t Turner) GetEntityDelay(EntityId uuid.UUID) (int, error) {
 	for i := range t.Turns {
 		if t.Turns[i].EntityId == EntityId {
@@ -110,7 +110,7 @@ func (t *Turner) RemoveEntity(EntityId uuid.UUID) {
 // NextTurn advances the initiative queue to the next entity.
 // It subtracts the elapsed delay from all remaining entities and sets the new active entity.
 // Returns the ID of the entity whose turn it now is, or uuid.Nil if the queue is empty.
-// @spec-link [[mech_initiative_requeue_calculation]]
+// @spec-link [[mech_initiative]]
 func (t *Turner) NextTurn() uuid.UUID {
 	if len(t.Turns) == 0 {
 		return uuid.Nil

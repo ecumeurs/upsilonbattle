@@ -24,7 +24,7 @@ import (
 //
 // AggressiveController is retained as an alias for backward compatibility.
 //
-// @spec-link [[mechanic_mech_behavior_layered]]
+// @spec-link [[mechanic_behavior_layered]]
 type AIController struct {
 	*actor.Actor
 	ID             uuid.UUID
@@ -164,7 +164,7 @@ func (ctl *AIController) BattleStart(ctx actor.NotificationContext) {
 
 // BattleEnd signals the battle is over and unblocks any caller waiting on BattleFinished.
 //
-// @spec-link [[mechanic_mech_ai_termination]]
+// @spec-link [[mechanic_ai_termination]]
 func (ctl *AIController) BattleEnd(ctx actor.NotificationContext) {
 	ctl.RequestLogger.Info("##### BattleEnd #####")
 	select {

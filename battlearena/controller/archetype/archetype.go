@@ -7,7 +7,7 @@
 //	controller := controllers.NewAIController(id, name, arch.Behavior())
 //	skills := arch.BuildSkillBundle(grade, 3)
 //
-// @spec-link [[mec_ai_archetype_system]]
+// @spec-link [[mechanic_ai_controller_archetypes]]
 package archetype
 
 import (
@@ -20,7 +20,7 @@ import (
 
 // Archetype defines the tactical profile of an AI entity.
 //
-// @spec-link [[mec_ai_archetype_system]]
+// @spec-link [[mechanic_ai_controller_archetypes]]
 type Archetype interface {
 	// Slug returns the canonical identifier ("fighter", "ranger", "support", "sneak").
 	Slug() string
