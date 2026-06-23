@@ -43,7 +43,10 @@ func TestRulerAggressiveBehavior(t *testing.T) {
 	monster := entity.New()
 	monster.ID = uuid.New()
 	monster.Type = entity.Monster
-	monster.ControllerID = uuid.Nil // Automated
+	// Automation is driven by AIBehavior alone (ISS-101); even an
+	// automated monster must have an owning controller — uuid.Nil is
+	// rejected by AddEntity.
+	monster.ControllerID = uuid.New()
 	monster.Position = position.Position{X: 2, Y: 0, Z: 3}
 	monster.RepsertPropertyValue(property.TeamID, 2)
 	monster.RepsertPropertyValue(property.AIBehavior, "aggressive")
@@ -86,17 +89,38 @@ func TestRulerAggressiveBehavior(t *testing.T) {
 	}
 
 started:
+	// Drain replyChan in the background from here on. Past this point nothing
+	// else reads it, and it's buffer-1: a single undrained notification (e.g.
+	// the aggressive monster's move) permanently blocks the Ruler's actor
+	// goroutine on the send, wedging the whole actor.
+	go func() {
+		for range replyChan {
+		}
+	}()
+
 	// Signal readiness
 	r.NotifyActor(message.Create(nil, rulermethods.ControllerBattleReady{
 		ControllerID: char.ControllerID,
 	}, nil))
 
-	t.Logf("Turner state: %s", r.GameState.Turner.String())
+	// Read state back through the actor's message queue (testingFetchEntities),
+	// not r.GameState directly — the Ruler owns GameState once Start() has
+	// been called (see domain_ruler_state.atom.md), and direct reads race
+	// with the actor loop under -race.
+	_, turnState := testingFetchEntities(r)
+	t.Logf("Turner state: %s", turnState.String())
 
 	// Wait for the first turn
 	time.Sleep(1 * time.Second) // Give it time to execute behavior
-	
-	ent := r.GameState.Entities[monster.ID]
+
+	entities, _ := testingFetchEntities(r)
+	var ent entity.Entity
+	for _, e := range entities {
+		if e.ID == monster.ID {
+			ent = e
+			break
+		}
+	}
 	t.Logf("Monster position: %v", ent.Position)
 	if ent.Position.X != 1 {
 		t.Errorf("Monster should have moved toward player (X:0), expected X:1, got %d", ent.Position.X)

@@ -177,7 +177,21 @@ func (r *Ruler) SetGrid(g *grid.Grid) {
 }
 
 // AddEntity adds a new character or object to the battle.
+//
+// @spec-link [[mech_ruler_behavior]]
+// Every entity on the board, with no exception (including future
+// traps/bombs/summons), must have an owning controller. uuid.Nil is not a
+// valid ControllerID: it used to silently flow through to handTurn's
+// automated-behavior fallback (ISS-101), where a controlled entity could
+// be turn-skipped forever with zero notification. Per this project's
+// Crash Early / Fail Fast doctrine, that failure must surface here, at
+// the moment the offending entity is registered, not later as a silent
+// no-op turn deep in the match.
 func (r *Ruler) AddEntity(e entity.Entity) {
+	if e.ControllerID == uuid.Nil {
+		panic(fmt.Sprintf("AddEntity: entity %s has no ControllerID (uuid.Nil) — every entity must have an owning controller (ISS-101)", e.ID))
+	}
+
 	e.CurrentDelay = tools.NewIntRange(1000, 1500).Random()
 
 	if r.GameState.Grid == nil {

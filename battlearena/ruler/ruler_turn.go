@@ -2,6 +2,7 @@ package ruler
 
 import (
 
+	"fmt"
 	"time"
 
 	"github.com/ecumeurs/upsilontypes/entity"
@@ -80,6 +81,15 @@ func (r *Ruler) handTurn(entID uuid.UUID) {
 	ent.CurrentDelay = 0
 	r.GameState.Entities[entID] = ent
 
+	// Every entity must have an owning controller (ISS-101) — AddEntity
+	// rejects uuid.Nil at registration time, so reaching this point with a
+	// Nil ControllerID means that invariant was bypassed somewhere. This
+	// must never be treated as "automated"; surface it loudly instead of
+	// silently falling through to ExpirationBehavior.
+	if ent.ControllerID == uuid.Nil {
+		panic(fmt.Sprintf("handTurn: entity %s has no ControllerID (uuid.Nil) — every entity must have an owning controller (ISS-101)", entID))
+	}
+
 	// @spec-link [[mech_ruler_behavior]]
 	behaviorProp := ent.GetProperty(property.AIBehavior)
 	behaviorSlug := "none"
@@ -87,7 +97,7 @@ func (r *Ruler) handTurn(entID uuid.UUID) {
 		behaviorSlug = behaviorProp.Get().(string)
 	}
 
-	if behaviorSlug != "none" || ent.ControllerID == uuid.Nil {
+	if behaviorSlug != "none" {
 		r.logger.WithFields(logrus.Fields{
 			"entityID": entID.String()[0:8],
 			"behavior": behaviorSlug,

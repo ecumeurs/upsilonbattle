@@ -43,7 +43,7 @@ func TestInitRace(t *testing.T) {
 		// Following commit 488bca1, setup is done synchronously.
 		r.SetGrid(gridgenerator.GeneratePlainSquare(10, 10))
 		r.SetNbControllers(2)
-		r.AddEntity(entity.Entity{ID: uuid.New()})
+		r.AddEntity(entity.Entity{ID: uuid.New(), ControllerID: uuid.New()}) // every entity needs an owning controller (ISS-101)
 		
 		r.Start()
 		r.Stop()

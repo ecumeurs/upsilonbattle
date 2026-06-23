@@ -10,6 +10,7 @@ import (
 	"github.com/ecumeurs/upsilonbattle/battlearena/controller/controllermethods"
 	"github.com/ecumeurs/upsilontypes/entity"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
+	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/turner"
 	"github.com/ecumeurs/upsilontools/tools/actor"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/google/uuid"
@@ -59,6 +60,20 @@ func NewFake(name string) *FakeController {
 	ctrl.Start()
 
 	return ctrl
+}
+
+// testingFetchEntities performs a race-free round trip through the actor's
+// message queue to read back a running Ruler's entity/turn state. Once
+// Start() has been called the Ruler takes true ownership of GameState (see
+// domain_ruler_state.atom.md); reading r.GameState directly from a test at
+// that point races with the actor loop. Mutualizes the SendActor/channel/
+// reply boilerplate already duplicated across tests (e.g.
+// ruler_shotclock_test.go, ruler_forfeit_trigger_test.go).
+func testingFetchEntities(r *Ruler) ([]entity.Entity, turner.TurnState) {
+	replyChan := make(chan *message.Message, 1)
+	r.SendActor(message.Create(nil, rulermethods.GetEntitiesState{}, rulermethods.GetEntitiesStateReply{}), replyChan)
+	reply := (<-replyChan).Content.(rulermethods.GetEntitiesStateReply)
+	return reply.Entities, reply.Turn
 }
 
 // getMessageTypeName returns the string representation of the message's method type.
