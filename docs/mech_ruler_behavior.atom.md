@@ -3,8 +3,8 @@ id: mech_ruler_behavior
 human_name: "Ruler Behavior System"
 type: MECHANIC
 layer: IMPLEMENTATION
-version: 1.0
-status: DRAFT
+version: 2.0
+status: OBSOLETE
 priority: 3
 tags: [engine, automation, ruler]
 parents:
@@ -15,18 +15,23 @@ dependents: []
 # Ruler Behavior System
 
 ## INTENT
-To provide low-overhead, synchronous automation for simple entities directly within the battle engine.
+DEPRECATED: this records the now-excised in-Ruler synchronous AIBehavior path; it survives only as the anchor for the ISS-101 controller-ownership invariant.
 
 ## THE RULE / LOGIC
-- **Synchronous Execution:** Behaviors are executed within the Ruler's main goroutine during the entity's turn.
-- **Direct Messaging:** The behavior must return a `*message.Message` which is immediately dispatched by the Ruler.
-- **Non-Actor Entities:** This system is the default for entities where `ControllerID` is null (Traps, Turrets, Simple Summons).
-- **Performance Constraint:** Behavior logic must be non-blocking and computationally inexpensive.
-- **Expiration Support:** The `ExpirationBehavior` is the core implementation for time-limited entities that do not perform actions (like delayed effect anchors). It returns a simple `EndOfTurn` message to allow the engine to process duration decrement.
+**OBSOLETE — the in-Ruler `AIBehavior` automation path has been removed.**
+
+Previously, `handTurn`/`triggerFirstTurn` read the `property.AIBehavior` slug and, for a non-`"none"` value, diverted the entity's turn into `upsilonbattle/battlearena/ruler/behavior/` (`AggressiveBehavior`/`ExpirationBehavior`), self-dispatching the resulting action and bypassing the controller stack. That mechanism was vestigial dead weight in production: no API DTO carried `AIBehavior` and no service ever set it. It has been excised:
+- The `ruler/behavior/` package is deleted.
+- The `property.AIBehavior` definition is removed from `upsilontypes`.
+- The `behaviorSlug != "none"` branch in `handTurn` is gone.
+
+**What remains under this atom (ISS-101 controller-ownership invariant):** every entity must have a non-nil `ControllerID`. `AddEntity` rejects `uuid.Nil` at registration and `handTurn` panics defensively if it ever sees one. All automation now flows exclusively through the asynchronous controller path (`[[mech_controller_behavior]]` / `controllers.AIController`).
 
 ## TECHNICAL INTERFACE
 - **Code Tag:** `@spec-link [[mech_ruler_behavior]]`
-- **Location:** `upsilonbattle/battlearena/ruler/behavior/`
+- **Surviving anchor:** `upsilonbattle/battlearena/ruler/ruler.go` (`AddEntity` Nil-ControllerID guard, ISS-101)
+- **Tests:** `TestRulerAddEntityRejectsNilControllerID`, `TestRulerHandTurnRejectsNilControllerID` (`ruler_iss101_test.go`)
+- **Removed:** `upsilonbattle/battlearena/ruler/behavior/` (deleted), `property.AIBehavior` (removed from upsilontypes)
 
 ## EXPECTATION
-Entities without controllers act according to their assigned behavior slug during their initiative turn without spawning additional goroutines.
+No entity is ever automated via an in-Ruler behavior slug. Every entity has a non-nil ControllerID (enforced at AddEntity and defended in handTurn); reaching either with uuid.Nil panics. All AI automation is driven by the asynchronous controller stack only.

@@ -3,11 +3,9 @@ package ruler
 import (
 
 	"fmt"
-	"time"
 
 	"github.com/ecumeurs/upsilontypes/entity"
 	"github.com/ecumeurs/upsilontypes/property"
-	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/behavior"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rules"
 	"github.com/ecumeurs/upsilontools/tools/actor"
@@ -36,11 +34,10 @@ func (r *Ruler) triggerFirstTurn() {
 
 		candidateID := r.GameState.Turner.Turns[0].EntityId
 		ent, ok := r.GameState.Entities[candidateID]
-		
-		hasBehavior := ent.HasProperty(property.AIBehavior) && ent.GetProperty(property.AIBehavior).Get().(string) != "none"
-		if !ok || (ent.ControllerID == uuid.Nil && !hasBehavior) {
+
+		if !ok || ent.ControllerID == uuid.Nil {
 			r.RequestLogger.WithFields(logrus.Fields{
-				"entityID": candidateID.String()}).Debug("First entity in queue is uncontrolled and has no behavior, waiting for readiness")
+				"entityID": candidateID.String()}).Debug("First entity in queue is uncontrolled, waiting for readiness")
 			return
 		}
 
@@ -49,10 +46,9 @@ func (r *Ruler) triggerFirstTurn() {
 	}
 
 	ent, ok := r.GameState.Entities[entID]
-	hasBehavior := ent.HasProperty(property.AIBehavior) && ent.GetProperty(property.AIBehavior).Get().(string) != "none"
-	if !ok || (ent.ControllerID == uuid.Nil && !hasBehavior) {
+	if !ok || ent.ControllerID == uuid.Nil {
 		r.RequestLogger.WithFields(logrus.Fields{
-			"entityID": entID.String()}).Warn("Current entity turn is invalid/uncontrolled/no-behavior, skipping (waiting for recovery)")
+			"entityID": entID.String()}).Warn("Current entity turn is invalid/uncontrolled, skipping (waiting for recovery)")
 		return
 	}
 
@@ -88,25 +84,6 @@ func (r *Ruler) handTurn(entID uuid.UUID) {
 	// silently falling through to ExpirationBehavior.
 	if ent.ControllerID == uuid.Nil {
 		panic(fmt.Sprintf("handTurn: entity %s has no ControllerID (uuid.Nil) — every entity must have an owning controller (ISS-101)", entID))
-	}
-
-	// @spec-link [[mech_ruler_behavior]]
-	behaviorProp := ent.GetProperty(property.AIBehavior)
-	behaviorSlug := "none"
-	if behaviorProp != nil {
-		behaviorSlug = behaviorProp.Get().(string)
-	}
-
-	if behaviorSlug != "none" {
-		r.logger.WithFields(logrus.Fields{
-			"entityID": entID.String()[0:8],
-			"behavior": behaviorSlug,
-		}).Info("Executing automated behavior")
-
-		b := behavior.GetBehavior(behaviorSlug)
-		msg := b.Decide(r.GameState, ent)
-		r.SelfDispatchMessageDelayed(msg, 50*time.Millisecond)
-		return
 	}
 
 	_, found = r.GameState.Controllers[ent.ControllerID]
