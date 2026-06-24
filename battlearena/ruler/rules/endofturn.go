@@ -57,6 +57,28 @@ func EndOfTurn(gs *gamestate.GameState, msg *message.Message, req rulermethods.E
 		"entityID": req.EntityID.String()[0:8],
 		"isTimeout": req.IsTimeout}).Debug("Entity end of turn")
 
+	// Channeled casters auto-pass: instead of the flat Pass delay, reschedule the
+	// caster out by the channel delay and keep it locked (HasActed/HasMoved retained,
+	// no movement restore, no poison tick — those happen at the resolution's normal
+	// end of turn). The effect resolves when the dormant caster is re-picked.
+	// @spec-link [[mechanic_channeling_mechanic]]
+	if ent.IsChanneling() {
+		chSkill := ent.Skills[ent.IsCasting.SkillID]
+		ent.CurrentDelay += channelDelay(chSkill)
+		gs.Entities[req.EntityID] = ent
+		gs.Turner.AddEntity(req.EntityID, ent.CurrentDelay)
+		gs.IncTurn()
+
+		for _, ctrl := range gs.Controllers {
+			ctrl.NotifyActor(message.Create(nil, rulermethods.ControllerPassed{
+				EntityID:     req.EntityID,
+				ControllerID: req.ControllerID,
+				Version:      gs.Version,
+			}, nil))
+		}
+		return true, msg
+	}
+
 	delay := 300 // Base Pass cost as per [[mech_action_economy]]
 	if req.IsTimeout {
 		delay += 100 // Penalty as per [[us_take_combat_turn]]

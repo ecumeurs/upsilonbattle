@@ -117,7 +117,11 @@ func applyPositionalEffect(gs *gamestate.GameState, log *logrus.Entry, target en
 	// Write back the modified entities
 	gs.Entities[target.ID] = target
 	for _, d := range damaged {
-		gs.Entities[d.Target.ID] = d.Target
+		dt := d.Target
+		// Damage fills a channeling target's interruption gauge (may break its channel).
+		// @spec-link [[mechanic_channeling_mechanic]]
+		ApplyInterruption(gs, &dt, d.Damage)
+		gs.Entities[dt.ID] = dt
 	}
 	for _, a := range affected {
 		gs.Entities[a.Target.ID] = a.Target

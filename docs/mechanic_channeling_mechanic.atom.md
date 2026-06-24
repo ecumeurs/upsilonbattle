@@ -3,12 +3,13 @@ id: mechanic_channeling_mechanic
 human_name: Channeling Mechanic
 type: MECHANIC
 layer: IMPLEMENTATION
-version: 2.0
-status: DRAFT
+version: 3.0
+status: SPECIFIED
 priority: 5
-tags: [time-based, skills, casting]
+tags: [time-based, skills, casting, initiative]
 parents:
-  - [[upsilontypes:mechanic_temporary_entity_system]]
+  - [[mechanic_pre_post_execution_costs]]
+  - [[mech_initiative]]
 dependents: []
 ---
 
@@ -16,44 +17,100 @@ dependents: []
 
 ## INTENT
 
-To implement channeling mechanics where skills have a pre-execution delay (casting time) during which the caster is vulnerable and the effect is delayed until the casting completes.
+To implement channeled skills: a skill with a Channeling delay > 0 commits its
+caster to a high-impact action that resolves *later*. The caster pays all costs
+upfront and is locked out and vulnerable while the channel runs; the effect only
+fires when the channel completes. Taking enough damage interrupts the channel.
 
 ## THE RULE / LOGIC
-**Channeling Mechanic:**
 
-**Core Principle:**
-Channeling represents a specialized skill execution phase where a character commits to a high-impact action that requires significant preparation time. This creates a window of vulnerability and tactical risk for the caster in exchange for more efficient Skill Weight (SW) balancing.
+**Core Principle — Caster Reschedule (NOT a separate entity):**
+The caster is already a cursor in the initiative queue (Turner). Channeling does
+NOT spawn a hidden tracking entity; it simply pushes the caster's next tick out by
+the channel delay. While dormant the caster stays in the arena (in `Entities`, on
+the grid) and is therefore targetable. When its delayed tick arrives, the stored
+skill resolves.
+
+> Supersedes v2.0, which modelled channeling as a spawned `TimeBased` temporary
+> entity. That dependency on the temporary-entity system is removed.
 
 **Channeling Cost (Pre-Execution):**
-- **Property:** Channeling is measured in delay units (e.g. Fireball with Channeling 400 = 400 delay before the effect resolves).
-- **Risk Premium / Vulnerability Premium:** Channeling costs **-15 SW per 10 delay** units (vs -10 SW for normal delay), making channeled skills more powerful for their cost than immediate skills.
-- **Sunk Costs:** All pre-execution resources (SP, MP, HP, Channeling delay) are deducted upfront at the start of the channeling phase. These are NOT refunded if the channeling is interrupted or fails.
-- **Post-Execution Costs:** Recovery delay is added to the caster's timeline after the effect completes.
+- **Property:** `Channeling` is measured in delay units (absence = 0 = not a
+  channel). e.g. Fireball with Channeling 400 reschedules the caster +400.
+- **Risk Premium:** Channeling is balanced at **-15 SW per 10 delay** units (vs
+  -10 SW for normal delay) — more power per cost in exchange for the vulnerability.
+- **Sunk Costs:** All pre-execution resources (SP, MP, HP, Mvt) are paid upfront at
+  cast initiation and are NOT refunded if the channel is interrupted or fizzles.
 
-**Channeling Process Lifecycle:**
-1. **Initiation:** The player selects a channeled skill and target.
-2. **Entity Generation:** The system spawns a hidden `TimeBased` temporary channeling entity at the target/caster location to track the channeling duration independently of the caster's own timeline.
-3. **Timeline Integration:** The channeling entity is inserted into the global turn queue (Turner) with a delay equal to the skill's defined channeling time; the caster is added to the `IsCasting` state.
-4. **Active Phase:** The caster is marked as "Channeling," typically restricting further movement or action and remaining vulnerable to interruption until resolution.
-5. **Resolution:** When the channeling entity's turn arrives, the stored skill effect resolves against the original target, post-execution recovery delay is applied, the temporary channeling entity dies, and the caster is released.
+**State — `IsCasting`:**
+The caster holds an `IsCasting` record `{SkillID, TargetEntity | TargetPos,
+Interruption}`. The target is captured per the skill's targeting mode: entity-target
+skills store `TargetEntity` (the channel FOLLOWS the entity, which may move before
+resolution); tile/self skills store a fixed `TargetPos`.
+
+**Lifecycle:**
+1. **Cast init** (`rules/skill.go UseSkill` → `beginChannel`): detect
+   `Channeling.MaxValue > 0`; validate + pay ALL costs upfront; set `IsCasting`;
+   mark `HasActed`/`HasMoved`; do NOT apply the effect.
+2. **Auto-pass** (`ruler_actions.go controllerUseSkill` → `rules/endofturn.go`):
+   the caster's turn ends immediately — it does NOT wait for the controller to send
+   an EndOfTurn. The channel branch in EndOfTurn reschedules the caster by
+   `+channelDelay` (NOT the flat 300 Pass base), keeps it locked (no HasActed/
+   HasMoved reset, no movement restore), and re-queues it in the Turner.
+3. **Dormant:** the caster sits in the Turner at `+channelDelay`, never picked until
+   completion, still targetable on the grid.
+4. **Resolution** (`ruler_turn.go handTurn` → `rules/channeling.go ResolveChannel`):
+   when the dormant caster is re-picked, it does NOT start a shot clock or receive a
+   ControllerNextTurn. The target is re-derived (entity targets follow to their
+   current position) and **re-validated** (range/grid/type). If the target is gone
+   or out of range the channel **FIZZLES** (no effect; costs stay sunk). Otherwise
+   the stored skill's effect resolves. `IsCasting` is cleared, the caster runs a
+   normal end-of-turn (recovery delay, flag reset, re-queue), and the turn is handed
+   to the appropriate next entity in initiative (which may be the caster again).
+5. **Chained / ticking channel:** a channel whose resolved skill is itself a channel
+   simply starts a new cast at step 1 — no special case, no separate entity.
 
 **Interruption Mechanics:**
-- **Interruption Property:** 0-100, fills when the caster takes damage while casting.
-- **Interruption Formula:** Damage-based accumulation — **1 damage = 10 interruption points**.
-- **Failure Threshold:** When Interruption **≥ 100**, channeling fails immediately, all pre-execution resources are wasted (not refunded), and the caster is released into a neutral "Interrupted"/recovery state with the temporary entity cleaned up.
+- **Property:** `Interruption` 0-100, accumulates when the caster takes damage.
+- **Formula:** **1 damage = 10 interruption points**.
+- **Failure Threshold:** at `Interruption >= 100` the channel fails immediately —
+  `IsCasting` is cleared, all pre-execution resources are wasted (not refunded), and
+  the caster is pulled out of its distant dormant slot and re-queued into a near
+  recovery equal to the skill's `Delay` cost (absence = 500), explicitly NOT the
+  channel delay (auto-pass to recovery).
+- **Damage sites hooked:** skill effects, basic attacks, and positional effects all
+  feed the gauge via a single `ApplyInterruption` helper. (Poison cannot interrupt:
+  a dormant caster never takes its own end-of-turn while channeling.)
 
-**System Integration:**
-- **Temporal Decoupling:** Using a separate entity to track channeling time ensures the caster's own turn order is correctly managed relative to spell completion.
-- **Visual Feedback:** The interface provides indicators (e.g. "Channeling: Fireball") to both player and opponents, highlighting the interruption window.
+**Death during channel:** normal `RemoveEntity` cleanup; the channel just never
+resolves. No special handling.
 
 ## TECHNICAL INTERFACE
 - **Code Tag:** `@spec-link [[mechanic_channeling_mechanic]]`
-- **Related Files:** `upsilonbattle/battlearena/ruler/rules/skill.go`, `upsilonbattle/battlearena/ruler/rules/beginingofturn.go`
-- **Integration:** Works with `[[upsilontypes:mechanic_temporary_entity_system]]`, `[[mechanic_expiration_controller]]`
+- **State:** `entity.CastingState` + `Entity.IsCasting` / `Entity.IsChanneling()`
+  (`upsilontypes/entity/entity.go`).
+- **Related Files:** `upsilonbattle/battlearena/ruler/rules/channeling.go`
+  (`beginChannel`, `ResolveChannel`, `ApplyInterruption`),
+  `rules/skill.go` (`UseSkill`, `applyDirectSkillEffect`),
+  `rules/endofturn.go` (channel reschedule), `rules/attack.go` &
+  `rules/positionaleffect.go` (interruption hooks),
+  `ruler/ruler_turn.go` (`handTurn`/`resolveChannel`/`advanceTurn`),
+  `ruler/ruler_actions.go` (auto-pass).
+- **API Projection:** `upsilonapi/api` `Casting` DTO + `convertCastingState`
+  (serializes the "Channeling: X" indicator + interruption gauge).
+- **Integration:** Works with `[[mechanic_pre_post_execution_costs]]` and
+  `[[mech_initiative]]`.
 
 ## EXPECTATION
-- A channeled skill deducts all pre-execution costs (SP, MP, HP, Channeling delay) at initiation; these are not refunded on interruption or failure.
-- A channeled skill spawns a temporary `TimeBased` entity inserted into the Turner with delay equal to the skill's Channeling value (e.g. 400 delay for Channeling 400); the caster enters `IsCasting` state.
-- The skill effect resolves only when the channeling entity's turn arrives, after which the entity dies and the caster is released.
-- Taking damage while channeling adds interruption points at 10 points per 1 damage; reaching ≥ 100 interruption fails the channel, wastes resources, and releases the caster.
-- Channeled skills are balanced at -15 SW per 10 delay units (vs -10 SW for normal delay).
+- A channeled skill deducts all pre-execution costs at initiation; these are not
+  refunded on interruption, fizzle, or death.
+- Cast initiation ends the caster's turn immediately (no controller EndOfTurn) and
+  reschedules it by the skill's Channeling value; the caster enters `IsCasting`.
+- The effect resolves only when the dormant caster is re-picked, after the target is
+  re-derived and re-validated; an out-of-range or gone target fizzles the channel.
+- Entity-target channels resolve against the target's CURRENT position (it may have
+  moved); tile-target channels resolve at the fixed cast-time tile.
+- Taking damage while channeling adds 10 interruption per 1 damage; reaching >= 100
+  fails the channel, wastes the sunk costs, and recovers the caster at the skill's
+  Delay cost (not the channel delay).
+- Channeled skills are balanced at -15 SW per 10 delay units (vs -10 for normal).

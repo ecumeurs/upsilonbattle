@@ -118,6 +118,9 @@ func Attack(gs *gamestate.GameState, msg *message.Message, req rulermethods.Cont
 	foeHP.SetI(foeHP.I() - computedDamage)
 	// update foe's HP
 	foe.UpdateProperty(foeHP)
+	// Damage fills a channeling foe's interruption gauge (may break its channel).
+	// @spec-link [[mechanic_channeling_mechanic]]
+	ApplyInterruption(gs, &foe, computedDamage)
 	gs.Entities[foe.ID] = foe
 
 	credits := []rulermethods.CreditAward{}

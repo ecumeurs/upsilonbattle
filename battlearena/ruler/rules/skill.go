@@ -2,12 +2,14 @@ package rules
 
 import (
 	"github.com/ecumeurs/upsilontypes/entity"
+	"github.com/ecumeurs/upsilontypes/entity/skill"
 	"github.com/ecumeurs/upsilontypes/entity/skill/skillweight"
 	"github.com/ecumeurs/upsilontypes/property"
 	"github.com/ecumeurs/upsilontypes/property/def"
 	"github.com/ecumeurs/upsilonbattle/battlearena/property/effect/effectapplicator"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/gamestate"
 	"github.com/ecumeurs/upsilonbattle/battlearena/ruler/rulermethods"
+	"github.com/ecumeurs/upsilonmapdata/grid/position"
 	"github.com/ecumeurs/upsilontools/tools/messagequeue/message"
 	"github.com/sirupsen/logrus"
 )
@@ -55,80 +57,20 @@ func UseSkill(gs *gamestate.GameState, msg *message.Message, req rulermethods.Co
 		ctx.targetedEntities = []entity.Entity{ent}
 	}
 
+	// Channeled skills: pay costs, lock the caster, and defer the effect to ResolveChannel.
+	// @spec-link [[mechanic_channeling_mechanic]]
+	if isChanneledSkill(sk) {
+		return ctx.beginChannel(msg, req, ent, sk)
+	}
+
 	// now we have a target identifed! yata! For now only work on direct effect ... later :)
-	dds, aff, credits, err, errkey := effectapplicator.ApplyDirectEffect(ctx.log, &ent, sk.Effect, req.Target, ctx.targetedTiles, ctx.Grid, ctx.targetedEntities)
+	results, dmg, aff, err, errkey := ctx.applyDirectSkillEffect(&ent, sk, req.Target)
 	if err != "" {
 		ctx.log.Error(err)
 		return msg.ReplyWithError(err, errkey), damaged, affected
 	}
-
-	// Status Effect Credits (Flat Rate)
-	// rule: SkillWeight / 10 credits per application
-	if len(aff) > 0 && sk.Effect.IsOverTime() {
-		pos, _, _ := skillweight.Calculate(&sk)
-		statusCredits := pos / 10
-		if statusCredits > 0 {
-			credits = append(credits, rulermethods.CreditAward{
-				PlayerID: ent.ControllerID,
-				Amount:   statusCredits * len(aff), // reward per target affected
-				Source:   "status",
-			})
-		}
-	}
-
-	ctx.IncVersion()
-
-	// update entities in global context.
-	results := make([]rulermethods.ActionResult, 0)
-	for _, res := range dds {
-		tar := res.Target
-		if tar.GetPropertyC(property.HP).GetValue() <= 0 {
-			ctx.log.WithField("targetID", tar.ID.String()[0:8]).Info("Entity killed by skill effect")
-			gs.RemoveEntity(tar.ID)
-		} else {
-			ctx.Entities[tar.ID] = tar
-		}
-		
-		res.CreditAwards = credits
-		results = append(results, res)
-
-		damaged = append(damaged, rulermethods.ControllerAttacked{
-			ControllerID:         tar.ControllerID,
-			Entity:               tar,
-			SkillID:              sk.ID,
-			AttackerControllerID: ent.ControllerID,
-			Attacker:             ent,
-			Damage:               res.Damage,
-			PrevHP:               res.PrevHP,
-			NewHP:                res.NewHP,
-			Dead:                 tar.GetPropertyC(property.HP).GetValue() <= 0,
-			CreditAwards:         credits,
-			Version:              gs.Version,
-		})
-	}
-
-	for _, res := range aff {
-		tar := res.Target
-		if tar.GetPropertyC(property.HP).GetValue() <= 0 {
-			ctx.log.WithField("targetID", tar.ID.String()[0:8]).Info("Entity killed by skill effect")
-			gs.RemoveEntity(tar.ID)
-		} else {
-			ctx.Entities[tar.ID] = tar
-		}
-
-		res.CreditAwards = credits
-		results = append(results, res)
-
-		affected = append(affected, rulermethods.ControllerSkillUsed{
-			ControllerID:        tar.ControllerID,
-			Entity:              tar,
-			SkillID:             sk.ID,
-			EmitterControllerID: ent.ControllerID,
-			Emitter:             ent,
-			CreditAwards:        credits,
-			Version:             gs.Version,
-		})
-	}
+	damaged = dmg
+	affected = aff
 
 	// Movement skills: displace the subject(s) now that effects have resolved. Only the
 	// landing tile fires positional triggers (fly-over semantics).
@@ -163,6 +105,96 @@ func UseSkill(gs *gamestate.GameState, msg *message.Message, req rulermethods.Co
 	}
 
 	return
+}
+
+// applyDirectSkillEffect runs a skill's direct effect against an already-resolved
+// target (ctx.targetedTiles / ctx.targetedEntities must be populated), bumps the
+// game version, writes back affected entities, and builds the damaged/affected
+// notification slices. It is shared by immediate skill use (UseSkill) and deferred
+// channel resolution (ResolveChannel).
+//
+// Any damage dealt also feeds the channeling interruption gauge of surviving
+// targets via ApplyInterruption. @spec-link [[mechanic_channeling_mechanic]]
+func (ctx *localSkillCtx) applyDirectSkillEffect(caster *entity.Entity, sk skill.Skill, target position.Position) (results []rulermethods.ActionResult, damaged []rulermethods.ControllerAttacked, affected []rulermethods.ControllerSkillUsed, errStr, errKey string) {
+	dds, aff, credits, err, errkey := effectapplicator.ApplyDirectEffect(ctx.log, caster, sk.Effect, target, ctx.targetedTiles, ctx.Grid, ctx.targetedEntities)
+	if err != "" {
+		return nil, nil, nil, err, errkey
+	}
+
+	// Status Effect Credits (Flat Rate)
+	// rule: SkillWeight / 10 credits per application
+	if len(aff) > 0 && sk.Effect.IsOverTime() {
+		pos, _, _ := skillweight.Calculate(&sk)
+		statusCredits := pos / 10
+		if statusCredits > 0 {
+			credits = append(credits, rulermethods.CreditAward{
+				PlayerID: caster.ControllerID,
+				Amount:   statusCredits * len(aff), // reward per target affected
+				Source:   "status",
+			})
+		}
+	}
+
+	ctx.IncVersion()
+
+	results = make([]rulermethods.ActionResult, 0)
+	damaged = make([]rulermethods.ControllerAttacked, 0)
+	affected = make([]rulermethods.ControllerSkillUsed, 0)
+
+	for _, res := range dds {
+		tar := res.Target
+		// Damage fills a channeling target's interruption gauge (may break its channel).
+		// @spec-link [[mechanic_channeling_mechanic]]
+		ApplyInterruption(ctx.GameState, &tar, res.Damage)
+		if tar.GetPropertyC(property.HP).GetValue() <= 0 {
+			ctx.log.WithField("targetID", tar.ID.String()[0:8]).Info("Entity killed by skill effect")
+			ctx.RemoveEntity(tar.ID)
+		} else {
+			ctx.Entities[tar.ID] = tar
+		}
+
+		res.CreditAwards = credits
+		results = append(results, res)
+
+		damaged = append(damaged, rulermethods.ControllerAttacked{
+			ControllerID:         tar.ControllerID,
+			Entity:               tar,
+			SkillID:              sk.ID,
+			AttackerControllerID: caster.ControllerID,
+			Attacker:             *caster,
+			Damage:               res.Damage,
+			PrevHP:               res.PrevHP,
+			NewHP:                res.NewHP,
+			Dead:                 tar.GetPropertyC(property.HP).GetValue() <= 0,
+			CreditAwards:         credits,
+			Version:              ctx.Version,
+		})
+	}
+
+	for _, res := range aff {
+		tar := res.Target
+		if tar.GetPropertyC(property.HP).GetValue() <= 0 {
+			ctx.log.WithField("targetID", tar.ID.String()[0:8]).Info("Entity killed by skill effect")
+			ctx.RemoveEntity(tar.ID)
+		} else {
+			ctx.Entities[tar.ID] = tar
+		}
+
+		res.CreditAwards = credits
+		results = append(results, res)
+
+		affected = append(affected, rulermethods.ControllerSkillUsed{
+			ControllerID:        tar.ControllerID,
+			Entity:              tar,
+			SkillID:             sk.ID,
+			EmitterControllerID: caster.ControllerID,
+			Emitter:             *caster,
+			CreditAwards:        credits,
+			Version:             ctx.Version,
+		})
+	}
+
+	return results, damaged, affected, "", ""
 }
 
 

@@ -74,6 +74,14 @@ func (r *Ruler) handTurn(entID uuid.UUID) {
 		return
 	}
 
+	// A dormant channeling caster being re-picked resolves its channel instead of
+	// taking a normal turn: no shot clock, no ControllerNextTurn to the caster.
+	// @spec-link [[mechanic_channeling_mechanic]]
+	if ent.IsChanneling() {
+		r.resolveChannel(entID)
+		return
+	}
+
 	ent.CurrentDelay = 0
 	r.GameState.Entities[entID] = ent
 
@@ -136,9 +144,18 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 		return
 	}
 
+	r.advanceTurn()
+
+	ctx.Reply(ctx.Msg.Reply())
+}
+
+// advanceTurn picks the next living entity from the Turner, begins its turn,
+// evaluates victory, and hands it the turn. Shared by the normal end-of-turn flow
+// and channel resolution (which both need to advance after finalizing a turn).
+// @spec-link [[mech_initiative]]
+func (r *Ruler) advanceTurn() {
 	nextTurnEnt := r.GameState.Turner.NextTurn()
 
-	// @spec-link [[mech_initiative]]
 	for nextTurnEnt != uuid.Nil {
 		if _, alive := r.GameState.Entities[nextTurnEnt]; alive {
 			break
@@ -164,31 +181,67 @@ func (r *Ruler) endOfTurn(ctx actor.CallContext) {
 
 	if nextTurnEnt == uuid.Nil {
 		r.evaluateVictory(nextTurnEnt)
-	} else {
-		remainingTeams := make(map[int]bool)
-		for _, ent := range r.GameState.Entities {
-			remainingTeams[ent.GetPropertyI(property.TeamID).I()] = true
+		return
+	}
+
+	remainingTeams := make(map[int]bool)
+	for _, e := range r.GameState.Entities {
+		remainingTeams[e.GetPropertyI(property.TeamID).I()] = true
+	}
+
+	if len(remainingTeams) <= 1 {
+		r.evaluateVictory(nextTurnEnt)
+		return
+	}
+
+	r.RequestLogger.Info("##### END OF TURN #####")
+	for _, ctrl := range r.GameState.Controllers {
+		ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
+			Entities: ent,
+			Turn:     r.GameState.Turner.GetTurnState(),
+			Version:  r.GameState.Version,
+		}, nil))
+	}
+
+	r.handTurn(nextTurnEnt)
+}
+
+// resolveChannel resolves a re-picked dormant caster's channel: it applies (or
+// fizzles) the stored skill via the rules layer, fans out the resulting combat
+// notifications, then finalizes the caster's turn into recovery and advances to
+// the next entity (which may itself resolve another channel — chained casting).
+// @spec-link [[mechanic_channeling_mechanic]]
+func (r *Ruler) resolveChannel(entID uuid.UUID) {
+	damaged, affected, fizzled := rules.ResolveChannel(r.GameState, entID)
+
+	r.RequestLogger.WithFields(logrus.Fields{
+		"entityID": entID.String()[0:8],
+		"fizzled":  fizzled,
+	}).Info("Channel resolved")
+
+	// Combat feedback to the affected controllers (mirror controllerUseSkill).
+	for _, d := range damaged {
+		if ctrl, found := r.GameState.Controllers[d.ControllerID]; found {
+			ctrl.NotifyActor(message.Create(nil, d, nil))
 		}
-
-		if len(remainingTeams) <= 1 {
-			r.evaluateVictory(nextTurnEnt)
-		} else {
-			r.RequestLogger.Info("##### END OF TURN #####")
-			for _, ctrl := range r.GameState.Controllers {
-				ctrl.NotifyActor(message.Create(nil, rulermethods.EntitiesStateChanged{
-					Entities: ent,
-					Turn:     r.GameState.Turner.GetTurnState(),
-					Version:  r.GameState.Version,
-				}, nil))
-			}
-
-			if nextTurnEnt != uuid.Nil {
-				r.handTurn(nextTurnEnt)
-			}
+	}
+	for _, a := range affected {
+		if ctrl, found := r.GameState.Controllers[a.ControllerID]; found {
+			ctrl.NotifyActor(message.Create(nil, a, nil))
 		}
 	}
 
-	ctx.Reply(ctx.Msg.Reply())
+	// The caster is no longer casting (cleared in ResolveChannel); run a normal
+	// end-of-turn for it to apply recovery delay and re-queue it.
+	caster := r.GameState.Entities[entID]
+	caster.CurrentDelay = 0
+	r.GameState.Entities[entID] = caster
+	req := rulermethods.EndOfTurn{EntityID: entID, ControllerID: caster.ControllerID}
+	emsg := message.Create(nil, req, nil)
+	rules.EndOfTurn(r.GameState, emsg, req, r.GameState.Entities[entID])
+
+	// Hand the turn to the appropriate next entity in initiative (may be the caster).
+	r.advanceTurn()
 }
 
 

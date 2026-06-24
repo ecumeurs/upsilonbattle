@@ -168,6 +168,18 @@ func (r *Ruler) controllerUseSkill(ctx actor.CallContext) {
 				Version:  r.GameState.Version,
 			}, nil))
 		}
+
+		// A channeled skill locks the caster instantly: auto-end its turn (don't wait
+		// for the controller's EndOfTurn) so the channel reschedule applies at once.
+		// @spec-link [[mechanic_channeling_mechanic]]
+		if caster, ok := r.GameState.Entities[req.EntityID]; ok && caster.IsChanneling() {
+			r.stopShotClock()
+			eor := rulermethods.EndOfTurn{EntityID: req.EntityID, ControllerID: req.ControllerID}
+			emsg := message.Create(nil, eor, nil)
+			if done, _ := rules.EndOfTurn(r.GameState, emsg, eor, r.GameState.Entities[req.EntityID]); done {
+				r.advanceTurn()
+			}
+		}
 	}
 }
 
