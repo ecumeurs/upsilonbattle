@@ -8,7 +8,7 @@ status: DRAFT
 priority: 3
 tags: [ai, names, aesthetic, generation]
 parents:
-  - [[battleui:req_ui_look_and_feel]]
+  - [[upsilonbattleui:req_ui_look_and_feel]]
 dependents:
   - [[mech_skill_name_generation]]
 ---
@@ -43,5 +43,5 @@ Names are generated using a "Segmented Concatenation" pattern:
 
 ## EXPECTATION (For Testing)
 - Generated names should be unique within a single match.
-- Names should strictly follow the "Neon in the Dust" aesthetic defined in [[battleui:req_ui_look_and_feel]].
+- Names should strictly follow the "Neon in the Dust" aesthetic defined in [[upsilonbattleui:req_ui_look_and_feel]].
 - 100% of generated names must match one of the three patterns (Haxxor, Industrial, Abstract).

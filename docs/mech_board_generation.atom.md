@@ -10,7 +10,7 @@ tags: []
 parents:
   - [[module_backend_board_generation]]
 dependents:
-  - [[battleui:ui_iso_board]]
+  - [[upsilonbattleui:ui_iso_board]]
 ---
 # Board Generation Mechanic
 

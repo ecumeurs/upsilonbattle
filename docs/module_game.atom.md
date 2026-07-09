@@ -10,7 +10,7 @@ tags: [game, core]
 parents:
   - [[shared:req_tech_debt_backlog]]
 dependents:
-  - [[battleui:ui_board]]
+  - [[upsilonbattleui:ui_board]]
   - [[mech_character_reroll]]
   - [[mechanic_character_creation_integration]]
 ---

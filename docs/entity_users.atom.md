@@ -34,13 +34,13 @@ Defines the `users` table, serving as the primary persistent storage for player 
 ### Game Statistics & Progression
 - `total_wins` (Int, Default 0) - Lifetime match victories
 - `total_losses` (Int, Default 0) - Lifetime match defeats
-- `ratio` (Numeric, Default 0) - Calculated win/loss ratio for [[battleui:ui_leaderboard]]
+- `ratio` (Numeric, Default 0) - Calculated win/loss ratio for [[upsilonbattleui:ui_leaderboard]]
 - `reroll_count` (Int, Default 0) - Tracks character stat rerolls per [[mech_character_reroll]]
 
 ### WebSocket Communication
 - `ws_channel_key` (UUID, Unique, Nullable) - Secure channel identifier for Reverb WebSocket subscriptions
   - Generated during [[shared:uc_player_registration]]
-  - Required for [[battleui:module_frontend_matchmaking_orchestration]]
+  - Required for [[upsilonbattleui:module_frontend_matchmaking_orchestration]]
 
 ### Personal Data (GDPR Protected)
 - `full_address` (Text, Nullable) - Residential address, private
@@ -69,7 +69,7 @@ Defines the `users` table, serving as the primary persistent storage for player 
 
 ### Laravel Session Management
 - Integrates with Laravel's native session and password reset systems
-- Supports [[battleui:uc_player_login]] and [[shared:uc_player_registration]]
+- Supports [[upsilonbattleui:uc_player_login]] and [[shared:uc_player_registration]]
 
 ### GDPR Compliance
 - Soft delete via `deleted_at` allows account deactivation
@@ -77,7 +77,7 @@ Defines the `users` table, serving as the primary persistent storage for player 
 
 ### WebSocket Integration
 - `ws_channel_key` enables secure private channel subscriptions
-- Required for real-time matchmaking notifications in [[battleui:module_frontend_matchmaking_orchestration]]
+- Required for real-time matchmaking notifications in [[upsilonbattleui:module_frontend_matchmaking_orchestration]]
 
 ## TESTING CONSIDERATIONS
 - Verify role constraints (Player/Admin only)

@@ -56,7 +56,7 @@ Selects skills from the archetype's allowed tag set, filtered to tags appropriat
 - **Key package:** `upsilontypes/entity/entitygenerator/` — stat generation from weights + CP
 - **Key package:** `upsilonbattle/battlearena/controller/archetype/` — archetype stat weights + skill bundle
 - **Bridge integration:** `upsilonapi/bridge/bridge_start.go` `generateEntityFromArchetype()`
-- **PHP surface:** `battleui/app/Http/Controllers/API/MatchMakingController.php` — passes `total_wins` on AI player payload
+- **Hub surface:** `upsilonhub/internal/games/battle/matchmaking.go` — passes `total_wins` on the AI player payload
 
 ## EXPECTATION
 - `GradeFromWins(0)` = "I", `GradeFromWins(40)` = "V", `GradeFromWins(100)` = "V".

@@ -10,8 +10,8 @@ tags: [skills, generation, tags, grades, names, icons]
 parents:
   - [[shared:req_trpg_game_definition]]
 dependents:
-  - [[battleui:ui_action_panel]]
-  - [[battleui:ui_skill_icon]]
+  - [[upsilonbattleui:ui_action_panel]]
+  - [[upsilonbattleui:ui_skill_icon]]
   - [[mech_skill_equipment_system]]
   - [[mech_skill_selection_progression]]
   - [[mech_skill_validation]]

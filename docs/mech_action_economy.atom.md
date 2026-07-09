@@ -10,8 +10,8 @@ tags: []
 parents:
   - [[shared:req_tech_debt_backlog]]
 dependents:
-  - [[battleui:ui_action_panel]]
-  - [[battleui:ui_initiative_timeline]]
+  - [[upsilonbattleui:ui_action_panel]]
+  - [[upsilonbattleui:ui_initiative_timeline]]
 ---
 # Turn Action Economy Mechanic
 

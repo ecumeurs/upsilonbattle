@@ -8,7 +8,7 @@ status: STABLE
 priority: 2
 tags: [routing, inertia, spa]
 parents:
-  - [[battleui:ui_tactical_layout]]
+  - [[upsilonbattleui:ui_tactical_layout]]
 dependents: []
 ---
 

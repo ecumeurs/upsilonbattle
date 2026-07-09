@@ -25,13 +25,12 @@ Iterates slots. Once `support` is picked it is removed from the available pool; 
 **Go enforcement** (`upsilonapi/bridge/validateTeamComposition(players []api.Player) error`):
 Counts support and sneak archetypes per team across all entities in `AutoGen=true` players. Returns an error if either count exceeds 1 on the same team. Called during `StartArena` before entity generation.
 
-**Violation response:** Go returns a 400-envelope error; StartArena is rejected. The PHP layer prevents this from ever being reached through normal matchmaking.
+**Violation response:** Go returns a 400-envelope error; StartArena is rejected. The hub's matchmaking prevents this from ever being reached through normal matchmaking.
 
 ## TECHNICAL INTERFACE
 - **Code Tag:** `@spec-link [[rule_ai_team_composition_rules]]`
-- **PHP:** `battleui/app/Http/Controllers/API/MatchMakingController.php` `assignAIArchetypes()`
-- **Go:** `upsilonapi/bridge/bridge_start.go` `validateTeamComposition()`
-- **Tests (PHP):** `PVEMatchmakingTest::test_ai_entities_are_auto_gen_with_archetype`
+- **Hub:** `upsilonhub/internal/games/battle/matchmaking.go` `assignAIArchetypes()`
+- **Go (engine):** `upsilonapi/bridge/bridge_start.go` `validateTeamComposition()`
 - **Tests (Go):** `bridge_start_archetype_test.go` `TestValidateTeamCompositionRejectsTwoSupports`, `TestValidateTeamCompositionRejectsTwoSneaks`
 
 ## EXPECTATION

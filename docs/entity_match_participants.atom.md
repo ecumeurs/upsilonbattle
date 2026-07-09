@@ -26,7 +26,7 @@ Defines the `match_participants` table, serving as the junction table between `u
 - `team` (Int, Not Null) - Team assignment: 1 or 2
 - `status` (Varchar, Nullable) - Match outcome: 'WIN' or 'LOSS'
   - Enforced by CHECK constraint
-  - Used for [[battleui:ui_leaderboard]] win/loss calculations
+  - Used for [[upsilonbattleui:ui_leaderboard]] win/loss calculations
 
 ### Player Identification (Human vs AI/Bot)
 - `player_id` (UUID, Foreign Key → `users.id`, **Nullable**) - Reference to user account
@@ -54,7 +54,7 @@ Defines the `match_participants` table, serving as the junction table between `u
   - Track human player performance for [[shared:rule_progression]]
   - Support PvE modes with AI/bot opponents
   - Enable [[upsilonapi:uc_admin_history_management]] for match audit
-  - Power [[battleui:ui_leaderboard]] calculations
+  - Power [[upsilonbattleui:ui_leaderboard]] calculations
 
 ## INTEGRATION NOTES
 
@@ -64,7 +64,7 @@ The nullable `player_id` field enables flexible match participation:
 **Human Participants (player_id NOT NULL):**
 - Standard PvP and PvE matches
 - Eligible for [[shared:rule_progression]] rewards
-- Contribute to [[battleui:ui_leaderboard]] rankings
+- Contribute to [[upsilonbattleui:ui_leaderboard]] rankings
 - Generate match history for [[upsilonapi:uc_admin_history_management]]
 
 **AI/Bot Participants (player_id NULL):**
@@ -106,5 +106,5 @@ The nullable `player_id` field enables flexible match participation:
 ## BUSINESS RULE CONNECTIONS
 - Triggers [[shared:rule_progression]] validation on match completion
 - Supports [[shared:us_win_progression]] for human participants
-- Excludes AI participants from [[battleui:ui_leaderboard]] calculations
+- Excludes AI participants from [[upsilonbattleui:ui_leaderboard]] calculations
 - Enables [[upsilonapi:uc_admin_history_management]] for match audit trails
