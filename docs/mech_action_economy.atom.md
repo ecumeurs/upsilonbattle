@@ -26,6 +26,11 @@ To define the delay costs of each action and the temporal constraints (shot cloc
 - **Attack:** +100 delay cost.
 - **Pass:** +300 delay cost (base).
 
+**Single-Action Enforcement (Attack):**
+- A standard attack may be taken at most once per activation: `Attack()` sets both `HasActed` and `HasMoved` to `true` on the acting entity (`upsilonbattle/battlearena/ruler/rules/attack.go`).
+- `preAttackChecks` (`attack.go`'s sibling `attack_checks.go`) rejects any further attack while `HasActed` is `true` with `entity.hasacted`, before any damage/target validation runs.
+- This mirrors the skill-side `entity.alreadyacted` gate in `[[mech_skill_validation]]`, but is a distinct code path/error key — there is currently no dedicated attack-validation atom analogous to `[[mech_move_validation]]`/`[[mech_skill_validation]]` enumerating `preAttackChecks`' other checks (`entity.notfound`, `entity.controller.mismatch`, `entity.turn.mismatch`, `entity.attack.celltype`, `entity.attack.noentity`, `entity.attack.outofrange`, `entity.attack.friendlyfire`).
+
 **Time Constraints:**
 - Turn duration is strictly capped at **30 seconds**.
 - **Enforcement:** the Go engine uses a `ShotClock` timer that fires an internal `Timeout` notification.

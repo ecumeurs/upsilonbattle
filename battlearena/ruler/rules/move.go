@@ -106,6 +106,7 @@ func Move(gs *gamestate.GameState, msg *message.Message, req rulermethods.Contro
 // preMoveChecks performs a suite of validations for a move request:
 // entity existence, controller authorization, turn synchronization, path validity,
 // jump height constraints, cell blocking, and movement credit availability.
+// @spec-link [[mech_move_validation]]
 func (ctx *localMoveCtx) preMoveChecks(msg *message.Message, req rulermethods.ControllerMove) (ok bool, reply *message.Message) {
 	// Check if the entity exists.
 

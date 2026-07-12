@@ -201,7 +201,6 @@ func (ctx *localSkillCtx) checkSkillTarget(msg *message.Message, user entity.Ent
 // It also checks if the skill is currently on cooldown.
 // Intent: Maintain economic balance and prevent spamming of powerful abilities.
 // @spec-link [[mech_skill_validation]]
-// @spec-link [[mech_skill_validation]]
 func (ctx *localSkillCtx) checkSkillCost(msg *message.Message, user entity.Entity, sk skill.Skill) (bool, *message.Message) {
 	// for all costs in skill check if the user has enough.
 	if sk.Cooldown > 0 {

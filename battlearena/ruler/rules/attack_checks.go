@@ -13,6 +13,7 @@ import (
 // preAttackChecks performs validations before an attack can be executed.
 // It verifies entity existence, turn order, range, line of sight, and team-based restrictions (friendly fire).
 // Intent: Enforce combat rules and prevent invalid attack requests.
+// @spec-link [[mech_action_economy]]
 func (ctx *localAttackCtx) preAttackChecks(msg *message.Message, req rulermethods.ControllerAttack) (ok bool, reply *message.Message) {
 
 	ent, found := ctx.Entities[req.EntityID]
@@ -21,7 +22,13 @@ func (ctx *localAttackCtx) preAttackChecks(msg *message.Message, req rulermethod
 		return false, msg.ReplyWithError("Entity not found", "entity.notfound")
 	}
 
-	// Check if the controller is allowed to use the entity
+	// Check if the controller is allowed to use the entity. Same shared
+	// gamestate.CheckControllerForEntity gate used by move/skill/pass; no
+	// dedicated attack-validation atom exists yet (see mech_action_economy's
+	// gap note), so this reuses the canonical "Controller Mismatch" rule
+	// (check #3) already documented for the identical entity.controller.mismatch
+	// key on the move path.
+	// @spec-link [[mech_move_validation]]
 	if !ctx.CheckControllerForEntity(req.ControllerID, req.EntityID) {
 		ctx.log.Error("Controller is not allowed to use this entity")
 		return false, msg.ReplyWithError("Controller is not allowed to use this entity", "entity.controller.mismatch")
@@ -32,7 +39,11 @@ func (ctx *localAttackCtx) preAttackChecks(msg *message.Message, req rulermethod
 		return false, msg.ReplyWithError("It is not this entity turn", "entity.turn.mismatch")
 	}
 
-	// Check if the attack is valid
+	// Check if the attack is valid.
+	// Target must resolve to a real cell inside the grid's [0,Width) x [0,Length) x
+	// [0,Height) bounds (Grid.CellAt -> PositionIsInGrid); anything outside is rejected
+	// before any occupancy/range/team logic runs.
+	// @spec-link [[entity_grid]]
 	target, found := ctx.Grid.CellAt(req.Target)
 	if !found {
 		ctx.log.Error("Target is not found")
@@ -44,6 +55,9 @@ func (ctx *localAttackCtx) preAttackChecks(msg *message.Message, req rulermethod
 		return false, msg.ReplyWithError("Invalid attack", "entity.attack.celltype")
 	}
 
+	// A target cell must hold an entity (grid-cell EntityIDs collection) and, among
+	// its occupants, an attackable Character/Monster -- not just a WalkThrough entity.
+	// @spec-link [[mechanic_multi_entity_cell_system]]
 	if !target.IsOccupied() {
 		ctx.log.Error("Target has no entities")
 		return false, msg.ReplyWithError("Invalid attack", "entity.attack.noentity")
