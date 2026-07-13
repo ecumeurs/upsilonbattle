@@ -107,6 +107,13 @@ func EndOfTurn(gs *gamestate.GameState, msg *message.Message, req rulermethods.E
 	// unset HasActed, HasMoved
 	ent.UpdatePropertyValue(property.HasActed, false)
 	ent.UpdatePropertyValue(property.HasMoved, false)
+	// tick every equipped skill's cooldown down by one (floored at 0) so a cast
+	// skill becomes castable again once its cooldown counter reaches 0. A skill
+	// cast this turn was set to its max cooldown just now, so a single decrement
+	// here leaves it > 0 — still rejected on the owner's immediately-following
+	// turn — as [[mech_skill_validation]]'s cooldown gate requires. (ISS-111)
+	// @spec-link [[mech_skill_validation]]
+	ent.SkillCooldownTickDown()
 
 	// update entity in state
 	gs.Entities[req.EntityID] = ent
