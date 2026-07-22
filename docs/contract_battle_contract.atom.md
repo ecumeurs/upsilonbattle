@@ -9,7 +9,9 @@ priority: 1
 tags: [governance, contract, engine]
 parents:
   - [[shared:contract_upsilon_contract]]
-dependents: []
+dependents:
+  - [[mech_movement_reposition]]
+  - [[module_skill_sandbox]]
 ---
 
 # Upsilon Battle Engine Contract

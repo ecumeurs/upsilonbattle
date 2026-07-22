@@ -8,8 +8,8 @@ status: SPECIFIED
 priority: 5
 tags: [time-based, skills, casting, initiative]
 parents:
-  - [[mechanic_pre_post_execution_costs]]
   - [[mech_initiative]]
+  - [[mechanic_pre_post_execution_costs]]
 dependents: []
 ---
 

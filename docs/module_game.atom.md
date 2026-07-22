@@ -10,9 +10,9 @@ tags: [game, core]
 parents:
   - [[shared:req_tech_debt_backlog]]
 dependents:
-  - [[upsilonbattleui:ui_board]]
   - [[mech_character_reroll]]
   - [[mechanic_character_creation_integration]]
+  - [[upsilonbattleui:ui_board]]
 ---
 # TRPG Game Module
 

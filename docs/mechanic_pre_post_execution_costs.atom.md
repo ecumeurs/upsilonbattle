@@ -9,7 +9,8 @@ priority: 5
 tags: [skills, costs, time-based]
 parents:
   - [[module_backend_action_economy]]
-dependents: []
+dependents:
+  - [[mechanic_channeling_mechanic]]
 ---
 
 # Pre and Post Execution Costs Mechanic

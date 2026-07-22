@@ -9,7 +9,8 @@ priority: 5
 tags: []
 parents:
   - [[module_backend_initiative_evaluation]]
-dependents: []
+dependents:
+  - [[mechanic_channeling_mechanic]]
 ---
 # Initiative & Delay Mechanic
 

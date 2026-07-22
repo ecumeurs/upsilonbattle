@@ -8,8 +8,8 @@ status: DRAFT
 priority: 4
 tags: [skills, names, generation, aesthetic]
 parents:
-  - [[upsilonbattleui:req_ui_look_and_feel]]
   - [[mech_ai_name_generation]]
+  - [[upsilonbattleui:req_ui_look_and_feel]]
   - [[upsilontypes:module_skill_generator]]
 dependents: []
 ---
