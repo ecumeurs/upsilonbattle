@@ -16,11 +16,11 @@ dependents:
 # Skill Selection Progression Mechanic
 
 ## INTENT
-To implement the skill selection system where players choose 1 of 3 skills at character creation and every 10 levels, with available skill grades increasing as characters progress.
+To implement the skill selection system where a character receives a single grade-gated skill roll at creation (consuming a one-time roulette_used flag, not a choice of 3), and players choose 1 of 3 skills every 10 levels thereafter, with available skill grades increasing as characters progress.
 
 ## THE RULE / LOGIC
 **Skill Selection Timeline:**
-- **Character Creation:** Choose 1 of 3 random skills (Grade I-II)
+- **Character Creation:** A single grade-gated skill roll (Grade I-II) — not a choice of 3. The engine generates exactly one skill for the requested grade and it is acquired directly; the character's `roulette_used` flag (default false) is marked consumed by this roll. (Verified from code: the roll handler marks the flag but does not itself reject a subsequent call — whether repeat rolls are blocked elsewhere is not confirmed in this pass.)
 - **Every 10 Levels:** Choose 1 of 3 random skills (higher grades available)
 - **Skill Reforging:** Every 5 levels, can modify existing skill properties
 
@@ -30,12 +30,17 @@ To implement the skill selection system where players choose 1 of 3 skills at ch
 - **Level 20-29:** Grade III-IV skills offered
 - **Level 30+:** Grade IV-V skills offered
 
-**Selection Process:**
+**Selection Process (Every 10 Levels):**
 1. System generates 3 random skills from appropriate grade pool
 2. Player reviews skill properties, costs, and effects
 3. Player selects 1 skill to learn
 4. Skill added to character's skill list
 5. Unselected skills are discarded
+
+**Selection Process (Character Creation):**
+1. System generates exactly 1 random skill from the grade-gated pool
+2. The rolled skill is acquired directly onto the character — no review-and-pick-1-of-3 step
+3. The character's `roulette_used` flag is marked consumed
 
 **Skill Pool Design:**
 - **Base Skills:** Predefined skill templates by grade
@@ -50,4 +55,4 @@ To implement the skill selection system where players choose 1 of 3 skills at ch
 
 ## TECHNICAL INTERFACE (The Bridge)
 - **Code Tag:** `@spec-link [[mech_skill_selection_progression]]`
-- **API Endpoints:** `POST /api/v1/character/{id}/skill-select`, `POST /api/v1/character/{id}/skill-reforge`
+- **API Endpoints:** `POST /api/v1/profile/character/{characterId}/skills/roll` — shipped, drives the character-creation single grade-gated roll (grade selectable via `?grade=`, gated by the account's total wins). The every-10-levels choose-1-of-3 flow and `POST /api/v1/character/{id}/skill-reforge` are not confirmed against current code in this pass — do not treat their endpoint shapes as verified.
