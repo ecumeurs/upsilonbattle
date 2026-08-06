@@ -1,8 +1,7 @@
 ---
 id: vision_battle_vision
 status: STABLE
-parents:
-  - [[shared:vision_upsilon_vision]]
+parents: []
 dependents: []
 human_name: Upsilon Battle Engine Vision
 type: VISION

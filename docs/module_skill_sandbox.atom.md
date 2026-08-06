@@ -1,14 +1,14 @@
 ---
 id: module_skill_sandbox
 human_name: Skill Scenario Sandbox
-type: MECHANIC
-layer: IMPLEMENTATION
+type: MODULE
+layer: ARCHITECTURE
 version: 1.0
 status: DRAFT
 priority: 5
 tags: [testing, sandbox, skills]
 parents:
-  - [[contract_battle_contract]]
+  - [[shared:req_tech_debt_backlog]]
 dependents: []
 ---
 

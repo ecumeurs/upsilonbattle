@@ -8,7 +8,7 @@ status: DRAFT
 priority: 4
 tags: [skills, movement, traps, positions]
 parents:
-  - [[contract_battle_contract]]
+  - [[upsilonapi:domain_skill_system]]
 dependents: []
 ---
 

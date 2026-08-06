@@ -1,3 +1,16 @@
+// Ruler testing robustness: NewCompleteRuler assigns random entity delays, so
+// the first turn order is non-deterministic between controllers. Tests in
+// this file must not assume a specific controller goes first.
+//
+//   - Wait for a turn event (ControllerNextTurn) by monitoring the inboxes of
+//     ALL participating controllers (e.g. a select loop or equivalent helper),
+//     never just one controller's channel.
+//   - Once a turn is detected, capture the active controller from that event
+//     and use it for the assertions covering that turn segment.
+//
+// This keeps the suite stable across repeated runs with different random
+// seeds (e.g. `go test -count 10`).
+//
 // @test-link [[rule_turn_clock]]
 // @test-link [[mechanic_arena_lifecycle]]
 package ruler
