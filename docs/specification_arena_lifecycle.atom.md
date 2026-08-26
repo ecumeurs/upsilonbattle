@@ -1,6 +1,6 @@
 ---
 id: specification_arena_lifecycle
-status: DRAFT
+status: REVIEW
 type: SPECIFICATION
 layer: ARCHITECTURE
 priority: 5
