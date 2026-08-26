@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// @spec-link [[mechanic_mec_skill_payload_resolution]]
+// @spec-link [[mechanic_skill_payload_resolution]]
 // @spec-link [[rule_skill_grading_system]]
 
 
