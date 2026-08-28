@@ -4,7 +4,7 @@ human_name: "Combat Attack Computation"
 type: MECHANIC
 layer: IMPLEMENTATION
 version: 1.0
-status: DRAFT
+status: REVIEW
 priority: 5
 tags: [combat, damage, math]
 parents:
@@ -28,9 +28,13 @@ To define the mathematical sequence for damage resolution in the core engine.
 This mechanic defines the mathematical sequence for damage resolution in the core engine, covering both skill-based ("Damaging" tag) and standard (non-skill) attacks.
 
 **A. Standard (non-skill) attack** — linear reduction model with a floor of 1:
-1. **Direct Computation:** `Damage = Attacker.Attack - Target.Defense`
-2. **Minimum Floor:** `FinalDamage = max(1, Damage)`
-3. **Resolution:** `Target.HP = Target.HP - FinalDamage`
+1. **Total Attack:** `TotalAttack = Attacker.Attack + Attacker.WeaponBaseDamage`
+2. **Effective Defense:** `EffectiveDefense = Target.Defense + Target.ArmorRating`
+3. **Multiplier:** `Multiplier = 1.0` for a normal hit. If the attack qualifies as a backstab, `Multiplier` and `EffectiveDefense` are both adjusted instead — the detection rule and the resulting 1.5x damage / 50% armor-penetration values are owned by [[mechanic_backstab_detection_algorithm]] and [[mechanic_armor_penetration_system]] respectively and are not restated here.
+4. **Direct Computation:** `Damage = int(TotalAttack * Multiplier) - EffectiveDefense`
+5. **Minimum Floor:** `FinalDamage = max(1, Damage)`
+6. **Shield Absorption:** `FinalDamage` then passes through the shield-absorption rule owned by [[mech_combat_shielding]] before it reduces `Target.HP` — not restated here.
+7. **Resolution:** `Target.HP = Target.HP - FinalDamage` (the post-shield remainder from step 6).
 
 **B. Skill attack (Skill has a "Damaging" tag)** — "Three-Tunnel" model before shielding:
 1. **Hit Test (Skills Only):** Accuracy vs Dodge roll.
@@ -46,7 +50,8 @@ This mechanic defines the mathematical sequence for damage resolution in the cor
 ## TECHNICAL INTERFACE (The Bridge)
 - **Code Tag:** `@spec-link [[mech_combat_attack_computation]]`
 - **Related Files:** `upsilonbattle/battlearena/ruler/rules/attack.go`, `effectapplicator.go`
-- **Test Names:** `rules_attack_test.go`, `rules_attack_failure_test.go`
+- **Test Names:** `rules_attack_test.go`, `rules_attack_failure_test.go`, `e2e_melee_attack_damage.js`
+- **Integration:** Backstab detection and its 1.5x damage / 50% armor-penetration modifiers are owned by [[mechanic_backstab_detection_algorithm]] and [[mechanic_armor_penetration_system]]; shield absorption (both the standard and skill attack paths) is owned by [[mech_combat_shielding]].
 
 ## EXPECTATION (For Testing)
 **Standard attack:**

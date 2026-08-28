@@ -243,29 +243,25 @@ func (ctx *localSkillCtx) checkSkillCost(msg *message.Message, user entity.Entit
 
 // paySkillCost deducts the required resources from the entity and sets the skill on cooldown.
 // Intent: Finalize the transaction of using a skill.
+// @spec-link [[rule_entity_property_write_isolation]]
 func (ctx *localSkillCtx) paySkillCost(user entity.Entity, sk skill.Skill) (entity.Entity, skill.Skill) {
 	skpc := sk.GetPropertyC(property.Cooldown)
 	sk.Cooldown = skpc.GetMaxValue()
 
+	// HP/MP/SP/Movement are all buffable: deduct the cost as a base-level
+	// delta (never a composed absolute), so an active buff's contribution is
+	// never folded into base and the cost payment cannot compound on reuse.
 	skp := sk.GetPropertyI(property.HPLeech)
-	hp := user.GetPropertyC(property.HP)
-	hp.SetValue(hp.GetValue() - skp.I())
-	user.UpdateProperty(hp)
+	user.AdjustPropertyCValue(property.HP, -skp.I())
 
 	skp = sk.GetPropertyI(property.MPLeech)
-	mp := user.GetPropertyC(property.MP)
-	mp.SetValue(mp.GetValue() - skp.I())
-	user.UpdateProperty(mp)
+	user.AdjustPropertyCValue(property.MP, -skp.I())
 
 	skp = sk.GetPropertyI(property.SPLeech)
-	sp := user.GetPropertyC(property.SP)
-	sp.SetValue(sp.GetValue() - skp.I())
-	user.UpdateProperty(sp)
+	user.AdjustPropertyCValue(property.SP, -skp.I())
 
 	skp = sk.GetPropertyI(property.MvtCost)
-	mvt := user.GetPropertyC(property.Movement)
-	mvt.SetValue(mvt.GetValue() - skp.I())
-	user.UpdateProperty(mvt)
+	user.AdjustPropertyCValue(property.Movement, -skp.I())
 
 	return user, sk
 }

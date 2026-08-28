@@ -47,4 +47,4 @@ Equipped items provide dynamic modifications to a character's base attributes, a
 
 ## TECHNICAL INTERFACE (The Bridge)
 - **Code Tag:** `@spec-link [[mechanic_equipment_stat_bonuses]]`
-- **Related Files:** `upsilonbattle/battlearena/entity/entity.go`, `upsilonbattle/battlearena/property/def/item.go`
+- **Related Files:** `upsilontypes/entity/entity.go` (entity moved here from the now-removed `upsilonbattle/battlearena/entity/entity.go` package), `upsilonbattle/battlearena/property/def/item.go`

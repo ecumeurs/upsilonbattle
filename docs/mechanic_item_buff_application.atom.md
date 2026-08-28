@@ -72,8 +72,9 @@ func (e *Entity) RemoveBuffsByOrigin(originID uuid.UUID) {
 
 ## TECHNICAL INTERFACE
 - **Code Tag:** `@spec-link [[mechanic_item_buff_application]]`
-- **Files:** `upsilonapi/bridge/bridge.go` (insertion at the entity-bootstrap loop), `upsilonbattle/battlearena/entity/entity.go` (new `RemoveBuffsByOrigin`), `upsilonbattle/battlearena/property/buff.go` (existing `Forever` flag), `upsilonbattle/battlearena/property/def/item.go` (existing factories).
+- **Files:** `upsilonapi/bridge/bridge.go` (insertion at the entity-bootstrap loop), `upsilontypes/entity/entity.go` (`RemoveBuffsByOrigin`; entity moved here from the now-removed `upsilonbattle/battlearena/entity/entity.go` package), `upsilonbattle/battlearena/property/buff.go` (existing `Forever` flag), `upsilonbattle/battlearena/property/def/item.go` (existing factories).
 - **Test Names:** `TestArenaInit_EquippedItemsBecomeBuffs`, `TestRemoveBuffsByOrigin`, `TestItemEffectRegistersSkill`.
+- **Companion atom:** `[[rule_entity_property_write_isolation]]` documents the write side of the same `Entity` property system: this atom's buff registration/composition (`RegisterBuff`, `GetProperty`) is the read side, and any code path that reads a buff-composed value and persists a new value back onto the entity must follow that rule's base-state isolation invariant instead of writing the composed value directly.
 
 ## EXPECTATION
 - An entity with one armor + one sword equipped boots with two `Forever=true` buffs whose `OriginEntityID` matches the inventory item IDs.

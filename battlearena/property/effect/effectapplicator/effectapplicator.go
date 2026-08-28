@@ -86,7 +86,9 @@ func applyDamagingEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Ef
 	accuracy := ent.GetPropertyI(property.Accuracy).I()
 	damageTargets := []entity.Entity{}
 	for _, target := range targetedEntities {
-		dodge := ent.GetPropertyI(property.Dodge).I()
+		// Dodge is the TARGET's evasion, not the caster's — an entity's own
+		// Dodge must never suppress its own attacks. ISS-145.
+		dodge := target.GetPropertyI(property.Dodge).I()
 		if tools.RandomInt(0, 100) < accuracy-dodge {
 			damageTargets = append(damageTargets, target)
 		} else {
@@ -145,10 +147,15 @@ func applyDamageToSingleTarget(logger *logrus.Entry, ent *entity.Entity, eff eff
 	truedmg = tools.Max(int(math.Floor(float64(truedmg)*multiplier)), 0)
 
 	prevHP := hp
-	// Deplete shield if the effect has shield-damaging properties
+	// Deplete shield if the effect has shield-damaging properties.
+	// Shield is buffable: persist the change as a base-level delta (never the
+	// composed absolute), so an active buff's contribution is never folded
+	// into base.
+	// @spec-link [[rule_entity_property_write_isolation]]
 	if shieldPower < 0 {
-		target.UpdatePropertyValue(property.Shield, tools.Max(shield+shieldPower, 0))
-		shield = tools.Max(shield+shieldPower, 0)
+		newShield := tools.Max(shield+shieldPower, 0)
+		target.AdjustPropertyCValue(property.Shield, newShield-shield)
+		shield = newShield
 	}
 
 	// Roll for and apply Poison status effect
@@ -162,10 +169,13 @@ func applyDamageToSingleTarget(logger *logrus.Entry, ent *entity.Entity, eff eff
 		target.RepsertPropertyValue(property.Stun, stun+truestun)
 	}
 
-	// Distribute remaining damage between Shield and HP
+	// Distribute remaining damage between Shield and HP. Both are buffable:
+	// persist each change as a base-level delta, never a composed absolute.
+	// @spec-link [[rule_entity_property_write_isolation]]
 	actionDamage := 0
 	if truedmg > 0 {
 		if shield > 0 {
+			shieldBefore := shield
 			if shield > truedmg {
 				shield -= truedmg
 				truedmg = 0
@@ -173,9 +183,10 @@ func applyDamageToSingleTarget(logger *logrus.Entry, ent *entity.Entity, eff eff
 				truedmg -= shield
 				shield = 0
 			}
-			target.UpdatePropertyValue(property.Shield, shield)
+			target.AdjustPropertyCValue(property.Shield, shield-shieldBefore)
 		}
 		if hp > 0 {
+			hpBefore := hp
 			if hp > truedmg {
 				actionDamage = truedmg
 				hp -= truedmg
@@ -183,7 +194,7 @@ func applyDamageToSingleTarget(logger *logrus.Entry, ent *entity.Entity, eff eff
 				actionDamage = hp
 				hp = 0
 			}
-			target.UpdatePropertyValue(property.HP, hp)
+			target.AdjustPropertyCValue(property.HP, hp-hpBefore)
 		}
 	}
 
@@ -228,8 +239,12 @@ func applyHealToSingleTarget(logger *logrus.Entry, eff effect.Effect, target ent
 	prevHP := hp
 	actualHeal := 0
 
-	// Apply HP restoration up to maximum capacity
+	// Apply HP restoration up to maximum capacity. HP is buffable: persist the
+	// change as a base-level delta (never the composed absolute), so an
+	// active buff's contribution is never folded into base.
+	// @spec-link [[rule_entity_property_write_isolation]]
 	if hp < maxhp {
+		hpBefore := hp
 		if hp+heal > maxhp {
 			actualHeal = maxhp - hp
 			hp = maxhp
@@ -237,16 +252,19 @@ func applyHealToSingleTarget(logger *logrus.Entry, eff effect.Effect, target ent
 			actualHeal = heal
 			hp += heal
 		}
-		target.UpdatePropertyValue(property.HP, hp)
+		target.AdjustPropertyCValue(property.HP, hp-hpBefore)
 	}
 
 	shield := target.GetPropertyC(property.Shield).GetValue()
 	poison := target.GetPropertyI(property.Poison).I()
 	stun := target.GetPropertyI(property.Stun).I()
 
-	// Apply overshield (limit set to 2x max HP)
+	// Apply overshield (limit set to 2x max HP). Shield is buffable: persist
+	// as a base-level delta, same as above.
+	// @spec-link [[rule_entity_property_write_isolation]]
 	if shieldPower > 0 {
-		target.UpdatePropertyValue(property.Shield, tools.Min(shield+shieldPower, maxhp*2))
+		newShield := tools.Min(shield+shieldPower, maxhp*2)
+		target.AdjustPropertyCValue(property.Shield, newShield-shield)
 	}
 	// Apply status effect cleansing (only if power values are negative)
 	if poisonPower < 0 {

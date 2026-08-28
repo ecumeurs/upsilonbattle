@@ -72,11 +72,11 @@ func Move(gs *gamestate.GameState, msg *message.Message, req rulermethods.Contro
 	// Compute the new delay
 	ent.CurrentDelay = ent.CurrentDelay + len(req.Path)*20
 
-	// Pay the move cost ! (1/tile)
-	prop := ent.GetPropertyC(property.Movement)
-	prop.SetValue(prop.GetValue() - len(req.Path))
-
-	ent.UpdateProperty(prop)
+	// Pay the move cost ! (1/tile). Movement is buffable: deduct as a
+	// base-level delta so an active buff's contribution is never folded into
+	// base and the cost cannot compound on reuse.
+	// @spec-link [[rule_entity_property_write_isolation]]
+	ent.AdjustPropertyCValue(property.Movement, -len(req.Path))
 
 	// Update the entity
 	ctx.Entities[req.EntityID] = ent

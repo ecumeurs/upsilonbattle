@@ -87,23 +87,31 @@ func EndOfTurn(gs *gamestate.GameState, msg *message.Message, req rulermethods.E
 
 	// check poisonned status!
 
+	// @spec-link [[rule_entity_property_write_isolation]]
 	if ent.GetPropertyI(property.Poison).I() > 0 {
 		poison := ent.GetPropertyI(property.Poison).I()
-		ent.UpdatePropertyValue(property.HP, ent.GetPropertyC(property.HP).GetValue()-poison)
+		// HP is buffable: strip the buff's contribution by applying the poison
+		// tick as a base-level delta rather than persisting a composed absolute.
+		ent.AdjustPropertyCValue(property.HP, -poison)
 
 		poison = poison / 2
 		if poison <= 1 {
 			poison = 0
 		}
 		ent.UpdatePropertyValue(property.Poison, poison)
-		if ent.GetPropertyC(property.HP).GetValue() <= 0 {
-			ent.UpdatePropertyValue(property.HP, 1)
-			// can't die from poison.... Just suffer greatly.
+		if hp := ent.GetPropertyC(property.HP).GetValue(); hp <= 0 {
+			// can't die from poison.... Just suffer greatly. Floor composed HP at
+			// exactly 1 via the same base-delta technique.
+			ent.AdjustPropertyCValue(property.HP, 1-hp)
 		}
 	}
 
-	// restore movement points
-	ent.UpdatePropertyValue(property.Movement, ent.GetPropertyC(property.Movement).GetMaxValue())
+	// restore movement points: refill to the entity's own base carrying
+	// capacity. Any buff-granted extra capacity/value keeps applying via
+	// composition on the next read — it must never be folded into base, or a
+	// buffed Movement escalates every turn.
+	// @spec-link [[rule_entity_property_write_isolation]]
+	ent.UpdatePropertyCValue(property.Movement, ent.GetBasePropertyC(property.Movement).GetMaxValue())
 	// unset HasActed, HasMoved
 	ent.UpdatePropertyValue(property.HasActed, false)
 	ent.UpdatePropertyValue(property.HasMoved, false)

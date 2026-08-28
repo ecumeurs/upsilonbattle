@@ -73,8 +73,12 @@ func Attack(gs *gamestate.GameState, msg *message.Message, req rulermethods.Cont
 
 	computedDamage := tools.Max(1, int(float64(totalAttack)*multiplier)-effectiveDefense)
 
-	// Apply shield (not penetrated)
+	// Apply shield (not penetrated). Shield is buffable: persist the change
+	// as a base-level delta (never the composed absolute), so an active
+	// buff's contribution is never folded into base.
+	// @spec-link [[rule_entity_property_write_isolation]]
 	foeShield := foe.GetPropertyC(property.Shield)
+	shieldBefore := foeShield.GetValue()
 	if foeShield.GetValue() > 0 {
 		if foeShield.GetValue() >= computedDamage {
 			ctx.log.Debugf("Shield absorbed all %d damage", computedDamage)
@@ -85,7 +89,7 @@ func Attack(gs *gamestate.GameState, msg *message.Message, req rulermethods.Cont
 			computedDamage -= foeShield.GetValue()
 			foeShield.SetValue(0)
 		}
-		foe.UpdateProperty(foeShield)
+		foe.AdjustPropertyCValue(property.Shield, foeShield.GetValue()-shieldBefore)
 	}
 
 	// Compute the new delay
@@ -114,10 +118,13 @@ func Attack(gs *gamestate.GameState, msg *message.Message, req rulermethods.Cont
 	hasMoved.Set(true)
 	ent.UpdateProperty(hasMoved)
 
-	// apply damage
+	// apply damage. HP is buffable: persist as a base-level delta, same as
+	// Shield above.
+	// @spec-link [[rule_entity_property_write_isolation]]
+	hpBefore := foeHP.I()
 	foeHP.SetI(foeHP.I() - computedDamage)
 	// update foe's HP
-	foe.UpdateProperty(foeHP)
+	foe.AdjustPropertyCValue(property.HP, foeHP.I()-hpBefore)
 	// Damage fills a channeling foe's interruption gauge (may break its channel).
 	// @spec-link [[mechanic_channeling_mechanic]]
 	ApplyInterruption(gs, &foe, computedDamage)
