@@ -15,7 +15,7 @@ func TestRuleSkillFailMvt(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
 	// Set a skill Movement cost higher than the entity's current Movement points.
-	fake.Skill.Targeting[property.TargetType.String()] = defaultproperty.MakeIntProperty(property.MvtCost, 11 /*Default Mvt is 3*/, property.FriendlyController, property.Skill)
+	fake.Skill.Targeting[property.TargetType.String()] = defaultproperty.MakeIntProperty(property.MovementCost, 11 /*Default Mvt is 3*/, property.FriendlyController, property.Skill)
 	addSkillToEntity(gs, fake.Attacker, fake.Skill) 
 
 	msg := message.Create(nil,
@@ -73,7 +73,7 @@ func TestRuleSkillDeduceMvt(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
 	// Set a Movement cost of 1.
-	fake.Skill.Targeting[property.TargetType.String()] = defaultproperty.MakeIntProperty(property.MvtCost, 1, property.FriendlyController, property.Skill)
+	fake.Skill.Targeting[property.TargetType.String()] = defaultproperty.MakeIntProperty(property.MovementCost, 1, property.FriendlyController, property.Skill)
 	addSkillToEntity(gs, fake.Attacker, fake.Skill) 
 
 	msg := message.Create(nil,

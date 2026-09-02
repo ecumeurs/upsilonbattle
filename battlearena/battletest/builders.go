@@ -61,7 +61,7 @@ func (b *SkillSpec) Cost(p property.Property) *SkillSpec {
 
 // MvtCost sets the skill's movement-point cost.
 func (b *SkillSpec) MvtCost(v int) *SkillSpec {
-	return b.Cost(defaultproperty.MakeIntProperty(property.MvtCost, v, property.FriendlyController, property.Skill))
+	return b.Cost(defaultproperty.MakeIntProperty(property.MovementCost, v, property.FriendlyController, property.Skill))
 }
 
 // Effect adds an arbitrary effect property.
@@ -72,7 +72,7 @@ func (b *SkillSpec) Effect(p property.Property) *SkillSpec {
 
 // Damage adds a Damage effect property (percentage of Attack).
 func (b *SkillSpec) Damage(v int) *SkillSpec {
-	return b.Effect(defaultproperty.MakeIntProperty(property.Damage, v, property.FriendlyController, property.Skill))
+	return b.Effect(defaultproperty.MakeIntProperty(property.DamageScale, v, property.FriendlyController, property.Skill))
 }
 
 // Heal adds a Heal effect property.

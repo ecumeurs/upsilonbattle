@@ -18,7 +18,7 @@ import (
 
 // registerForeverBuff attaches a Forever (non-expiring) buff for the given
 // property to entityID, with the supplied Value/MaxValue deltas.
-func registerForeverBuff(gs *gamestate.GameState, entityID uuid.UUID, prop property.EntityProperties, valueDelta, maxDelta int) {
+func registerForeverBuff(gs *gamestate.GameState, entityID uuid.UUID, prop property.Key, valueDelta, maxDelta int) {
 	ent := gs.Entities[entityID]
 	buff := property.MakeTemporaryProperties(0)
 	buff.Forever = true

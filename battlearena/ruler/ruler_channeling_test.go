@@ -24,7 +24,7 @@ func channeledDamageSkill(damage, delay int) skill.Skill {
 	sk := skill.New()
 	sk.Name = "Channeled Bolt"
 	sk.Effect.Properties = append(sk.Effect.Properties,
-		defaultproperty.MakeIntProperty(property.Damage, damage, property.FriendlyController, property.Skill))
+		defaultproperty.MakeIntProperty(property.DamageScale, damage, property.FriendlyController, property.Skill))
 	ch := defaultproperty.MakeIntCounterProperty(property.Channeling, 0, delay, property.FriendlyController, property.Skill)
 	sk.Costs[ch.Name(property.GameMaster)] = ch
 	return sk

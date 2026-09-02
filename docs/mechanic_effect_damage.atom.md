@@ -19,13 +19,13 @@ To define the physical damage tunnel computation from skill damage percentage an
 
 ## THE RULE / LOGIC
 **Physical Damage Tunnel:**
-1. `rawPhysical = Attacker.Attack * Skill.Damage / 100` — Skill.Damage is a percentage multiplier.
+1. `rawPhysical = Attacker.Attack * Skill.DamageScale / 100` — Skill.DamageScale is a percentage multiplier.
 2. `physicalDamage = max(rawPhysical - Target.Defense - Target.ArmorRating, 0)`.
 3. If `physicalDamage + poisonDamage + stunDamage = 0`, no HP is deducted.
 
-**Damage Default:** Skill.Damage defaults to 100 (100% of Attack). The blueprint explicitly initializes Damage to 0 for non-damaging skills.
+**Damage Default:** Skill.DamageScale defaults to 100 (100% of Attack). The blueprint explicitly initializes DamageScale to 0 for non-damaging skills.
 
-**IsDamaging Check:** An effect enters the damage branch only if `IsDamaging()` returns true: Damage > 0, StunPower > 0, PoisonPower > 0, or ShieldPower < 0.
+**IsDamaging Check:** An effect enters the damage branch only if `IsDamaging()` returns true: DamageScale > 0, StunPower > 0, PoisonPower > 0, or ShieldPower < 0.
 
 ## TECHNICAL INTERFACE
 - **Code Tag:** `@spec-link [[mechanic_effect_damage]]`
@@ -33,6 +33,6 @@ To define the physical damage tunnel computation from skill damage percentage an
 - **Test Names:** `TestEffectApplicatorDamage1Target`, `TestEffectApplicatorDamage1Defense`, `TestEffectApplicatorDamage1TargetShield`
 
 ## EXPECTATION
-- Attack=3, Damage=200 (200% multiplier), Defense=0 → rawDmg=6.
-- Attack=3, Damage=200, ArmorRating=5 → rawDmg=max(6-5,0)=1.
-- Damage=0, no other positive properties → IsDamaging()=false, no damage branch.
+- Attack=3, DamageScale=200 (200% multiplier), Defense=0 → rawDmg=6.
+- Attack=3, DamageScale=200, ArmorRating=5 → rawDmg=max(6-5,0)=1.
+- DamageScale=0, no other positive properties → IsDamaging()=false, no damage branch.

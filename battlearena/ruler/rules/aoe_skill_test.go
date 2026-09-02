@@ -59,7 +59,7 @@ func TestRuleSkill_AOE_ZoneProperty(t *testing.T) {
 	sk.Targeting[property.PropertyToString(property.TargetType)] = tt
 	
 	// Set Effect to deal Damage
-	sk.Effect.Properties = append(sk.Effect.Properties, defaultproperty.MakeIntProperty(property.Damage, 50, property.FriendlyController, property.Skill))
+	sk.Effect.Properties = append(sk.Effect.Properties, defaultproperty.MakeIntProperty(property.DamageScale, 50, property.FriendlyController, property.Skill))
 	
 	addSkillToEntity(gs, fake.Attacker, sk)
 

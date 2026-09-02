@@ -21,7 +21,7 @@ func TestRuleSkillEffectDamage(t *testing.T) {
 	gs, fake := makeGameStateForTwoSkill()
 
 	fake.Skill.Effect.Properties = append(fake.Skill.Effect.Properties,
-		defaultproperty.MakeIntProperty(property.Damage, 400, property.Public, property.Skill))
+		defaultproperty.MakeIntProperty(property.DamageScale, 400, property.Public, property.Skill))
 	
 	// Add 100% accuracy to ensure it hits
 	fake.Skill.Targeting[property.Accuracy.String()] = defaultproperty.MakeIntProperty(property.Accuracy, 100, property.Public, property.Skill)

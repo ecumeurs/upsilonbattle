@@ -21,7 +21,7 @@ import (
 // plus a Channeling cost of the given delay (Delay cost is left absent → 500).
 func withChannel(sk skill.Skill, damage, delay int) skill.Skill {
 	sk.Effect.Properties = append(sk.Effect.Properties,
-		defaultproperty.MakeIntProperty(property.Damage, damage, property.FriendlyController, property.Skill))
+		defaultproperty.MakeIntProperty(property.DamageScale, damage, property.FriendlyController, property.Skill))
 	ch := defaultproperty.MakeIntCounterProperty(property.Channeling, 0, delay, property.FriendlyController, property.Skill)
 	sk.Costs[ch.Name(property.GameMaster)] = ch
 	return sk

@@ -94,7 +94,7 @@ func WithSP(v int) PlaceOption {
 }
 
 // WithStat sets an integer stat property (Attack, Defense, ArmorRating, JumpHeight, …).
-func WithStat(p interface{}, v int) PlaceOption {
+func WithStat(p property.Key, v int) PlaceOption {
 	return func(e *entity.Entity) { e.RepsertPropertyValue(p, v) }
 }
 

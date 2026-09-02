@@ -29,7 +29,7 @@ func TestEffectApplicatorDodge_ReadsFromTargetNotCaster(t *testing.T) {
 	// Target keeps the default Dodge of 0 (untouched).
 
 	eff := effect.New()
-	eff.Properties = append(eff.Properties, defaultproperty.MakeIntProperty(property.Damage, 100, property.Public, property.Skill))
+	eff.Properties = append(eff.Properties, defaultproperty.MakeIntProperty(property.DamageScale, 100, property.Public, property.Skill))
 
 	tools.TesterRand(func(n int) int {
 		return 50 // fixed roll: hits iff accuracy-dodge > 50

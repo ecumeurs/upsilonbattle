@@ -5,7 +5,8 @@ tags: [items, buffs, engine, iss-074]
 parents:
   - [[mechanic_equipment_stat_bonuses]]
   - [[upsilonapi:entity_character_equipment]]
-dependents: []
+dependents:
+  - [[upsilontypes:mechanic_buff_attribution_accessor]]
 type: MECHANIC
 layer: IMPLEMENTATION
 priority: 5
@@ -21,44 +22,14 @@ To define how equipped items are projected onto the engine's `Entity` at battle 
 ## THE RULE / LOGIC
 **Item-as-Buff Projection (battle init):**
 
-For each entity in the incoming `ArenaStartRequest`, the bridge processes `entity.equipped_items[]` (populated by `UpsilonEntityResource` from `character_equipment` joined with `player_inventory.shop_item.properties`):
-
-```go
-for _, item := range entity.EquippedItems {
-    buff := property.TemporaryProperties{
-        Forever:        true,                     // never ticked down
-        OriginEntityID: uuid.MustParse(item.ItemID),
-        Properties:     map[string]property.Property{},
-    }
-    for key, raw := range item.Properties {
-        buff.Properties[key] = def.ItemProperty(property.ItemProperties(key)).WithValue(raw)
-    }
-    entity.RegisterBuff(buff)
-
-    // Weapon-as-skill: items can carry an Effect (skill ID).
-    if effect, ok := item.Properties["Effect"]; ok && effect != nil {
-        skill := registry.LookupSkill(effect)
-        entity.RegisterSkill(skill)
-    }
-}
-```
+For each entity in the incoming `ArenaStartRequest`, the bridge processes `entity.equipped_items[]` (populated by `UpsilonEntityResource` from `character_equipment` joined with `player_inventory.shop_item.properties`). For each equipped item, the bridge builds a `Forever=true` `property.TemporaryProperties` buff whose `OriginEntityID` is the item's ID, resolves each of the item's properties into a buff property, and registers the buff on the entity via `RegisterBuff`. Items that carry an `Effect` (a skill ID) also register the corresponding skill on the entity via `RegisterSkill`.
 
 **Why `Forever=true`:**
 - Equipment buffs must not decay with `BuffTickDown`. They persist for the entire match unless the item is unequipped.
 - The existing `BuffTickDown` already exempts `Forever` buffs.
 
 **Unequip at runtime (in-match equip changes are NOT supported in V2.0; this is for save-state restore and future runtime swap):**
-```go
-func (e *Entity) RemoveBuffsByOrigin(originID uuid.UUID) {
-    kept := make([]property.TemporaryProperties, 0, len(e.Buffs))
-    for _, b := range e.Buffs {
-        if b.OriginEntityID != originID {
-            kept = append(kept, b)
-        }
-    }
-    e.Buffs = kept
-}
-```
+`RemoveBuffsByOrigin(originID)` strips every buff on the entity whose `OriginEntityID` matches the given origin, keeping the rest.
 
 **Property resolution:**
 - `entity.GetProperty(name)` already iterates buffs and applies them via `prop.ApplyBuff(buff)` (see `entity.go:155-165`).

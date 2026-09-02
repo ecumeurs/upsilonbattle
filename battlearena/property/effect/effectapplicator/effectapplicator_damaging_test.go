@@ -40,7 +40,7 @@ func TestEffectApplicatorDamage1Target(t *testing.T) {
 	eff := effect.New()
 
 	// This effect will double the damage (3 -> 6)
-	eff.Properties = append(eff.Properties, defaultproperty.MakeIntProperty(property.Damage, 200, property.Public, property.Skill))
+	eff.Properties = append(eff.Properties, defaultproperty.MakeIntProperty(property.DamageScale, 200, property.Public, property.Skill))
 
 	// Base defense is 0, No armoring provided, so damage should be 6
 
@@ -79,7 +79,7 @@ func TestEffectApplicatorDamage1TargetShield(t *testing.T) {
 	eff := effect.New()
 
 	// This effect will double the damage (3 -> 6)
-	eff.Properties = append(eff.Properties, defaultproperty.MakeIntProperty(property.Damage, 200, property.Public, property.Skill))
+	eff.Properties = append(eff.Properties, defaultproperty.MakeIntProperty(property.DamageScale, 200, property.Public, property.Skill))
 
 	fake.Target.UpdatePropertyValue(property.Shield, 5)
 
@@ -126,7 +126,7 @@ func TestEffectApplicatorDamage1Defense(t *testing.T) {
 	eff := effect.New()
 
 	// This effect will double the damage (3 -> 6)
-	eff.Properties = append(eff.Properties, defaultproperty.MakeIntProperty(property.Damage, 200, property.Public, property.Skill))
+	eff.Properties = append(eff.Properties, defaultproperty.MakeIntProperty(property.DamageScale, 200, property.Public, property.Skill))
 
 	fake.Target.RepsertPropertyValue(property.ArmorRating, 5)
 
@@ -398,7 +398,7 @@ func TestEffectApplicatorCrit(t *testing.T) {
 	})
 
 	// This effect only allow critic: 3 x 200% (crit mutliplier) = 6
-	eff.Properties = append(eff.Properties, defaultproperty.MakeIntProperty(property.Damage, 100, property.Public, property.Skill))
+	eff.Properties = append(eff.Properties, defaultproperty.MakeIntProperty(property.DamageScale, 100, property.Public, property.Skill))
 	eff.Properties = append(eff.Properties, defaultproperty.MakeIntProperty(property.CriticalChance, 100, property.Public, property.Skill))
 	eff.Properties = append(eff.Properties, defaultproperty.MakeIntProperty(property.CriticalMultiplier, 200, property.Public, property.Skill))
 

@@ -20,7 +20,7 @@ import (
 // getPropertyOrDefault retrieves a property from the provided effect. 
 // If the property is not found, it returns the global default value for that property type.
 // This ensures that effect application is resilient to missing optional properties in skill definitions.
-func getPropertyOrDefault(eff effect.Effect, p interface{}) property.Property {
+func getPropertyOrDefault(eff effect.Effect, p property.Key) property.Property {
 	res := eff.GetProperty(p)
 	if res == nil {
 		res = def.DefaultProperty(p)
@@ -31,21 +31,21 @@ func getPropertyOrDefault(eff effect.Effect, p interface{}) property.Property {
 // getPropertyOrDefaultI is a typed helper that returns an IntProperty from an effect.
 // It uses getPropertyOrDefault and performs a type assertion to property.IntProperty.
 // Use this when you are certain the property exists or has a valid integer default.
-func getPropertyOrDefaultI(eff effect.Effect, p interface{}) property.IntProperty {
+func getPropertyOrDefaultI(eff effect.Effect, p property.Key) property.IntProperty {
 	return getPropertyOrDefault(eff, p).(property.IntProperty)
 }
 
 // getPropertyOrDefaultF is a typed helper that returns a FloatProperty from an effect.
 // It uses getPropertyOrDefault and performs a type assertion to property.FloatProperty.
 // Use this for properties like multipliers or rates where precision is required.
-func getPropertyOrDefaultF(eff effect.Effect, p interface{}) property.FloatProperty {
+func getPropertyOrDefaultF(eff effect.Effect, p property.Key) property.FloatProperty {
 	return getPropertyOrDefault(eff, p).(property.FloatProperty)
 }
 
 // getPropertyOrDefaultC is a typed helper that returns an IntCounterProperty from an effect.
 // It uses getPropertyOrDefault and performs a type assertion to property.IntCounterProperty.
 // Useful for properties that track current/max values like HP, SP, or Shield.
-func getPropertyOrDefaultC(eff effect.Effect, p interface{}) property.IntCounterProperty {
+func getPropertyOrDefaultC(eff effect.Effect, p property.Key) property.IntCounterProperty {
 	return getPropertyOrDefault(eff, p).(property.IntCounterProperty)
 }
 
@@ -119,7 +119,7 @@ func applyDamagingEffect(logger *logrus.Entry, ent *entity.Entity, eff effect.Ef
 // It handles crits, defense/armor reduction, shield depletion, and status effect application.
 func applyDamageToSingleTarget(logger *logrus.Entry, ent *entity.Entity, eff effect.Effect, target entity.Entity) rulermethods.ActionResult {
 	attack := ent.GetPropertyI(property.Attack).I()
-	damage := getPropertyOrDefaultI(eff, property.Damage).I()
+	damage := getPropertyOrDefaultI(eff, property.DamageScale).I()
 	shieldPower := getPropertyOrDefaultI(eff, property.ShieldPower).I()
 	stunpwr := getPropertyOrDefaultI(eff, property.StunPower).I()
 	stunchance := getPropertyOrDefaultI(eff, property.StunChance).I()

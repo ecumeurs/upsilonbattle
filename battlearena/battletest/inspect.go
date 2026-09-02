@@ -43,7 +43,7 @@ func (s *Scenario) Poison(a *Actor) int {
 }
 
 // Stat returns an integer property value for the actor.
-func (s *Scenario) Stat(a *Actor, p interface{}) int {
+func (s *Scenario) Stat(a *Actor, p property.Key) int {
 	return s.Entity(a).GetPropertyI(p).I()
 }
 

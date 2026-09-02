@@ -231,7 +231,7 @@ func (ctx *localSkillCtx) checkSkillCost(msg *message.Message, user entity.Entit
 		return false, msg.ReplyWithError("Not enough SP", "skill.cost.sp")
 	}
 
-	skp = sk.GetPropertyI(property.MvtCost)
+	skp = sk.GetPropertyI(property.MovementCost)
 	hp = user.GetPropertyC(property.Movement)
 	if hp.GetValue() < skp.I() {
 		ctx.log.Error("Not enough Mvt")
@@ -260,7 +260,7 @@ func (ctx *localSkillCtx) paySkillCost(user entity.Entity, sk skill.Skill) (enti
 	skp = sk.GetPropertyI(property.SPLeech)
 	user.AdjustPropertyCValue(property.SP, -skp.I())
 
-	skp = sk.GetPropertyI(property.MvtCost)
+	skp = sk.GetPropertyI(property.MovementCost)
 	user.AdjustPropertyCValue(property.Movement, -skp.I())
 
 	return user, sk

@@ -4,15 +4,15 @@
 package micro
 
 import (
+	"github.com/ecumeurs/upsilontools/tools"
 	"github.com/ecumeurs/upsilontypes/entity"
 	"github.com/ecumeurs/upsilontypes/property"
-	"github.com/ecumeurs/upsilontools/tools"
 	"github.com/google/uuid"
 )
 
 // skillTag is the set of skill property tags understood by micro-behaviors.
-// Maps a string tag to the corresponding SkillProperties key.
-var skillTagMap = map[string]property.SkillProperties{
+// Maps a string tag to the corresponding property.Key.
+var skillTagMap = map[string]property.Key{
 	"heal":   property.Heal,
 	"shield": property.ShieldPower,
 }

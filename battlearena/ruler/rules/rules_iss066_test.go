@@ -143,7 +143,7 @@ func TestRuleTrapTriggerOnExit(t *testing.T) {
 		Name:     "Exit Trap",
 		CasterID: uuid.Nil,
 		Properties: []property.Property{
-			defaultproperty.MakeIntProperty(property.Damage, 50, property.GameMaster, property.Skill),
+			defaultproperty.MakeIntProperty(property.DamageScale, 50, property.GameMaster, property.Skill),
 			def.TriggerType(property.TriggerOnExit),
 		},
 	}
